@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
 
@@ -26,10 +28,17 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiClient.post('/auth/login', {
-        'username': email,
-        'password': password,
-      });
+      // OAuth2 expects form data, not JSON
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/login'),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'username': email,
+          'password': password,
+        },
+      ).timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -39,7 +48,8 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        _error = 'Invalid email or password';
+        final data = jsonDecode(response.body);
+        _error = data['detail'] ?? 'Invalid email or password';
         _isLoading = false;
         notifyListeners();
         return false;
