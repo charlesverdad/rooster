@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../providers/availability_provider.dart';
+import '../../providers/assignment_provider.dart';
+import '../../models/assignment.dart';
 
 class AvailabilityScreen extends StatefulWidget {
   const AvailabilityScreen({super.key});
@@ -15,95 +16,45 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = Provider.of<AvailabilityProvider>(context, listen: false);
-      provider.fetchUnavailabilities();
-      provider.fetchConflicts();
+      Provider.of<AssignmentProvider>(context, listen: false).fetchMyAssignments();
     });
   }
 
   Future<void> _refresh() async {
-    final provider = Provider.of<AvailabilityProvider>(context, listen: false);
-    await provider.fetchUnavailabilities();
-    await provider.fetchConflicts();
+    await Provider.of<AssignmentProvider>(context, listen: false).fetchMyAssignments();
   }
 
-  Future<void> _showAddDialog() async {
-    DateTime? selectedDate;
-    final reasonController = TextEditingController();
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mark Unavailable'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                selectedDate == null
-                    ? 'Select Date'
-                    : DateFormat('EEEE, MMMM d, y').format(selectedDate!),
-              ),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (date != null) {
-                  setState(() {
-                    selectedDate = date;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                labelText: 'Reason (optional)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-          ],
+  Future<void> _updateStatus(String assignmentId, String newStatus) async {
+    final provider = Provider.of<AssignmentProvider>(context, listen: false);
+    final success = await provider.updateAssignmentStatus(assignmentId, newStatus);
+    
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            newStatus == 'confirmed'
+                ? 'Assignment accepted'
+                : 'Assignment declined',
+          ),
+          backgroundColor: newStatus == 'confirmed' ? Colors.green : Colors.orange,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (selectedDate != null) {
-                Navigator.pop(context, true);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true && selectedDate != null && mounted) {
-      final provider = Provider.of<AvailabilityProvider>(context, listen: false);
-      await provider.markUnavailable(
-        selectedDate!,
-        reasonController.text.isEmpty ? null : reasonController.text,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AvailabilityProvider>(context);
+    final provider = Provider.of<AssignmentProvider>(context);
     final dateFormat = DateFormat('EEEE, MMMM d, y');
+    
+    // Group assignments by status
+    final pending = provider.assignments.where((a) => a.status == 'pending').toList();
+    final confirmed = provider.assignments.where((a) => a.status == 'confirmed').toList();
+    final declined = provider.assignments.where((a) => a.status == 'declined').toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Availability'),
+        title: const Text('My Assignments'),
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -112,48 +63,51 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
             : ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (provider.conflicts.isNotEmpty) ...[
-                    Card(
-                      color: Colors.orange.shade50,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.warning, color: Colors.orange.shade700),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Conflicts Detected',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            ...provider.conflicts.map((conflict) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Text(
-                                    '${dateFormat.format(conflict.date)}: ${conflict.rosterName} (${conflict.teamName})',
-                                    style: const TextStyle(fontSize: 14),
-                                  ),
-                                )),
-                          ],
-                        ),
-                      ),
+                  if (pending.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      'Pending Response',
+                      pending.length,
+                      Colors.orange,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+                    ...pending.map((assignment) => _buildAssignmentCard(
+                          context,
+                          assignment,
+                          showActions: true,
+                        )),
+                    const SizedBox(height: 24),
                   ],
-                  Text(
-                    'Unavailable Dates',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  if (provider.unavailabilities.isEmpty)
+                  if (confirmed.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      'Accepted',
+                      confirmed.length,
+                      Colors.green,
+                    ),
+                    const SizedBox(height: 8),
+                    ...confirmed.map((assignment) => _buildAssignmentCard(
+                          context,
+                          assignment,
+                          showActions: false,
+                        )),
+                    const SizedBox(height: 24),
+                  ],
+                  if (declined.isNotEmpty) ...[
+                    _buildSectionHeader(
+                      context,
+                      'Declined',
+                      declined.length,
+                      Colors.grey,
+                    ),
+                    const SizedBox(height: 8),
+                    ...declined.map((assignment) => _buildAssignmentCard(
+                          context,
+                          assignment,
+                          showActions: false,
+                        )),
+                  ],
+                  if (provider.assignments.isEmpty)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.all(32),
@@ -162,59 +116,144 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                             Icon(Icons.event_available, size: 64, color: Colors.grey),
                             SizedBox(height: 16),
                             Text(
-                              'No unavailable dates marked',
+                              'No assignments yet',
                               style: TextStyle(color: Colors.grey, fontSize: 16),
                             ),
                           ],
                         ),
                       ),
-                    )
-                  else
-                    ...provider.unavailabilities.map((unavail) => Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: const CircleAvatar(
-                              child: Icon(Icons.event_busy),
-                            ),
-                            title: Text(dateFormat.format(unavail.date)),
-                            subtitle: unavail.reason != null
-                                ? Text(unavail.reason!)
-                                : null,
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Delete Unavailability'),
-                                    content: const Text(
-                                      'Are you sure you want to remove this unavailable date?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () => Navigator.pop(context, true),
-                                        child: const Text('Delete'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirm == true && mounted) {
-                                  await provider.deleteUnavailability(unavail.id);
-                                }
-                              },
-                            ),
-                          ),
-                        )),
+                    ),
                 ],
               ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        child: const Icon(Icons.add),
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context,
+    String title,
+    int count,
+    Color color,
+  ) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 24,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAssignmentCard(
+    BuildContext context,
+    Assignment assignment, {
+    required bool showActions,
+  }) {
+    final dateFormat = DateFormat('EEEE, MMMM d, y');
+    final isToday = DateTime.now().difference(assignment.date).inDays == 0;
+    final isPast = assignment.date.isBefore(DateTime.now());
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        assignment.rosterName ?? 'Assignment',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        dateFormat.format(assignment.date),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isToday)
+                  Chip(
+                    label: const Text('TODAY'),
+                    backgroundColor: Colors.orange,
+                    labelStyle: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
+            ),
+            if (showActions && !isPast) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _updateStatus(assignment.id, 'declined'),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Decline'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _updateStatus(assignment.id, 'confirmed'),
+                      icon: const Icon(Icons.check),
+                      label: const Text('Accept'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

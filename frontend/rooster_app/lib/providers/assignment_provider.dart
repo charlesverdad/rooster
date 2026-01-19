@@ -34,4 +34,26 @@ class AssignmentProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<bool> updateAssignmentStatus(String assignmentId, String status) async {
+    try {
+      final response = await ApiClient.patch(
+        '/rosters/assignments/$assignmentId',
+        {'status': status},
+      );
+
+      if (response.statusCode == 200) {
+        await fetchMyAssignments();
+        return true;
+      } else {
+        _error = 'Failed to update assignment';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Connection error: $e';
+      notifyListeners();
+      return false;
+    }
+  }
 }
