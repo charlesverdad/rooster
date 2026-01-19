@@ -1,0 +1,48 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# PostgreSQL
+.pgdata/
+
+# Environment
+.env
+.env.local
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Flutter
+frontend/rooster_app/.dart_tool/
+frontend/rooster_app/.packages
+frontend/rooster_app/build/
+frontend/rooster_app/.flutter-plugins
+frontend/rooster_app/.flutter-plugins-dependencies
+frontend/rooster_app/pubspec.lock
+
+# macOS
+.DS_Store
+*.pem
+
+# Logs
+*.log
