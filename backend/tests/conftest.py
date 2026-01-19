@@ -57,3 +57,42 @@ async def test_client(test_db) -> AsyncGenerator[AsyncClient, None]:
     """Fixture to provide a test client."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
+
+
+@pytest.fixture
+async def test_user(db_session: AsyncSession):
+    """Fixture to create a test user."""
+    from app.models.user import User
+    from app.core.security import get_password_hash
+    
+    user = User(
+        email="test@example.com",
+        name="Test User",
+        password_hash=get_password_hash("testpassword"),
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+async def auth_headers(test_client: AsyncClient, test_user):
+    """Fixture to provide authentication headers."""
+    from app.core.security import create_access_token
+    
+    token = create_access_token({"sub": test_user.email})
+    return {"Authorization": f"Bearer {token}"}
+
+
+# Alias fixtures for convenience
+@pytest.fixture
+async def client(test_client):
+    """Alias for test_client."""
+    return test_client
+
+
+@pytest.fixture
+async def db(db_session):
+    """Alias for db_session."""
+    return db_session
