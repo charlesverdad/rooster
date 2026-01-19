@@ -6,6 +6,8 @@ import '../config/api_config.dart';
 class ApiClient {
   static String? _token;
 
+  static bool get hasToken => _token != null;
+
   static Future<void> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('auth_token');

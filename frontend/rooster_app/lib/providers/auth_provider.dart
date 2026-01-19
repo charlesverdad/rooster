@@ -15,7 +15,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> init() async {
     await ApiClient.loadToken();
-    if (ApiClient._token != null) {
+    if (ApiClient.hasToken) {
       await fetchCurrentUser();
     }
   }
