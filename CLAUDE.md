@@ -16,7 +16,8 @@ Rooster is a church volunteer rostering application built with:
 ### Environment
 - **Always use `nix-shell`** for development environment
 - Run `nix-shell` before running any backend or build commands
-- The shell.nix provides Python, PostgreSQL, and other dependencies
+- The shell.nix provides Python, PostgreSQL, uv, and other dependencies
+- **Use `uv` for Python package management** (not pip)
 
 ### Branch Strategy
 - `main` - stable, production-ready code
@@ -36,7 +37,7 @@ rooster/
 │   │   └── core/             # Config, security, deps
 │   ├── alembic/              # Database migrations
 │   ├── tests/
-│   └── requirements.txt
+│   └── pyproject.toml        # Python dependencies (uv)
 ├── frontend/
 │   └── rooster_app/          # Flutter project
 ├── shell.nix
@@ -100,16 +101,21 @@ nix-shell
 
 # Backend
 cd backend
-uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload
+
+# Install/sync dependencies
+uv sync --project backend            # Install dependencies
+uv add <package> --project backend   # Add new dependency
+uv add --dev <package> --project backend  # Add dev dependency
 
 # Run migrations
-alembic upgrade head
+uv run alembic upgrade head
 
 # Create new migration
-alembic revision --autogenerate -m "description"
+uv run alembic revision --autogenerate -m "description"
 
 # Backend tests
-pytest
+uv run pytest
 
 # Frontend
 cd frontend/rooster_app

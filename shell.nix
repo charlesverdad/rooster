@@ -4,8 +4,7 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     # Python
     python312
-    python312Packages.pip
-    python312Packages.virtualenv
+    uv
 
     # PostgreSQL
     postgresql_16
@@ -23,16 +22,17 @@ pkgs.mkShell {
     echo "Rooster Development Environment"
     echo "================================"
 
-    # Set up Python virtual environment
+    # Set up Python virtual environment with uv
     if [ ! -d ".venv" ]; then
       echo "Creating Python virtual environment..."
-      python -m venv .venv
+      uv venv
     fi
     source .venv/bin/activate
 
-    # Install Python dependencies if requirements.txt exists
-    if [ -f "backend/requirements.txt" ]; then
-      pip install -q -r backend/requirements.txt
+    # Install Python dependencies if pyproject.toml exists
+    if [ -f "backend/pyproject.toml" ]; then
+      echo "Syncing Python dependencies..."
+      uv sync --project backend
     fi
 
     # Set up local PostgreSQL data directory
@@ -74,6 +74,7 @@ pkgs.mkShell {
     echo "  stop_db   - Stop PostgreSQL"
     echo ""
     echo "Python: $(python --version)"
+    echo "uv: $(uv --version)"
     echo "PostgreSQL: $(postgres --version)"
     echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Run flutter doctor to check')"
     echo ""
