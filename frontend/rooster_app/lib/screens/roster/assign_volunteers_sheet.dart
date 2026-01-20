@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/team_provider.dart';
 
 class AssignVolunteersSheet extends StatefulWidget {
-  final Map<String, dynamic> rosterDate;
+  final String teamId;
+  final Function(String userId) onAssign;
 
-  const AssignVolunteersSheet({super.key, required this.rosterDate});
+  const AssignVolunteersSheet({
+    super.key,
+    required this.teamId,
+    required this.onAssign,
+  });
 
   @override
   State<AssignVolunteersSheet> createState() => _AssignVolunteersSheetState();
@@ -14,6 +21,15 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<TeamProvider>(context, listen: false)
+          .fetchTeamDetail(widget.teamId);
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -21,22 +37,25 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // Mock data
-    final members = [
-      {'name': 'Emma Davis', 'isAvailable': true, 'isPlaceholder': false},
-      {'name': 'Tom Wilson', 'isAvailable': true, 'isPlaceholder': false},
-      {'name': 'Lisa Brown', 'isAvailable': true, 'isPlaceholder': false},
-      {'name': 'David Lee', 'isAvailable': false, 'reason': 'Away'},
-      {'name': 'John Smith', 'isAvailable': true, 'isPlaceholder': true},
-    ];
+    final teamProvider = Provider.of<TeamProvider>(context);
+    final members = teamProvider.currentTeamMembers;
 
     final filteredMembers = _searchQuery.isEmpty
         ? members
-        : members.where((m) => (m['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+        : members
+            .where((m) => (m['name'] as String)
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()))
+            .toList();
 
-    final available = filteredMembers.where((m) => m['isAvailable'] == true && m['isPlaceholder'] == false).toList();
-    final unavailable = filteredMembers.where((m) => m['isAvailable'] == false).toList();
-    final placeholders = filteredMembers.where((m) => m['isPlaceholder'] == true).toList();
+    final available = filteredMembers
+        .where((m) =>
+            m['isPlaceholder'] == false && m['isInvited'] != true)
+        .toList();
+    final unavailable = filteredMembers.where((m) => false).toList(); // TODO: Add unavailability logic
+    final placeholders = filteredMembers
+        .where((m) => m['isPlaceholder'] == true)
+        .toList();
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
@@ -53,26 +72,13 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Assign Volunteer',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${widget.rosterDate['rosterName']} • ${widget.rosterDate['date']}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
+                    const Expanded(
+                      child: Text(
+                        'Assign Volunteer',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -127,7 +133,8 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...unavailable.map((member) => _buildMemberTile(member, false)),
+                  ...unavailable
+                      .map((member) => _buildMemberTile(member, false)),
                   const SizedBox(height: 16),
                 ],
                 if (placeholders.isNotEmpty) ...[
@@ -140,7 +147,8 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...placeholders.map((member) => _buildMemberTile(member, true)),
+                  ...placeholders
+                      .map((member) => _buildMemberTile(member, true)),
                 ],
               ],
             ),
@@ -179,18 +187,17 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                 style: TextStyle(color: Colors.orange.shade700),
               )
             : null,
-        trailing: isAvailable
-            ? const Icon(Icons.chevron_right)
-            : null,
+        trailing: isAvailable ? const Icon(Icons.chevron_right) : null,
         onTap: isAvailable
-            ? () {
-                // Assign this member
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('✅ ${member['name']} assigned'),
-                  ),
-                );
-                Navigator.of(context).pop();
+            ? () async {
+                await widget.onAssign(member['id'] as String);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('✅ ${member['name']} assigned'),
+                    ),
+                  );
+                }
               }
             : null,
         enabled: isAvailable,
