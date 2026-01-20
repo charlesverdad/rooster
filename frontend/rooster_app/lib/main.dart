@@ -8,8 +8,9 @@ import 'providers/team_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/dashboard_screen.dart';
 import 'screens/team_lead/team_lead_dashboard.dart';
-import 'screens/availability/availability_screen.dart';
-import 'screens/notifications/notifications_screen.dart';
+import 'screens/assignments/assignments_list_screen.dart';
+import 'screens/teams/my_teams_screen.dart';
+import 'screens/more/more_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -135,35 +136,31 @@ class _MainNavigationState extends State<MainNavigation> {
 
         return Scaffold(
           body: screens[_selectedIndex],
-          bottomNavigationBar: Consumer<NotificationProvider>(
-            builder: (context, notificationProvider, child) {
-              return NavigationBar(
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
-                },
-                destinations: [
-                  const NavigationDestination(
-                    icon: Icon(Icons.home),
-                    label: 'Home',
-                  ),
-                  const NavigationDestination(
-                    icon: Icon(Icons.event_busy),
-                    label: 'Availability',
-                  ),
-                  NavigationDestination(
-                    icon: Badge(
-                      label: Text('${notificationProvider.unreadCount}'),
-                      isLabelVisible: notificationProvider.unreadCount > 0,
-                      child: const Icon(Icons.notifications),
-                    ),
-                    label: 'Notifications',
-                  ),
-                ],
-              );
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
             },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.assignment),
+                label: 'Assignments',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.groups),
+                label: 'Teams',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.more_horiz),
+                label: 'More',
+              ),
+            ],
           ),
         );
       },
