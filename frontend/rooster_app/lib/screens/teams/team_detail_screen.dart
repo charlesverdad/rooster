@@ -1,20 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'add_member_sheet.dart';
 import 'member_detail_screen.dart';
 import '../roster/create_roster_screen.dart';
-import '../roster/assign_volunteers_sheet.dart';
+import '../../providers/roster_provider.dart';
 import '../../mock_data/mock_data.dart';
 
-class TeamDetailScreen extends StatelessWidget {
+class TeamDetailScreen extends StatefulWidget {
   final String teamId;
 
   const TeamDetailScreen({super.key, required this.teamId});
 
   @override
+  State<TeamDetailScreen> createState() => _TeamDetailScreenState();
+}
+
+class _TeamDetailScreenState extends State<TeamDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<RosterProvider>(context, listen: false)
+          .fetchTeamRosters(widget.teamId);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final team = MockData.teams.firstWhere((t) => t['id'] == teamId);
-    final upcomingDates = MockData.rosterDates;
+    final team = MockData.teams.firstWhere((t) => t['id'] == widget.teamId);
     final members = MockData.teamMembers;
+    final rosterProvider = Provider.of<RosterProvider>(context);
+    final rosters = rosterProvider.rosters;
 
     return Scaffold(
       appBar: AppBar(
@@ -65,12 +81,12 @@ class TeamDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // Upcoming roster dates
+          // Rosters section
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Upcoming',
+                'Rosters',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -81,7 +97,7 @@ class TeamDetailScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CreateRosterScreen(teamId: teamId),
+                      builder: (context) => CreateRosterScreen(teamId: widget.teamId),
                     ),
                   );
                 },
@@ -90,7 +106,34 @@ class TeamDetailScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ...upcomingDates.map((date) => _buildRosterDateCard(context, date)),
+          
+          if (rosterProvider.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (rosters.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(Icons.calendar_today, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No rosters yet',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Create your first roster to get started',
+                      style: TextStyle(fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...rosters.map((roster) => _buildRosterCard(context, roster)),
+          
           const SizedBox(height: 24),
 
           // Members
@@ -128,84 +171,58 @@ class TeamDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRosterDateCard(BuildContext context, Map<String, dynamic> date) {
-    final isFilled = date['filled'] == date['needed'];
-    
+  Widget _buildRosterCard(BuildContext context, roster) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        date['date'],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${date['rosterName']} • ${date['time']}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            '/roster-detail',
+            arguments: roster.id,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isFilled ? Colors.green.shade50 : Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '${date['filled']}/${date['needed']} filled',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isFilled ? Colors.green.shade700 : Colors.orange.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (!isFilled) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (context) => AssignVolunteersSheet(
-                        teamId: teamId,
-                        onAssign: (userId) async {
-                          // TODO: Assign to specific event
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Volunteer assigned')),
-                          );
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.person_add, size: 18),
-                  label: const Text('Assign'),
+                child: Icon(
+                  Icons.calendar_today,
+                  color: Colors.blue.shade700,
                 ),
               ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      roster.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _getRecurrenceDisplay(roster.recurrencePattern),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -306,5 +323,18 @@ class TeamDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getRecurrenceDisplay(String pattern) {
+    switch (pattern.toLowerCase()) {
+      case 'weekly':
+        return 'Weekly';
+      case 'biweekly':
+        return 'Bi-weekly';
+      case 'monthly':
+        return 'Monthly';
+      default:
+        return pattern;
+    }
   }
 }
