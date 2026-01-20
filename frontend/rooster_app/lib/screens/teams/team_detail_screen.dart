@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'add_member_sheet.dart';
+import 'member_detail_screen.dart';
+import '../roster/create_roster_screen.dart';
+import '../roster/assign_volunteers_sheet.dart';
 
 class TeamDetailScreen extends StatelessWidget {
   final String teamId;
@@ -102,7 +106,12 @@ class TeamDetailScreen extends StatelessWidget {
               ),
               TextButton(
                 onPressed: () {
-                  // TODO: Create roster
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CreateRosterScreen(teamId: teamId),
+                    ),
+                  );
                 },
                 child: const Text('+ Create Roster'),
               ),
@@ -124,8 +133,17 @@ class TeamDetailScreen extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  // TODO: Add member
+                onPressed: () async {
+                  final name = await showModalBottomSheet<String>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) => const AddMemberSheet(),
+                  );
+                  if (name != null && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Added $name as placeholder')),
+                    );
+                  }
                 },
                 child: const Text('+ Add Member'),
               ),
@@ -195,7 +213,11 @@ class TeamDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // TODO: Assign volunteers
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (context) => AssignVolunteersSheet(rosterDate: date),
+                    );
                   },
                   icon: const Icon(Icons.person_add, size: 18),
                   label: const Text('Assign'),
@@ -227,7 +249,12 @@ class TeamDetailScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to member detail
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MemberDetailScreen(member: member),
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -284,7 +311,7 @@ class TeamDetailScreen extends StatelessWidget {
               if (isPlaceholder && !isInvited)
                 OutlinedButton(
                   onPressed: () {
-                    // TODO: Send invite
+                    Navigator.pushNamed(context, '/send-invite', arguments: member);
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -12,6 +12,7 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/availability/availability_screen.dart';
 import 'screens/teams/team_detail_screen.dart';
+import 'screens/teams/send_invite_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +57,12 @@ class MyApp extends StatelessWidget {
             final teamId = settings.arguments as String;
             return MaterialPageRoute(
               builder: (context) => TeamDetailScreen(teamId: teamId),
+            );
+          }
+          if (settings.name == '/send-invite') {
+            final member = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (context) => SendInviteScreen(member: member),
             );
           }
           return null;
