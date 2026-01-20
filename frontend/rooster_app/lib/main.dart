@@ -85,10 +85,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
+        print('🔍 DEBUG AuthWrapper: isAuthenticated=${authProvider.isAuthenticated}');
+        print('🔍 DEBUG AuthWrapper: user=${authProvider.user?.name}');
+        print('🔍 DEBUG AuthWrapper: roles=${authProvider.user?.roles}');
+        
         if (authProvider.isAuthenticated) {
           // Show appropriate navigation based on user role
           final isTeamLead = authProvider.user?.isTeamLead == true || 
                             authProvider.user?.isAdmin == true;
+          print('🔍 DEBUG AuthWrapper: isTeamLead=$isTeamLead');
           return MainNavigation(isTeamLead: isTeamLead);
         } else {
           return const LoginScreen();
@@ -112,6 +117,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    print('🔍 DEBUG MainNavigation: isTeamLead=${widget.isTeamLead}');
+    
     // Different screens based on role
     final List<Widget> screens = widget.isTeamLead
         ? const [
@@ -124,6 +131,8 @@ class _MainNavigationState extends State<MainNavigation> {
             AvailabilityScreen(),
             NotificationsScreen(),
           ];
+    
+    print('🔍 DEBUG MainNavigation: Showing ${widget.isTeamLead ? "TeamLeadDashboard" : "DashboardScreen"}');
 
     return Scaffold(
       body: screens[_selectedIndex],
