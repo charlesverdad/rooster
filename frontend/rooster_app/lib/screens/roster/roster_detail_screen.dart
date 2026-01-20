@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/roster_provider.dart';
-import '../../providers/team_provider.dart';
 import '../roster/assign_volunteers_sheet.dart';
 
 class RosterDetailScreen extends StatefulWidget {
@@ -104,7 +103,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
           const SizedBox(height: 12),
 
           // Events List
-          ...events.map((event) => _buildEventCard(context, event)),
+          ...events.map((event) => _buildEventCard(context, event, roster.teamId)),
 
           const SizedBox(height: 16),
 
@@ -136,29 +135,24 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
     );
   }
 
-  Widget _buildEventCard(BuildContext context, event) {
+  Widget _buildEventCard(BuildContext context, event, String teamId) {
     final dateFormat = DateFormat('EEE, MMM d, y');
     final timeFormat = DateFormat('h:mm a');
     final isFilled = event.isFilled;
     final isPartial = event.isPartial;
-    final isUnfilled = event.isUnfilled;
 
     Color statusColor;
     IconData statusIcon;
-    String statusText;
 
     if (isFilled) {
       statusColor = Colors.green;
       statusIcon = Icons.check_circle;
-      statusText = 'Filled';
     } else if (isPartial) {
       statusColor = Colors.orange;
       statusIcon = Icons.warning;
-      statusText = 'Partial';
     } else {
       statusColor = Colors.red;
       statusIcon = Icons.error;
-      statusText = 'Unfilled';
     }
 
     return Card(
@@ -234,7 +228,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                         context: context,
                         isScrollControlled: true,
                         builder: (context) => AssignVolunteersSheet(
-                          rosterDate: dateFormat.format(event.dateTime),
+                          teamId: teamId,
                           onAssign: (userId) async {
                             final rosterProvider =
                                 Provider.of<RosterProvider>(context,
@@ -243,6 +237,9 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                               event.id,
                               userId,
                             );
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                            }
                           },
                         ),
                       );
