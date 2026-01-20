@@ -188,7 +188,16 @@ class TeamDetailScreen extends StatelessWidget {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
-                      builder: (context) => AssignVolunteersSheet(rosterDate: date),
+                      builder: (context) => AssignVolunteersSheet(
+                        teamId: teamId,
+                        onAssign: (userId) async {
+                          // TODO: Assign to specific event
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Volunteer assigned')),
+                          );
+                          Navigator.of(context).pop();
+                        },
+                      ),
                     );
                   },
                   icon: const Icon(Icons.person_add, size: 18),
