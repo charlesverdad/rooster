@@ -10,7 +10,6 @@ class MockData {
       rosterName: 'Sunday Service',
       date: DateTime.now().add(const Duration(days: 2)),
       status: 'pending',
-      createdAt: DateTime.now().subtract(const Duration(hours: 3)),
     ),
     Assignment(
       id: '2',
@@ -19,7 +18,6 @@ class MockData {
       rosterName: 'Sunday Service',
       date: DateTime.now().add(const Duration(days: 9)),
       status: 'accepted',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
     ),
     Assignment(
       id: '3',
@@ -28,7 +26,6 @@ class MockData {
       rosterName: 'Wednesday Prayer',
       date: DateTime.now().add(const Duration(days: 5)),
       status: 'pending',
-      createdAt: DateTime.now().subtract(const Duration(hours: 12)),
     ),
     Assignment(
       id: '4',
@@ -37,7 +34,6 @@ class MockData {
       rosterName: 'Sunday Service',
       date: DateTime.now().add(const Duration(days: 16)),
       status: 'accepted',
-      createdAt: DateTime.now().subtract(const Duration(days: 5)),
     ),
     Assignment(
       id: '5',
@@ -46,7 +42,6 @@ class MockData {
       rosterName: 'Sunday Service',
       date: DateTime.now().add(const Duration(days: 23)),
       status: 'accepted',
-      createdAt: DateTime.now().subtract(const Duration(days: 5)),
     ),
   ];
 
