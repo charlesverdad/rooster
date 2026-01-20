@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
         home: const AuthWrapper(),
         routes: {
           '/login': (context) => const LoginScreen(),
-          '/home': (context) => const MainNavigation(isTeamLead: false),
+          '/home': (context) => const MainNavigation(),
         },
       ),
     );
