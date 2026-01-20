@@ -18,6 +18,7 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
   int _selectedDay = 0; // Sunday
   int _volunteersNeeded = 2;
   String _endType = 'never'; // 'never', 'on_date', 'after_occurrences'
+  DateTime? _startDate;
   DateTime? _endDate;
   int _occurrences = 10;
 
@@ -191,6 +192,33 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
           ),
           const SizedBox(height: 24),
 
+          // Start date
+          const Text(
+            'Start date',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _startDate ?? DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (date != null) {
+                setState(() => _startDate = date);
+              }
+            },
+            icon: const Icon(Icons.calendar_today),
+            label: Text(
+              _startDate != null
+                  ? DateFormat('EEE, MMM d, y').format(_startDate!)
+                  : 'Select start date',
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // End condition (only show if recurring)
           if (_recurrence != 'once') ...[
             const Text(
@@ -223,7 +251,7 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                     final date = await showDatePicker(
                       context: context,
                       initialDate: _endDate ?? DateTime.now().add(const Duration(days: 90)),
-                      firstDate: DateTime.now(),
+                      firstDate: _startDate ?? DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 730)),
                     );
                     if (date != null) {
@@ -294,9 +322,16 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                   return;
                 }
 
+                if (_startDate == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a start date')),
+                  );
+                  return;
+                }
+
                 if (_recurrence == 'once' && _endDate == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select a date')),
+                    const SnackBar(content: Text('Please select a date for one-time event')),
                   );
                   return;
                 }
