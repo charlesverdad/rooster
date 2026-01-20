@@ -1,6 +1,183 @@
 import '../models/assignment.dart';
+import '../models/roster.dart';
+import '../models/roster_event.dart';
 
 class MockData {
+  // Mock rosters (mutable for adding new ones)
+  static final List<Roster> _rosters = [
+    Roster(
+      id: 'roster1',
+      teamId: '1',
+      name: 'Sunday Service',
+      recurrence: 'weekly',
+      recurrenceDay: 0, // Sunday
+      recurrencePattern: 'weekly',
+      slotsNeeded: 2,
+      assignmentMode: 'manual',
+      createdAt: DateTime.now().subtract(const Duration(days: 30)),
+    ),
+    Roster(
+      id: 'roster2',
+      teamId: '1',
+      name: 'Wednesday Prayer',
+      recurrence: 'weekly',
+      recurrenceDay: 3, // Wednesday
+      recurrencePattern: 'weekly',
+      slotsNeeded: 1,
+      assignmentMode: 'manual',
+      createdAt: DateTime.now().subtract(const Duration(days: 20)),
+    ),
+  ];
+
+  // Mock events (mutable for adding new ones)
+  static final List<RosterEvent> _events = [
+    // Sunday Service events
+    RosterEvent(
+      id: 'event1',
+      rosterId: 'roster1',
+      rosterName: 'Sunday Service',
+      dateTime: _getNextSunday(0),
+      volunteersNeeded: 2,
+      assignedUserIds: ['user1', 'user2'],
+      assignedUserNames: ['Mike Chen', 'John Smith'],
+    ),
+    RosterEvent(
+      id: 'event2',
+      rosterId: 'roster1',
+      rosterName: 'Sunday Service',
+      dateTime: _getNextSunday(1),
+      volunteersNeeded: 2,
+      assignedUserIds: ['user1'],
+      assignedUserNames: ['Mike Chen'],
+    ),
+    RosterEvent(
+      id: 'event3',
+      rosterId: 'roster1',
+      rosterName: 'Sunday Service',
+      dateTime: _getNextSunday(2),
+      volunteersNeeded: 2,
+      assignedUserIds: [],
+    ),
+    RosterEvent(
+      id: 'event4',
+      rosterId: 'roster1',
+      rosterName: 'Sunday Service',
+      dateTime: _getNextSunday(3),
+      volunteersNeeded: 2,
+      assignedUserIds: [],
+    ),
+    RosterEvent(
+      id: 'event5',
+      rosterId: 'roster1',
+      rosterName: 'Sunday Service',
+      dateTime: _getNextSunday(4),
+      volunteersNeeded: 2,
+      assignedUserIds: [],
+    ),
+    RosterEvent(
+      id: 'event6',
+      rosterId: 'roster1',
+      rosterName: 'Sunday Service',
+      dateTime: _getNextSunday(5),
+      volunteersNeeded: 2,
+      assignedUserIds: [],
+    ),
+    RosterEvent(
+      id: 'event7',
+      rosterId: 'roster1',
+      rosterName: 'Sunday Service',
+      dateTime: _getNextSunday(6),
+      volunteersNeeded: 2,
+      assignedUserIds: [],
+    ),
+    // Wednesday Prayer events
+    RosterEvent(
+      id: 'event8',
+      rosterId: 'roster2',
+      rosterName: 'Wednesday Prayer',
+      dateTime: _getNextWednesday(0),
+      volunteersNeeded: 1,
+      assignedUserIds: ['user3'],
+      assignedUserNames: ['Sarah Johnson'],
+    ),
+    RosterEvent(
+      id: 'event9',
+      rosterId: 'roster2',
+      rosterName: 'Wednesday Prayer',
+      dateTime: _getNextWednesday(1),
+      volunteersNeeded: 1,
+      assignedUserIds: [],
+    ),
+  ];
+
+  // Helper methods for rosters
+  static List<Roster> getRostersForTeam(String teamId) {
+    return _rosters.where((r) => r.teamId == teamId).toList();
+  }
+
+  static Roster? getRosterById(String rosterId) {
+    try {
+      return _rosters.firstWhere((r) => r.id == rosterId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static void addRoster(Roster roster, List<RosterEvent> events) {
+    _rosters.add(roster);
+    _events.addAll(events);
+  }
+
+  // Helper methods for events
+  static List<RosterEvent> getEventsForRoster(String rosterId) {
+    return _events.where((e) => e.rosterId == rosterId).toList()
+      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+  }
+
+  static void addEventsToRoster(String rosterId, List<RosterEvent> events) {
+    _events.addAll(events);
+  }
+
+  static void updateEvent(RosterEvent event) {
+    final index = _events.indexWhere((e) => e.id == event.id);
+    if (index != -1) {
+      _events[index] = event;
+    }
+  }
+
+  // Helper to get next occurrence of a day
+  static DateTime _getNextSunday(int weeksFromNow) {
+    final now = DateTime.now();
+    DateTime next = now;
+    
+    // Find next Sunday
+    while (next.weekday != DateTime.sunday) {
+      next = next.add(const Duration(days: 1));
+    }
+    
+    // Add weeks
+    next = next.add(Duration(days: 7 * weeksFromNow));
+    
+    // Set time to 9:00 AM
+    return DateTime(next.year, next.month, next.day, 9, 0);
+  }
+
+  static DateTime _getNextWednesday(int weeksFromNow) {
+    final now = DateTime.now();
+    DateTime next = now;
+    
+    // Find next Wednesday
+    while (next.weekday != DateTime.wednesday) {
+      next = next.add(const Duration(days: 1));
+    }
+    
+    // Add weeks
+    next = next.add(Duration(days: 7 * weeksFromNow));
+    
+    // Set time to 7:00 PM
+    return DateTime(next.year, next.month, next.day, 19, 0);
+  }
+
   // Mock assignments
   static List<Assignment> get assignments => [
     Assignment(
@@ -116,7 +293,7 @@ class MockData {
     },
   ];
 
-  // Mock roster dates
+  // Mock roster dates (deprecated - use events instead)
   static List<Map<String, dynamic>> get rosterDates => [
     {
       'id': 'date1',
@@ -162,3 +339,4 @@ class MockData {
     return '${days[date.weekday % 7]}, ${months[date.month - 1]} ${date.day}';
   }
 }
+
