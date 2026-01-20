@@ -123,16 +123,19 @@ class _MainNavigationState extends State<MainNavigation> {
         final List<Widget> screens = isTeamLead
             ? const [
                 TeamLeadDashboard(),
-                AvailabilityScreen(),
-                NotificationsScreen(),
+                AssignmentsListScreen(),
+                MyTeamsScreen(),
+                MoreScreen(),
               ]
             : const [
                 DashboardScreen(),
-                AvailabilityScreen(),
-                NotificationsScreen(),
+                AssignmentsListScreen(),
+                MyTeamsScreen(),
+                MoreScreen(),
               ];
         
         print('🔍 DEBUG MainNavigation: Showing ${isTeamLead ? "TeamLeadDashboard" : "DashboardScreen"}');
+
 
         return Scaffold(
           body: screens[_selectedIndex],
