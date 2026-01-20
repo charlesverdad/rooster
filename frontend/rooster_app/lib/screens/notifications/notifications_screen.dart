@@ -1,143 +1,149 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import '../../providers/notification_provider.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
-}
-
-class _NotificationsScreenState extends State<NotificationsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
-    });
-  }
-
-  Future<void> _refresh() async {
-    await Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<NotificationProvider>(context);
-    final dateFormat = DateFormat('MMM d, y h:mm a');
+    // Mock notifications
+    final notifications = [
+      {
+        'id': '1',
+        'type': 'assignment',
+        'title': 'New Assignment',
+        'message': 'You\'ve been assigned to Sunday Service on Jan 21',
+        'time': '2 hours ago',
+        'isRead': false,
+      },
+      {
+        'id': '2',
+        'type': 'reminder',
+        'title': 'Upcoming Assignment',
+        'message': 'Sunday Service tomorrow at 9:00 AM',
+        'time': '1 day ago',
+        'isRead': false,
+      },
+      {
+        'id': '3',
+        'type': 'info',
+        'title': 'Team Update',
+        'message': 'Mike Chen added you to Media Team',
+        'time': '3 days ago',
+        'isRead': true,
+      },
+    ];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          if (provider.unreadCount > 0)
-            TextButton(
-              onPressed: () async {
-                await provider.markAllAsRead();
-              },
-              child: const Text('Mark all read'),
-            ),
+          TextButton(
+            onPressed: () {
+              // TODO: Mark all as read
+            },
+            child: const Text('Mark all read'),
+          ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: provider.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : provider.notifications.isEmpty
-                ? ListView(
-                    children: const [
-                      SizedBox(height: 100),
-                      Icon(Icons.notifications_none, size: 80, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'No notifications',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                    ],
-                  )
-                : ListView.builder(
-                    itemCount: provider.notifications.length,
-                    itemBuilder: (context, index) {
-                      final notification = provider.notifications[index];
-                      return Dismissible(
-                        key: Key(notification.id),
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 16),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        direction: DismissDirection.endToStart,
-                        onDismissed: (direction) {
-                          provider.deleteNotification(notification.id);
-                        },
-                        child: Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          elevation: notification.isRead ? 0 : 2,
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: notification.isRead
-                                  ? Colors.grey
-                                  : Theme.of(context).primaryColor,
-                              child: Icon(
-                                _getIconForType(notification.type),
-                                color: Colors.white,
-                              ),
-                            ),
-                            title: Text(
-                              notification.title,
-                              style: TextStyle(
-                                fontWeight: notification.isRead
-                                    ? FontWeight.normal
-                                    : FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                Text(notification.message),
-                                const SizedBox(height: 4),
-                                Text(
-                                  dateFormat.format(notification.createdAt),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            isThreeLine: true,
-                            onTap: () async {
-                              if (!notification.isRead) {
-                                await provider.markAsRead(notification.id);
-                              }
-                            },
-                          ),
-                        ),
-                      );
-                    },
+      body: notifications.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.notifications_none,
+                    size: 64,
+                    color: Colors.grey.shade400,
                   ),
-      ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No notifications',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              itemCount: notifications.length,
+              itemBuilder: (context, index) {
+                final notification = notifications[index];
+                return Dismissible(
+                  key: Key(notification['id'] as String),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 16),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  onDismissed: (direction) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Notification deleted')),
+                    );
+                  },
+                  child: _buildNotificationTile(context, notification),
+                );
+              },
+            ),
     );
   }
 
-  IconData _getIconForType(String type) {
+  Widget _buildNotificationTile(BuildContext context, Map<String, dynamic> notification) {
+    final isRead = notification['isRead'] as bool;
+    final type = notification['type'] as String;
+
+    IconData icon;
+    Color iconColor;
+
     switch (type) {
-      case 'ASSIGNMENT_CREATED':
-        return Icons.event;
-      case 'ASSIGNMENT_REMINDER':
-        return Icons.alarm;
-      case 'CONFLICT_DETECTED':
-        return Icons.warning;
+      case 'assignment':
+        icon = Icons.assignment;
+        iconColor = Colors.blue;
+        break;
+      case 'reminder':
+        icon = Icons.notifications_active;
+        iconColor = Colors.orange;
+        break;
       default:
-        return Icons.notifications;
+        icon = Icons.info;
+        iconColor = Colors.grey;
     }
+
+    return Container(
+      color: isRead ? null : Colors.blue.shade50,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: iconColor.withOpacity(0.1),
+          child: Icon(icon, color: iconColor),
+        ),
+        title: Text(
+          notification['title'] as String,
+          style: TextStyle(
+            fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(notification['message'] as String),
+            const SizedBox(height: 4),
+            Text(
+              notification['time'] as String,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+        onTap: () {
+          // TODO: Navigate to related item and mark as read
+        },
+      ),
+    );
   }
 }

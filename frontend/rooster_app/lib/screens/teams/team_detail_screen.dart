@@ -3,6 +3,7 @@ import 'add_member_sheet.dart';
 import 'member_detail_screen.dart';
 import '../roster/create_roster_screen.dart';
 import '../roster/assign_volunteers_sheet.dart';
+import '../../mock_data/mock_data.dart';
 
 class TeamDetailScreen extends StatelessWidget {
   final String teamId;
@@ -11,38 +12,9 @@ class TeamDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Mock data - TODO: Replace with actual data from provider
-    final team = {
-      'name': 'Media Team',
-      'icon': '📹',
-      'memberCount': 12,
-      'description': 'Run slides and sound for Sunday services',
-    };
-
-    final upcomingDates = [
-      {
-        'date': 'Sun, Jan 21',
-        'rosterName': 'Sunday Service',
-        'time': '9:00 AM',
-        'filled': 2,
-        'needed': 2,
-      },
-      {
-        'date': 'Sun, Jan 28',
-        'rosterName': 'Sunday Service',
-        'time': '9:00 AM',
-        'filled': 1,
-        'needed': 2,
-      },
-    ];
-
-    final members = [
-      {'name': 'Mike Chen', 'role': 'Lead', 'isPlaceholder': false, 'isInvited': false},
-      {'name': 'John Smith', 'role': 'Member', 'isPlaceholder': false, 'isInvited': false},
-      {'name': 'Sarah Johnson', 'role': 'Member', 'isPlaceholder': false, 'isInvited': false},
-      {'name': 'Emma Davis', 'role': 'Member', 'isPlaceholder': true, 'isInvited': false},
-      {'name': 'Tom Wilson', 'role': 'Member', 'isPlaceholder': true, 'isInvited': true},
-    ];
+    final team = MockData.teams.firstWhere((t) => t['id'] == teamId);
+    final upcomingDates = MockData.rosterDates;
+    final members = MockData.teamMembers;
 
     return Scaffold(
       appBar: AppBar(

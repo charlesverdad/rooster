@@ -1,29 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../mock_data/mock_data.dart';
 
 class MyTeamsScreen extends StatelessWidget {
   const MyTeamsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Mock data - TODO: Replace with actual data from provider
-    final teams = [
-      {
-        'id': '1',
-        'name': 'Media Team',
-        'icon': '📹',
-        'memberCount': 12,
-        'nextDate': 'Sun, Jan 21',
-        'role': 'Member',
-      },
-      {
-        'id': '2',
-        'name': 'Worship Team',
-        'icon': '🎵',
-        'memberCount': 8,
-        'nextDate': 'Sun, Jan 21',
-        'role': 'Lead',
-      },
-    ];
+    final teams = MockData.teams;
 
     return Scaffold(
       appBar: AppBar(
