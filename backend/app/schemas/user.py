@@ -25,6 +25,7 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     email: str
     name: str
+    roles: list[str] = []
     created_at: datetime
 
     model_config = {"from_attributes": True}

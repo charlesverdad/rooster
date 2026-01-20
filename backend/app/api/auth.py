@@ -23,7 +23,10 @@ async def register(user_data: UserCreate, db: DbSession) -> UserResponse:
         )
 
     user = await auth_service.create_user(user_data)
-    return UserResponse.model_validate(user)
+    roles = await auth_service.get_user_roles(user.id)
+    user_response = UserResponse.model_validate(user)
+    user_response.roles = roles
+    return user_response
 
 
 @router.post("/login", response_model=Token)
@@ -47,6 +50,10 @@ async def login(
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(current_user: CurrentUser) -> UserResponse:
+async def get_current_user(current_user: CurrentUser, db: DbSession) -> UserResponse:
     """Get current authenticated user."""
-    return UserResponse.model_validate(current_user)
+    auth_service = AuthService(db)
+    roles = await auth_service.get_user_roles(current_user.id)
+    user_response = UserResponse.model_validate(current_user)
+    user_response.roles = roles
+    return user_response

@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +38,29 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             return None
         return user
+
+    async def get_user_roles(self, user_id: uuid.UUID) -> list[str]:
+        """Get user roles based on team memberships."""
+        from app.models.team import TeamMember
+        
+        roles = ['member']  # Everyone is at least a member
+        
+        # Check if user is a team lead
+        result = await self.db.execute(
+            select(TeamMember).where(
+                TeamMember.user_id == user_id,
+                TeamMember.role == 'lead'
+            )
+        )
+        team_lead_memberships = result.scalars().all()
+        
+        if team_lead_memberships:
+            roles.append('team_lead')
+        
+        # TODO: Add admin role check when we implement org admins
+        # For now, we can check if user created the organization
+        
+        return roles
 
     def create_token(self, user: User) -> str:
         """Create a JWT access token for a user."""
