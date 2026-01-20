@@ -6,11 +6,11 @@ import 'providers/availability_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/team_provider.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/home/dashboard_screen.dart';
-import 'screens/team_lead/team_lead_dashboard.dart';
-import 'screens/assignments/assignments_list_screen.dart';
-import 'screens/teams/my_teams_screen.dart';
-import 'screens/more/more_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/settings/settings_screen.dart';
+import 'screens/notifications/notifications_screen.dart';
+import 'screens/availability/availability_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple,
+            seedColor: const Color(0xFF673AB7), // Deep Purple
             brightness: Brightness.light,
           ),
           useMaterial3: true,
@@ -43,7 +43,11 @@ class MyApp extends StatelessWidget {
         home: const AuthWrapper(),
         routes: {
           '/login': (context) => const LoginScreen(),
-          '/home': (context) => const MainNavigation(),
+          '/register': (context) => const RegisterScreen(),
+          '/home': (context) => const HomeScreen(),
+          '/settings': (context) => const SettingsScreen(),
+          '/notifications': (context) => const NotificationsScreen(),
+          '/availability': (context) => const AvailabilityScreen(),
         },
       ),
     );
@@ -86,86 +90,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        print('🔍 DEBUG AuthWrapper: isAuthenticated=${authProvider.isAuthenticated}');
-        print('🔍 DEBUG AuthWrapper: user=${authProvider.user?.name}');
-        print('🔍 DEBUG AuthWrapper: roles=${authProvider.user?.roles}');
-        
         if (authProvider.isAuthenticated) {
-          return const MainNavigation();
+          return const HomeScreen();
         } else {
           return const LoginScreen();
         }
-      },
-    );
-  }
-}
-
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
-
-  @override
-  State<MainNavigation> createState() => _MainNavigationState();
-}
-
-class _MainNavigationState extends State<MainNavigation> {
-  int _selectedIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        final isTeamLead = authProvider.user?.isTeamLead == true || 
-                          authProvider.user?.isAdmin == true;
-        
-        print('🔍 DEBUG MainNavigation: isTeamLead=$isTeamLead');
-        
-        // Different screens based on role
-        final List<Widget> screens = isTeamLead
-            ? const [
-                TeamLeadDashboard(),
-                AssignmentsListScreen(),
-                MyTeamsScreen(),
-                MoreScreen(),
-              ]
-            : const [
-                DashboardScreen(),
-                AssignmentsListScreen(),
-                MyTeamsScreen(),
-                MoreScreen(),
-              ];
-        
-        print('🔍 DEBUG MainNavigation: Showing ${isTeamLead ? "TeamLeadDashboard" : "DashboardScreen"}');
-
-
-        return Scaffold(
-          body: screens[_selectedIndex],
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.assignment),
-                label: 'Assignments',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.groups),
-                label: 'Teams',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.more_horiz),
-                label: 'More',
-              ),
-            ],
-          ),
-        );
       },
     );
   }
