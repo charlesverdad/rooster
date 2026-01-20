@@ -11,6 +11,7 @@ import 'screens/home/home_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 import 'screens/availability/availability_screen.dart';
+import 'screens/teams/team_detail_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,16 @@ class MyApp extends StatelessWidget {
           '/settings': (context) => const SettingsScreen(),
           '/notifications': (context) => const NotificationsScreen(),
           '/availability': (context) => const AvailabilityScreen(),
+        },
+        onGenerateRoute: (settings) {
+          // Handle routes with parameters
+          if (settings.name == '/team-detail') {
+            final teamId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => TeamDetailScreen(teamId: teamId),
+            );
+          }
+          return null;
         },
       ),
     );

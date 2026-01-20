@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
+import '../screens/teams/my_teams_screen.dart';
 
 class TeamLeadSection extends StatelessWidget {
-  final VoidCallback onViewTeams;
-
-  const TeamLeadSection({
-    super.key,
-    required this.onViewTeams,
-  });
+  const TeamLeadSection({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +22,12 @@ class TeamLeadSection extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: onViewTeams,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MyTeamsScreen()),
+                );
+              },
               child: const Text('View Teams'),
             ),
           ],

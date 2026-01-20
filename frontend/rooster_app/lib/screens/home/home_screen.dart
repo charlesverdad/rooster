@@ -116,11 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Team Lead Section (if applicable)
             if (isTeamLead) ...[
               const SizedBox(height: 32),
-              TeamLeadSection(
-                onViewTeams: () {
-                  // TODO: Navigate to teams
-                },
-              ),
+              const TeamLeadSection(),
             ],
           ],
         ),
