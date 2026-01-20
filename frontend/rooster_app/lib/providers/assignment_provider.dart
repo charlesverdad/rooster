@@ -1,7 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/assignment.dart';
-import '../services/api_client.dart';
+import '../mock_data/mock_data.dart';
 
 class AssignmentProvider with ChangeNotifier {
   List<Assignment> _assignments = [];
@@ -18,15 +17,12 @@ class AssignmentProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiClient.get('/rosters/assignments/my');
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 500));
       
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        _assignments = data.map((json) => Assignment.fromJson(json)).toList();
-        _assignments.sort((a, b) => a.date.compareTo(b.date));
-      } else {
-        _error = 'Failed to load assignments';
-      }
+      // Use mock data instead of API
+      _assignments = MockData.assignments;
+      _assignments.sort((a, b) => a.date.compareTo(b.date));
     } catch (e) {
       _error = 'Connection error: $e';
     }
@@ -37,22 +33,26 @@ class AssignmentProvider with ChangeNotifier {
 
   Future<bool> updateAssignmentStatus(String assignmentId, String status) async {
     try {
-      final response = await ApiClient.patch(
-        '/rosters/assignments/$assignmentId',
-        {'status': status},
-      );
-
-      if (response.statusCode == 200) {
-        await fetchMyAssignments();
-        return true;
-      } else {
-        _error = 'Failed to update assignment';
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      // Update local state
+      final index = _assignments.indexWhere((a) => a.id == assignmentId);
+      if (index != -1) {
+        _assignments[index] = Assignment(
+          id: _assignments[index].id,
+          userId: _assignments[index].userId,
+          rosterId: _assignments[index].rosterId,
+          rosterName: _assignments[index].rosterName,
+          date: _assignments[index].date,
+          status: status,
+        );
         notifyListeners();
-        return false;
+        return true;
       }
+      return false;
     } catch (e) {
-      _error = 'Connection error: $e';
-      notifyListeners();
+      debugPrint('Error updating assignment status: $e');
       return false;
     }
   }

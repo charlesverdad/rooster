@@ -1,16 +1,16 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import '../models/team.dart';
-import '../services/api_client.dart';
+import '../mock_data/mock_data.dart';
 
 class TeamProvider with ChangeNotifier {
-  List<Team> _teams = [];
-  Team? _currentTeam;
+  List<Map<String, dynamic>> _teams = [];
+  Map<String, dynamic>? _currentTeam;
+  List<Map<String, dynamic>> _currentTeamMembers = [];
   bool _isLoading = false;
   String? _error;
 
-  List<Team> get teams => _teams;
-  Team? get currentTeam => _currentTeam;
+  List<Map<String, dynamic>> get teams => _teams;
+  Map<String, dynamic>? get currentTeam => _currentTeam;
+  List<Map<String, dynamic>> get currentTeamMembers => _currentTeamMembers;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -20,14 +20,11 @@ class TeamProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiClient.get('/teams');
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 500));
       
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        _teams = data.map((json) => Team.fromJson(json)).toList();
-      } else {
-        _error = 'Failed to load teams';
-      }
+      // Use mock data
+      _teams = MockData.teams;
     } catch (e) {
       _error = 'Connection error: $e';
     }
@@ -38,20 +35,68 @@ class TeamProvider with ChangeNotifier {
 
   Future<void> fetchTeamDetail(String teamId) async {
     try {
-      final response = await ApiClient.get('/teams/$teamId');
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 300));
       
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _currentTeam = Team.fromJson(data);
-        notifyListeners();
-      }
+      _currentTeam = MockData.teams.firstWhere((t) => t['id'] == teamId);
+      _currentTeamMembers = MockData.teamMembers;
+      notifyListeners();
     } catch (e) {
       debugPrint('Error fetching team detail: $e');
     }
   }
 
+  Future<bool> addMember(String teamId, String name) async {
+    try {
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      // Add to local state
+      final newMember = {
+        'id': 'user${_currentTeamMembers.length + 1}',
+        'name': name,
+        'email': null,
+        'phone': null,
+        'role': 'Member',
+        'isPlaceholder': true,
+        'isInvited': false,
+      };
+      
+      _currentTeamMembers.add(newMember);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error adding member: $e');
+      return false;
+    }
+  }
+
+  Future<bool> sendInvite(String memberId, String email) async {
+    try {
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      // Update member status
+      final index = _currentTeamMembers.indexWhere((m) => m['id'] == memberId);
+      if (index != -1) {
+        _currentTeamMembers[index] = {
+          ..._currentTeamMembers[index],
+          'email': email,
+          'isInvited': true,
+        };
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error sending invite: $e');
+      return false;
+    }
+  }
+
   void clearCurrentTeam() {
     _currentTeam = null;
+    _currentTeamMembers = [];
     notifyListeners();
   }
 }
