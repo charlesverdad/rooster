@@ -1,14 +1,15 @@
 import 'package:flutter/foundation.dart';
+import '../models/notification.dart';
 
 class NotificationProvider with ChangeNotifier {
-  List<Map<String, dynamic>> _notifications = [];
+  List<AppNotification> _notifications = [];
   bool _isLoading = false;
   String? _error;
 
-  List<Map<String, dynamic>> get notifications => _notifications;
+  List<AppNotification> get notifications => _notifications;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  int get unreadCount => _notifications.where((n) => n['isRead'] == false).length;
+  int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
   Future<void> fetchNotifications() async {
     _isLoading = true;
@@ -18,33 +19,46 @@ class NotificationProvider with ChangeNotifier {
     try {
       // Simulate network delay
       await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Use mock data
+
+      // Use mock data with proper model and reference IDs
       _notifications = [
-        {
-          'id': '1',
-          'type': 'assignment',
-          'title': 'New Assignment',
-          'message': 'You\'ve been assigned to Sunday Service on ${_formatDate(DateTime.now().add(const Duration(days: 2)))}',
-          'time': '2 hours ago',
-          'isRead': false,
-        },
-        {
-          'id': '2',
-          'type': 'reminder',
-          'title': 'Upcoming Assignment',
-          'message': 'Sunday Service tomorrow at 9:00 AM',
-          'time': '1 day ago',
-          'isRead': false,
-        },
-        {
-          'id': '3',
-          'type': 'info',
-          'title': 'Team Update',
-          'message': 'Mike Chen added you to Media Team',
-          'time': '3 days ago',
-          'isRead': true,
-        },
+        AppNotification(
+          id: '1',
+          userId: 'user1',
+          type: 'assignment',
+          title: 'New Assignment',
+          message: 'You\'ve been assigned to Sunday Service on ${_formatDate(DateTime.now().add(const Duration(days: 2)))}',
+          createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+          referenceId: '1', // Assignment ID
+        ),
+        AppNotification(
+          id: '2',
+          userId: 'user1',
+          type: 'reminder',
+          title: 'Upcoming Assignment',
+          message: 'Sunday Service tomorrow at 9:00 AM',
+          createdAt: DateTime.now().subtract(const Duration(days: 1)),
+          referenceId: '2', // Assignment ID
+        ),
+        AppNotification(
+          id: '3',
+          userId: 'user1',
+          type: 'team',
+          title: 'Team Update',
+          message: 'Mike Chen added you to Media Team',
+          createdAt: DateTime.now().subtract(const Duration(days: 3)),
+          readAt: DateTime.now().subtract(const Duration(days: 2)),
+          referenceId: '1', // Team ID
+        ),
+        AppNotification(
+          id: '4',
+          userId: 'user1',
+          type: 'response',
+          title: 'Response Received',
+          message: 'Sarah Johnson accepted Sunday Service',
+          createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+          referenceId: 'event1', // Event ID
+        ),
       ];
     } catch (e) {
       _error = 'Connection error: $e';
@@ -58,13 +72,12 @@ class NotificationProvider with ChangeNotifier {
     try {
       // Simulate network delay
       await Future.delayed(const Duration(milliseconds: 200));
-      
-      final index = _notifications.indexWhere((n) => n['id'] == notificationId);
+
+      final index = _notifications.indexWhere((n) => n.id == notificationId);
       if (index != -1) {
-        _notifications[index] = {
-          ..._notifications[index],
-          'isRead': true,
-        };
+        _notifications[index] = _notifications[index].copyWith(
+          readAt: DateTime.now(),
+        );
         notifyListeners();
         return true;
       }
@@ -79,11 +92,10 @@ class NotificationProvider with ChangeNotifier {
     try {
       // Simulate network delay
       await Future.delayed(const Duration(milliseconds: 300));
-      
-      _notifications = _notifications.map((n) => {
-        ...n,
-        'isRead': true,
-      }).toList();
+
+      _notifications = _notifications.map((n) =>
+        n.isRead ? n : n.copyWith(readAt: DateTime.now())
+      ).toList();
       notifyListeners();
       return true;
     } catch (e) {
@@ -96,8 +108,8 @@ class NotificationProvider with ChangeNotifier {
     try {
       // Simulate network delay
       await Future.delayed(const Duration(milliseconds: 200));
-      
-      _notifications.removeWhere((n) => n['id'] == notificationId);
+
+      _notifications.removeWhere((n) => n.id == notificationId);
       notifyListeners();
       return true;
     } catch (e) {

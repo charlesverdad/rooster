@@ -50,6 +50,9 @@ dependencies:
   # JSON serialization
   json_annotation: ^4.8.1
 
+  # URL launcher for contact actions (email, phone, sms)
+  url_launcher: ^6.2.0
+
 
 dev_dependencies:
   flutter_test:

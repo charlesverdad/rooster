@@ -1,104 +1,118 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/notification.dart';
+import '../../providers/notification_provider.dart';
+import '../../providers/assignment_provider.dart';
+import '../assignments/assignment_detail_screen.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Mock notifications
-    final notifications = [
-      {
-        'id': '1',
-        'type': 'assignment',
-        'title': 'New Assignment',
-        'message': 'You\'ve been assigned to Sunday Service on Jan 21',
-        'time': '2 hours ago',
-        'isRead': false,
-      },
-      {
-        'id': '2',
-        'type': 'reminder',
-        'title': 'Upcoming Assignment',
-        'message': 'Sunday Service tomorrow at 9:00 AM',
-        'time': '1 day ago',
-        'isRead': false,
-      },
-      {
-        'id': '3',
-        'type': 'info',
-        'title': 'Team Update',
-        'message': 'Mike Chen added you to Media Team',
-        'time': '3 days ago',
-        'isRead': true,
-      },
-    ];
+    final notificationProvider = Provider.of<NotificationProvider>(context);
+    final notifications = notificationProvider.notifications;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
-          TextButton(
-            onPressed: () {
-              // TODO: Mark all as read
-            },
-            child: const Text('Mark all read'),
-          ),
+          if (notificationProvider.unreadCount > 0)
+            TextButton(
+              onPressed: () async {
+                await notificationProvider.markAllAsRead();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('All notifications marked as read')),
+                  );
+                }
+              },
+              child: const Text('Mark all read'),
+            ),
         ],
       ),
-      body: notifications.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_none,
-                    size: 64,
-                    color: Colors.grey.shade400,
+      body: notificationProvider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : notifications.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.notifications_none,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No notifications',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'You\'ll see assignment updates here',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No notifications',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                    ),
+                )
+              : RefreshIndicator(
+                  onRefresh: notificationProvider.fetchNotifications,
+                  child: ListView.builder(
+                    itemCount: notifications.length,
+                    itemBuilder: (context, index) {
+                      final notification = notifications[index];
+                      return Dismissible(
+                        key: Key(notification.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 16),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) async {
+                          await notificationProvider.deleteNotification(notification.id);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Notification deleted')),
+                            );
+                          }
+                        },
+                        child: _buildNotificationTile(context, notification),
+                      );
+                    },
                   ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              itemCount: notifications.length,
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
-                return Dismissible(
-                  key: Key(notification['id'] as String),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  onDismissed: (direction) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Notification deleted')),
-                    );
-                  },
-                  child: _buildNotificationTile(context, notification),
-                );
-              },
-            ),
+                ),
     );
   }
 
-  Widget _buildNotificationTile(BuildContext context, Map<String, dynamic> notification) {
-    final isRead = notification['isRead'] as bool;
-    final type = notification['type'] as String;
+  Widget _buildNotificationTile(BuildContext context, AppNotification notification) {
+    final isRead = notification.isRead;
 
     IconData icon;
     Color iconColor;
 
-    switch (type) {
+    switch (notification.type) {
       case 'assignment':
         icon = Icons.assignment;
         iconColor = Colors.blue;
@@ -106,6 +120,14 @@ class NotificationsScreen extends StatelessWidget {
       case 'reminder':
         icon = Icons.notifications_active;
         iconColor = Colors.orange;
+        break;
+      case 'response':
+        icon = Icons.check_circle;
+        iconColor = Colors.green;
+        break;
+      case 'team':
+        icon = Icons.group;
+        iconColor = Colors.purple;
         break;
       default:
         icon = Icons.info;
@@ -116,11 +138,11 @@ class NotificationsScreen extends StatelessWidget {
       color: isRead ? null : Colors.blue.shade50,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: iconColor.withOpacity(0.1),
+          backgroundColor: iconColor.withValues(alpha: 0.1),
           child: Icon(icon, color: iconColor),
         ),
         title: Text(
-          notification['title'] as String,
+          notification.title,
           style: TextStyle(
             fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
           ),
@@ -129,10 +151,10 @@ class NotificationsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text(notification['message'] as String),
+            Text(notification.message),
             const SizedBox(height: 4),
             Text(
-              notification['time'] as String,
+              notification.timeAgo,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey.shade600,
@@ -140,9 +162,62 @@ class NotificationsScreen extends StatelessWidget {
             ),
           ],
         ),
-        onTap: () {
-          // TODO: Navigate to related item and mark as read
-        },
+        trailing: notification.type == 'assignment' || notification.type == 'reminder'
+            ? Icon(Icons.chevron_right, color: Colors.grey.shade400)
+            : null,
+        onTap: () => _handleNotificationTap(context, notification),
+      ),
+    );
+  }
+
+  Future<void> _handleNotificationTap(BuildContext context, AppNotification notification) async {
+    // Mark as read
+    if (!notification.isRead) {
+      await Provider.of<NotificationProvider>(context, listen: false)
+          .markAsRead(notification.id);
+    }
+
+    // Navigate based on notification type
+    if (notification.referenceId != null) {
+      switch (notification.type) {
+        case 'assignment':
+        case 'reminder':
+          _navigateToAssignment(context, notification.referenceId!);
+          break;
+        case 'team':
+          // Navigate to team detail
+          if (mounted) {
+            Navigator.pushNamed(context, '/team-detail', arguments: notification.referenceId);
+          }
+          break;
+        case 'response':
+          // For team leads - navigate to roster detail
+          // For now, show a snackbar
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(notification.message)),
+            );
+          }
+          break;
+      }
+    }
+  }
+
+  void _navigateToAssignment(BuildContext context, String assignmentId) {
+    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
+
+    // Find the assignment by ID
+    final assignment = assignmentProvider.assignments.firstWhere(
+      (a) => a.id == assignmentId,
+      orElse: () => assignmentProvider.assignments.isNotEmpty
+          ? assignmentProvider.assignments.first
+          : throw Exception('No assignments available'),
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssignmentDetailScreen(assignment: assignment),
       ),
     );
   }

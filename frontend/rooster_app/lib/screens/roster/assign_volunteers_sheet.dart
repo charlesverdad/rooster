@@ -1,16 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/team_provider.dart';
+import '../../providers/roster_provider.dart';
 
 class AssignVolunteersSheet extends StatefulWidget {
-  final String teamId;
-  final Function(String userId) onAssign;
+  // Option 1: Use with teamId and callback (from roster detail)
+  final String? teamId;
+  final Function(String userId)? onAssign;
+
+  // Option 2: Use with eventId and context (from home screen)
+  final String? eventId;
+  final DateTime? eventDate;
+  final String? rosterName;
 
   const AssignVolunteersSheet({
     super.key,
-    required this.teamId,
-    required this.onAssign,
+    this.teamId,
+    this.onAssign,
+    this.eventId,
+    this.eventDate,
+    this.rosterName,
   });
+
+  // Named constructor for roster detail usage
+  const AssignVolunteersSheet.forRoster({
+    super.key,
+    required String teamId,
+    required Function(String userId) onAssign,
+  })  : teamId = teamId,
+        onAssign = onAssign,
+        eventId = null,
+        eventDate = null,
+        rosterName = null;
+
+  // Named constructor for home screen usage
+  const AssignVolunteersSheet.forEvent({
+    super.key,
+    required String eventId,
+    required DateTime eventDate,
+    required String rosterName,
+  })  : eventId = eventId,
+        eventDate = eventDate,
+        rosterName = rosterName,
+        teamId = null,
+        onAssign = null;
 
   @override
   State<AssignVolunteersSheet> createState() => _AssignVolunteersSheetState();
@@ -24,8 +57,8 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TeamProvider>(context, listen: false)
-          .fetchTeamDetail(widget.teamId);
+      final teamId = widget.teamId ?? '1'; // Default to team 1 for home screen
+      Provider.of<TeamProvider>(context, listen: false).fetchTeamDetail(teamId);
     });
   }
 
@@ -33,6 +66,11 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  String _formatDate(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[date.month - 1]} ${date.day}';
   }
 
   @override
@@ -57,6 +95,14 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
         .where((m) => m['isPlaceholder'] == true)
         .toList();
 
+    // Build header text
+    String headerText = 'Assign Volunteer';
+    String? subtitleText;
+    if (widget.rosterName != null && widget.eventDate != null) {
+      headerText = widget.rosterName!;
+      subtitleText = _formatDate(widget.eventDate!);
+    }
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       padding: EdgeInsets.only(
@@ -72,13 +118,26 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Assign Volunteer',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            headerText,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (subtitleText != null)
+                            Text(
+                              subtitleText,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     IconButton(
@@ -120,7 +179,20 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...available.map((member) => _buildMemberTile(member, true)),
+                  ...available.map((member) => _buildMemberTile(member, true, false)),
+                  const SizedBox(height: 16),
+                ],
+                if (placeholders.isNotEmpty) ...[
+                  Text(
+                    'Placeholders (not yet invited)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...placeholders.map((member) => _buildMemberTile(member, true, true)),
                   const SizedBox(height: 16),
                 ],
                 if (unavailable.isNotEmpty) ...[
@@ -133,22 +205,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...unavailable
-                      .map((member) => _buildMemberTile(member, false)),
-                  const SizedBox(height: 16),
-                ],
-                if (placeholders.isNotEmpty) ...[
-                  Text(
-                    'Placeholders',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...placeholders
-                      .map((member) => _buildMemberTile(member, true)),
+                  ...unavailable.map((member) => _buildMemberTile(member, false, false)),
                 ],
               ],
             ),
@@ -158,25 +215,37 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
     );
   }
 
-  Widget _buildMemberTile(Map<String, dynamic> member, bool isAvailable) {
+  Widget _buildMemberTile(Map<String, dynamic> member, bool isAvailable, bool isPlaceholder) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.grey.shade300,
-          child: Text(
-            (member['name'] as String).substring(0, 1),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          backgroundColor: isPlaceholder ? Colors.grey.shade400 : Colors.deepPurple.shade300,
+          child: isPlaceholder
+              ? Icon(Icons.person_outline, color: Colors.grey.shade100, size: 20)
+              : Text(
+                  (member['name'] as String).substring(0, 1),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
         ),
         title: Row(
           children: [
             Text(member['name'] as String),
-            if (member['isPlaceholder'] == true) ...[
+            if (isPlaceholder) ...[
               const SizedBox(width: 8),
-              Text(
-                '○',
-                style: TextStyle(color: Colors.grey.shade600),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'Not invited',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
               ),
             ],
           ],
@@ -190,18 +259,54 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
         trailing: isAvailable ? const Icon(Icons.chevron_right) : null,
         onTap: isAvailable
             ? () async {
-                await widget.onAssign(member['id'] as String);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('✅ ${member['name']} assigned'),
-                    ),
-                  );
-                }
+                await _handleAssign(member);
               }
             : null,
         enabled: isAvailable,
       ),
+    );
+  }
+
+  Future<void> _handleAssign(Map<String, dynamic> member) async {
+    final memberId = member['id'] as String;
+    final memberName = member['name'] as String;
+    final isPlaceholder = member['isPlaceholder'] == true;
+
+    // Use callback if provided (roster detail flow)
+    if (widget.onAssign != null) {
+      await widget.onAssign!(memberId);
+      if (mounted) {
+        Navigator.of(context).pop();
+        _showAssignedToast(memberName, isPlaceholder);
+      }
+      return;
+    }
+
+    // Otherwise use eventId (home screen flow)
+    if (widget.eventId != null) {
+      final rosterProvider = Provider.of<RosterProvider>(context, listen: false);
+      final success = await rosterProvider.assignVolunteerToEvent(widget.eventId!, memberId);
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        if (success) {
+          _showAssignedToast(memberName, isPlaceholder);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to assign volunteer')),
+          );
+        }
+      }
+    }
+  }
+
+  void _showAssignedToast(String memberName, bool isPlaceholder) {
+    final message = isPlaceholder
+        ? '$memberName assigned. Invite them to notify.'
+        : '$memberName assigned. Notification sent.';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }
