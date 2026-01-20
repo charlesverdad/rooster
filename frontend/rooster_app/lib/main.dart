@@ -4,8 +4,10 @@ import 'providers/auth_provider.dart';
 import 'providers/assignment_provider.dart';
 import 'providers/availability_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/team_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/dashboard_screen.dart';
+import 'screens/team_lead/team_lead_dashboard.dart';
 import 'screens/availability/availability_screen.dart';
 import 'screens/notifications/notifications_screen.dart';
 
@@ -25,6 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AssignmentProvider()),
         ChangeNotifierProvider(create: (_) => AvailabilityProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => TeamProvider()),
       ],
       child: MaterialApp(
         title: 'Rooster',
@@ -39,7 +42,7 @@ class MyApp extends StatelessWidget {
         home: const AuthWrapper(),
         routes: {
           '/login': (context) => const LoginScreen(),
-          '/home': (context) => const MainNavigation(),
+          '/home': (context) => const MainNavigation(isTeamLead: false),
         },
       ),
     );
@@ -83,7 +86,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         if (authProvider.isAuthenticated) {
-          return const MainNavigation();
+          // Show appropriate navigation based on user role
+          final isTeamLead = authProvider.user?.isTeamLead == true || 
+                            authProvider.user?.isAdmin == true;
+          return MainNavigation(isTeamLead: isTeamLead);
         } else {
           return const LoginScreen();
         }
@@ -93,7 +99,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
 }
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+  final bool isTeamLead;
+  
+  const MainNavigation({super.key, required this.isTeamLead});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -102,16 +110,25 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = const [
-    DashboardScreen(),
-    AvailabilityScreen(),
-    NotificationsScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final notificationProvider = Provider.of<NotificationProvider>(context);
+    
+    // Different screens based on role
+    final List<Widget> screens = widget.isTeamLead
+        ? const [
+            TeamLeadDashboard(),
+            AvailabilityScreen(),
+            NotificationsScreen(),
+          ]
+        : const [
+            DashboardScreen(),
+            AvailabilityScreen(),
+            NotificationsScreen(),
+          ];
+
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: screens[_selectedIndex],
       bottomNavigationBar: Consumer<NotificationProvider>(
         builder: (context, notificationProvider, child) {
           return NavigationBar(
