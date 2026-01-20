@@ -1,6 +1,6 @@
 # Rooster App - Information Architecture
 
-**Version:** 2.0
+**Version:** 2.1
 **Last Updated:** January 2026
 **Platform:** Mobile-first (iOS/Android), Web-compatible
 **Design Philosophy:** Notification-first, minimal screens, get in and get out
@@ -10,6 +10,8 @@
 ## Core Principle
 
 Rooster is a **reminder tool**, not an engagement platform. Users should spend minimal time in the app. The primary interface is push notifications and email—the app exists to support those.
+
+**Start with names, invite later**: Team leads can roster people by name without requiring signups. Invite them when ready—they auto-join with assignments intact.
 
 ---
 
@@ -30,7 +32,7 @@ No bottom navigation. Home is the app.
 
 ---
 
-## Screen Inventory (12 Screens)
+## Screen Inventory (14 Screens)
 
 ### 1. Authentication
 
@@ -102,6 +104,47 @@ No bottom navigation. Home is the app.
 
 ---
 
+#### 1.3 Accept Invite (Special Registration)
+**Route:** `/invite/:token`
+**Access:** Public (with valid invite token)
+
+When a placeholder user is invited, they receive this link.
+
+```
+┌─────────────────────────────┐
+│                             │
+│         Rooster             │
+│                             │
+│  You've been invited to     │
+│  join Media Team            │
+│                             │
+│  Hi John! Create your       │
+│  account to see your        │
+│  assignments.               │
+│                             │
+│  Email                      │
+│  ┌───────────────────────┐  │
+│  │ john@email.com        │  │
+│  └───────────────────────┘  │
+│  (pre-filled from invite)   │
+│                             │
+│  Password                   │
+│  ┌───────────────────────┐  │
+│  │                       │  │
+│  └───────────────────────┘  │
+│                             │
+│  [Join Team]                │
+│                             │
+└─────────────────────────────┘
+```
+
+**On success:**
+- Placeholder user becomes registered user
+- All existing assignments remain linked
+- Redirects to Home with assignments visible
+
+---
+
 ### 2. Home
 
 #### 2.1 Home (Adaptive)
@@ -134,12 +177,6 @@ This is the only main screen. It adapts based on role.
 │ │ In 8 days • 9:00 AM     │ │
 │ └─────────────────────────┘ │
 │                             │
-│ ┌─────────────────────────┐ │
-│ │ ✅ Prayer Night         │ │
-│ │ Worship Team            │ │
-│ │ In 3 days • 7:00 PM     │ │
-│ └─────────────────────────┘ │
-│                             │
 │ My Teams                    │
 │ Media Team • Worship Team   │
 │                             │
@@ -168,13 +205,13 @@ This is the only main screen. It adapts based on role.
 │ (personal upcoming items)   │
 │                             │
 │ My Teams                    │
-│ Media Team (Lead) • Worship │
+│ Media Team (Lead)           │
 │                             │
 └─────────────────────────────┘
 ```
 
 **Components:**
-- Greeting (just name, no emoji)
+- Greeting (just name)
 - Needs Attention section (team leads only, collapsible)
 - Action Required (pending assignments)
 - Upcoming (accepted assignments, next 4 weeks)
@@ -184,8 +221,8 @@ This is the only main screen. It adapts based on role.
 - Assignment Detail (3.1) - tap any assignment card
 - Team Detail (4.1) - tap team name
 - Quick Assign (5.2) - tap "[+ Assign]"
-- Notifications (6.1) - bell icon
-- Settings (6.2) - gear icon
+- Notifications (7.1) - bell icon
+- Settings (7.2) - gear icon
 
 ---
 
@@ -218,6 +255,7 @@ This is the only main screen. It adapts based on role.
 │ Also Serving                │
 │ ┌─────────────────────────┐ │
 │ │ Sarah Johnson ✅        │ │
+│ │ Tom Wilson (invited)    │ │
 │ └─────────────────────────┘ │
 │                             │
 │ Team Lead                   │
@@ -230,6 +268,8 @@ This is the only main screen. It adapts based on role.
 │                             │
 └─────────────────────────────┘
 ```
+
+**Note:** Co-volunteers may include placeholders, shown with "(invited)" or "(not yet invited)" indicator.
 
 **Links to:**
 - Decline Confirmation (3.2) - tap Decline
@@ -277,7 +317,7 @@ This is the only main screen. It adapts based on role.
 │ ← Media Team                │
 ├─────────────────────────────┤
 │                             │
-│ 12 members                  │
+│ 12 members (3 not invited)  │
 │                             │
 │ Upcoming                    │
 │ ┌─────────────────────────┐ │
@@ -291,7 +331,7 @@ This is the only main screen. It adapts based on role.
 │ │ Sun, Jan 28             │ │
 │ │ Sunday Service • 9 AM   │ │
 │ │ Mike Chen ✅            │ │
-│ │ [+ Assign]              │ │
+│ │ Tom Wilson ○            │ │
 │ └─────────────────────────┘ │
 │                             │
 │ Members                     │
@@ -299,19 +339,113 @@ This is the only main screen. It adapts based on role.
 │ │ Mike Chen (Lead)        │ │
 │ │ John Smith              │ │
 │ │ Sarah Johnson           │ │
-│ │ + 9 more                │ │
+│ │ Tom Wilson ○ [Invite]   │ │
+│ │ + 8 more                │ │
 │ └─────────────────────────┘ │
 │                             │
+│ [+ Add Member]              │
 │ [+ Create Roster]           │
 │ (Team leads only)           │
 │                             │
 └─────────────────────────────┘
 ```
 
+**Legend:**
+- ✅ = Accepted
+- ⏳ = Pending (registered user, hasn't responded)
+- ○ = Placeholder (not yet invited)
+- [Invite] button appears next to placeholders for team leads
+
 **Links to:**
 - Quick Assign (5.2) - tap "[+ Assign]"
 - Create Roster (5.1) - tap "[+ Create Roster]"
-- Contact member - tap member name
+- Add Member (4.2) - tap "[+ Add Member]"
+- Member Detail (4.3) - tap member name
+- Invite flow (6.1) - tap "[Invite]"
+
+---
+
+#### 4.2 Add Member (Bottom Sheet)
+**Route:** Bottom sheet
+**Access:** Team Lead
+
+```
+┌─────────────────────────────┐
+│ Add Team Member             │
+├─────────────────────────────┤
+│                             │
+│ Name                        │
+│ ┌───────────────────────┐   │
+│ │ John Smith            │   │
+│ └───────────────────────┘   │
+│                             │
+│ You can invite them via     │
+│ email later.                │
+│                             │
+│ [Cancel]        [Add]       │
+│                             │
+└─────────────────────────────┘
+```
+
+**On Add:**
+- Creates placeholder user with just the name
+- Adds to team
+- Can be assigned to rosters immediately
+- Toast: "John Smith added to team"
+
+---
+
+#### 4.3 Member Detail
+**Route:** `/teams/:id/members/:userId`
+**Access:** Team Lead
+
+**For registered member:**
+```
+┌─────────────────────────────┐
+│ ← John Smith                │
+├─────────────────────────────┤
+│                             │
+│       👤                    │
+│    John Smith               │
+│    john@email.com           │
+│                             │
+│ Upcoming Assignments        │
+│ ┌─────────────────────────┐ │
+│ │ Sun, Jan 21 ✅          │ │
+│ │ Sun, Jan 28 ⏳          │ │
+│ └─────────────────────────┘ │
+│                             │
+│ [Contact]                   │
+│                             │
+└─────────────────────────────┘
+```
+
+**For placeholder member:**
+```
+┌─────────────────────────────┐
+│ ← Tom Wilson                │
+├─────────────────────────────┤
+│                             │
+│       ○                     │
+│    Tom Wilson               │
+│    Not yet invited          │
+│                             │
+│ Upcoming Assignments        │
+│ ┌─────────────────────────┐ │
+│ │ Sun, Jan 28 (assigned)  │ │
+│ │ Sun, Feb 4 (assigned)   │ │
+│ └─────────────────────────┘ │
+│                             │
+│ Invite Tom to let them      │
+│ see their assignments and   │
+│ respond.                    │
+│                             │
+│ [Invite via Email]          │
+│                             │
+└─────────────────────────────┘
+```
+
+**Links to:** Invite Flow (6.1) - tap "[Invite via Email]"
 
 ---
 
@@ -321,7 +455,6 @@ This is the only main screen. It adapts based on role.
 **Route:** `/rosters/create`
 **Access:** Team Lead
 
-**Step 1: Basics**
 ```
 ┌─────────────────────────────┐
 │ ← New Roster                │
@@ -375,9 +508,9 @@ This is the only main screen. It adapts based on role.
 │ Available                   │
 │ ┌─────────────────────────┐ │
 │ │ Emma Davis              │ │
-│ │ Tom Wilson              │ │
+│ │ Tom Wilson ○            │ │
 │ │ Lisa Brown              │ │
-│ │ David Lee               │ │
+│ │ David Lee ○             │ │
 │ └─────────────────────────┘ │
 │                             │
 │ Unavailable                 │
@@ -389,13 +522,58 @@ This is the only main screen. It adapts based on role.
 └─────────────────────────────┘
 ```
 
+**Legend:**
+- ○ = Placeholder (no account yet)
+- Members without ○ are registered users
+
 **Interaction:** Tap name → Assigns immediately → Shows toast → Closes sheet
+
+**Toast messages:**
+- For registered user: "Emma Davis assigned. Notification sent."
+- For placeholder: "Tom Wilson assigned. Invite them to notify."
 
 ---
 
-### 6. Settings & Notifications
+### 6. Invite Flow
 
-#### 6.1 Notifications
+#### 6.1 Send Invite
+**Route:** Bottom sheet (from Member Detail or Team Detail)
+**Access:** Team Lead
+
+```
+┌─────────────────────────────┐
+│ Invite Tom Wilson           │
+├─────────────────────────────┤
+│                             │
+│ Tom has 2 upcoming          │
+│ assignments. Once invited,  │
+│ they can see and respond.   │
+│                             │
+│ Email                       │
+│ ┌───────────────────────┐   │
+│ │ tom@email.com         │   │
+│ └───────────────────────┘   │
+│                             │
+│ [Cancel]    [Send Invite]   │
+│                             │
+└─────────────────────────────┘
+```
+
+**On Send:**
+- Invite email sent with unique link
+- Toast: "Invite sent to tom@email.com"
+- Member shown as "Invited" in UI
+
+**Invite states:**
+- ○ Not invited (placeholder)
+- ✉️ Invited (email sent, not accepted)
+- ✓ Registered (has account)
+
+---
+
+### 7. Settings & Notifications
+
+#### 7.1 Notifications
 **Route:** `/notifications`
 **Access:** All users
 
@@ -412,8 +590,8 @@ This is the only main screen. It adapts based on role.
 │ └─────────────────────────┘ │
 │                             │
 │ ┌─────────────────────────┐ │
-│ │ ✅ Assignment Accepted  │ │
-│ │ Sarah accepted Jan 21   │ │
+│ │ ✅ Tom accepted         │ │
+│ │ Sunday Service • Jan 28 │ │
 │ │ Yesterday               │ │
 │ └─────────────────────────┘ │
 │                             │
@@ -430,7 +608,7 @@ This is the only main screen. It adapts based on role.
 
 ---
 
-#### 6.2 Settings
+#### 7.2 Settings
 **Route:** `/settings`
 **Access:** All users
 
@@ -467,6 +645,74 @@ This is the only main screen. It adapts based on role.
 
 ## User Journeys
 
+### Team Lead: First Time Setup
+
+```
+Create account
+    ↓
+Home (empty)
+    ↓
+"Create your first team" prompt
+    ↓
+Create team: "Media Team"
+    ↓
+Add members by name:
+  - John Smith
+  - Sarah Johnson
+  - Tom Wilson
+    ↓
+Create roster: "Sunday Service"
+    ↓
+Assign John & Sarah to Jan 21
+Assign Tom to Jan 28
+    ↓
+Done! (Can invite people later)
+```
+
+**Total time:** Under 5 minutes to have a working roster
+
+---
+
+### Team Lead: Invite a Placeholder
+
+```
+Team Detail → See Tom Wilson ○
+    ↓
+Tap Tom → Member Detail
+    ↓
+Tap "Invite via Email"
+    ↓
+Enter tom@email.com
+    ↓
+Tap "Send Invite"
+    ↓
+Toast: "Invite sent"
+```
+
+**Total taps:** 4
+
+---
+
+### New Member: Accept Invite
+
+```
+Email: "You've been invited to Media Team"
+    ↓
+Click link
+    ↓
+Accept Invite screen (name pre-filled)
+    ↓
+Enter email + password
+    ↓
+Tap "Join Team"
+    ↓
+Home screen with assignments visible
+```
+
+**Total taps:** 3 (link → fill form → join)
+
+---
+
 ### Member: Respond to Assignment
 
 ```
@@ -478,54 +724,10 @@ Assignment Detail screen
     ↓
 Tap [Accept]
     ↓
-Toast: "Accepted. Team lead notified."
-    ↓
-Done (return to home or close app)
-```
-
-**Total taps:** 2
-
----
-
-### Team Lead: Fill Empty Slot
-
-```
-Open app → Home
-    ↓
-See "Needs Attention" section
-    ↓
-Tap [+ Assign]
-    ↓
-Quick Assign sheet opens
-    ↓
-Tap available member name
-    ↓
-Toast: "Assigned. Notification sent."
-    ↓
 Done
 ```
 
-**Total taps:** 3
-
----
-
-### Team Lead: Create Roster
-
-```
-Home → Tap team name
-    ↓
-Team Detail
-    ↓
-Tap [+ Create Roster]
-    ↓
-Fill form (name, schedule, volunteers needed)
-    ↓
-Tap [Create]
-    ↓
-Back to Team Detail with roster visible
-```
-
-**Total taps:** 4-5
+**Total taps:** 2
 
 ---
 
@@ -539,9 +741,19 @@ Back to Team Detail with roster visible
 | Success/Accepted | Green | #4CAF50 |
 | Warning/Pending | Orange | #FF9800 |
 | Error/Declined | Red | #F44336 |
+| Placeholder indicator | Gray | #9E9E9E |
 | Background | White | #FFFFFF |
 | Text | Dark gray | #212121 |
 | Secondary text | Gray | #757575 |
+
+### Member Status Indicators
+
+| Symbol | Meaning |
+|--------|---------|
+| ✅ | Accepted assignment |
+| ⏳ | Pending response (registered user) |
+| ○ | Placeholder (not yet invited) |
+| ✉️ | Invited (email sent) |
 
 ### Typography
 
@@ -560,20 +772,6 @@ Back to Team Detail with roster visible
 - Section gap: 24px
 - Screen margin: 16px
 
-### Components
-
-**Assignment Card:**
-- Status indicator (colored dot)
-- Title (roster name)
-- Subtitle (team name)
-- Date/time
-- Action buttons (if pending)
-
-**Action Button:**
-- Primary: Filled purple
-- Secondary: Outlined
-- Destructive: Red text
-
 ---
 
 ## Accessibility
@@ -581,7 +779,7 @@ Back to Team Detail with roster visible
 - Touch targets: 44x44pt minimum
 - Contrast: 4.5:1 for text
 - Screen reader labels on all interactive elements
-- Support for large text (up to 200%)
+- Placeholder status announced for screen readers
 
 ---
 
@@ -597,13 +795,13 @@ Back to Team Detail with roster visible
 
 The following features were intentionally excluded to keep the app focused:
 
+- Admin role / organization management
 - Analytics dashboards
 - Response rate tracking
 - Service history
 - Calendar view
 - Browse/discover teams
 - Member profiles with stats
-- Organization-wide views
 - Complex onboarding flows
 - Gamification (streaks, badges)
 

@@ -16,6 +16,7 @@ The previous design was overbuilt for the core use case. Rooster's goal is **not
 3. **One home, progressive disclosure**: Single home screen that adapts to role, not three separate experiences
 4. **No vanity metrics**: Remove analytics, response rates, and service history that don't help reminders
 5. **Direct paths**: Most tasks should complete in 1-2 taps
+6. **Start with names, invite later**: Team leads can roster people without requiring signups first
 
 ---
 
@@ -225,3 +226,92 @@ If existing code references removed features:
 This simplification removes approximately 60% of the planned screens and features. The app becomes a focused tool for one job: making sure volunteers know when they're scheduled and can respond easily.
 
 Users should think of Rooster like a smart calendar reminder, not a social platform or management dashboard.
+
+---
+
+## Version 2.1 Changes: Placeholder Users & No Admin Role
+
+### New: Placeholder Users
+
+Team leads can now add members by name only—no email required. This removes the biggest friction point: waiting for people to sign up before you can roster them.
+
+**How it works:**
+
+1. Team lead adds "John Smith" to team (just a name)
+2. John appears in member list with ○ indicator (placeholder)
+3. Team lead assigns John to rosters
+4. When ready, team lead invites John via email
+5. John clicks invite link → creates account → sees all his existing assignments
+
+**Benefits:**
+- Team leads can start rostering in minutes, not days
+- No need to collect everyone's email upfront
+- Assignments persist when placeholder converts to real user
+- Mirrors how spreadsheet-based rostering works (just names)
+
+### Removed: Admin Role
+
+The admin role added complexity without clear value for MVP:
+- Created three-tier permission system (Admin > Team Lead > Member)
+- Required organization-level management screens
+- Added confusion about who can do what
+
+**New model:** Team leads manage everything for their teams. No organization-level admin.
+
+**What team leads can do:**
+- Create teams
+- Add members (by name)
+- Invite members (by email)
+- Create rosters
+- Assign volunteers
+
+**Deferred:** If organization-level administration is needed later (managing multiple team leads, billing, etc.), it can be added as a separate concern.
+
+### New Screens Added
+
+| Screen | Purpose |
+|--------|---------|
+| **Accept Invite (1.3)** | Special registration for invited placeholders |
+| **Add Member (4.2)** | Bottom sheet to add member by name |
+| **Member Detail (4.3)** | View member info, invite if placeholder |
+| **Send Invite (6.1)** | Enter email to invite placeholder |
+
+### Updated Screen Count
+
+| Version | Screens |
+|---------|---------|
+| v1.0 (original) | 30+ |
+| v2.0 (simplified) | 12 |
+| v2.1 (with placeholders) | 14 |
+
+### New Data Model Elements
+
+```
+User
+├── is_placeholder (boolean)
+├── invited_by (user_id, nullable)
+├── invited_at (timestamp, nullable)
+
+Invite
+├── id, team_id, user_id
+├── email, token, created_at, accepted_at
+```
+
+### UI Indicators
+
+| Symbol | Meaning |
+|--------|---------|
+| ✅ | Accepted assignment |
+| ⏳ | Pending response (registered user) |
+| ○ | Placeholder (not yet invited) |
+| ✉️ | Invited (email sent, not accepted) |
+
+---
+
+## Summary (Updated)
+
+Rooster is now even simpler:
+- **No admin role** — team leads manage their teams
+- **No signup required to be rostered** — add people by name
+- **Invite when ready** — assignments persist
+- **14 screens total** — focused on reminders, not management

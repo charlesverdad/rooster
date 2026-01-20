@@ -1,48 +1,113 @@
 # User Flow: Creating a Roster
 
 **User Role:** Team Lead
-**Goal:** Create a recurring roster and assign volunteers
-**Entry Point:** Team Detail → [+ Create Roster]
+**Goal:** Create a team, add members, create a roster, and assign volunteers
+**Entry Point:** Fresh account or Home → Team Detail
 
 ---
 
 ## Overview
 
-Team leads create rosters to define recurring schedules (e.g., "Sunday Service" every week). This is a **single-screen form** that creates the roster immediately.
+Team leads can start rostering immediately without waiting for anyone to sign up. Add members by name, create rosters, assign people—then invite them later when ready.
+
+**Key principle:** Start with names, invite later.
 
 ---
 
-## The Flow
+## Flow 1: First Time Setup
 
-### Step 1: Navigate to Team
+### Step 1: Create Team
 
-From Home, team lead taps their team name → Team Detail screen
+After creating an account, home is empty. Team lead taps "Create your first team" or "+ Create Team".
+
+```
+┌─────────────────────────────┐
+│ ← New Team                  │
+├─────────────────────────────┤
+│                             │
+│ Team Name                   │
+│ ┌───────────────────────┐   │
+│ │ Media Team            │   │
+│ └───────────────────────┘   │
+│                             │
+│          [Create]           │
+│                             │
+└─────────────────────────────┘
+```
+
+On Create → Team Detail screen
+
+---
+
+### Step 2: Add Members (by name)
+
+Team lead adds members. No email required—just names.
 
 ```
 ┌─────────────────────────────┐
 │ ← Media Team                │
 ├─────────────────────────────┤
 │                             │
-│ 12 members                  │
+│ 0 members                   │
 │                             │
-│ Upcoming                    │
-│ (existing roster dates)     │
+│ Add your team members to    │
+│ start creating rosters.     │
+│                             │
+│ [+ Add Member]              │
+│                             │
+└─────────────────────────────┘
+```
+
+Tap **[+ Add Member]** → Bottom sheet:
+
+```
+┌─────────────────────────────┐
+│ Add Team Member             │
+├─────────────────────────────┤
+│                             │
+│ Name                        │
+│ ┌───────────────────────┐   │
+│ │ John Smith            │   │
+│ └───────────────────────┘   │
+│                             │
+│ You can invite them via     │
+│ email later.                │
+│                             │
+│ [Cancel]        [Add]       │
+│                             │
+└─────────────────────────────┘
+```
+
+Repeat for each member. Team Detail now shows:
+
+```
+┌─────────────────────────────┐
+│ ← Media Team                │
+├─────────────────────────────┤
+│                             │
+│ 4 members (4 not invited)   │
 │                             │
 │ Members                     │
-│ (team member list)          │
+│ ┌─────────────────────────┐ │
+│ │ You (Lead)              │ │
+│ │ John Smith ○            │ │
+│ │ Sarah Johnson ○         │ │
+│ │ Tom Wilson ○            │ │
+│ └─────────────────────────┘ │
 │                             │
+│ [+ Add Member]              │
 │ [+ Create Roster]           │
 │                             │
 └─────────────────────────────┘
 ```
 
-Team lead taps **[+ Create Roster]**
+**Legend:** ○ = Placeholder (not yet invited)
 
 ---
 
-### Step 2: Create Roster Form
+### Step 3: Create Roster
 
-Single screen with all fields:
+Tap **[+ Create Roster]**:
 
 ```
 ┌─────────────────────────────┐
@@ -58,7 +123,7 @@ Single screen with all fields:
 │ ┌───────────────────────┐   │
 │ │ Media Team        ▼   │   │
 │ └───────────────────────┘   │
-│ (pre-filled if from team)   │
+│ (pre-filled)                │
 │                             │
 │ Repeats                     │
 │ ┌───────────────────────┐   │
@@ -84,24 +149,7 @@ Single screen with all fields:
 └─────────────────────────────┘
 ```
 
-**Fields:**
-- **Roster Name**: Required, 3-50 characters
-- **Team**: Pre-selected if navigated from team
-- **Repeats**: Weekly (default), Bi-weekly, Monthly
-- **Day**: Day(s) of week (Sunday default for church context)
-- **Volunteers needed**: 1-10, stepper control
-- **Generate for**: 1, 3, or 6 months ahead
-
----
-
-### Step 3: Create and Return
-
-Team lead taps **[Create]**
-
-- Roster is created
-- Occurrences are generated
-- Returns to Team Detail
-- New roster appears in "Upcoming" section
+On Create → Returns to Team Detail with roster dates visible:
 
 ```
 ┌─────────────────────────────┐
@@ -112,14 +160,18 @@ Team lead taps **[Create]**
 └─────────────────────────────┘
 ```
 
-Toast appears briefly, then Team Detail shows:
+---
+
+### Step 4: Assign Volunteers
+
+Team Detail now shows upcoming dates with empty slots:
 
 ```
 ┌─────────────────────────────┐
 │ ← Media Team                │
 ├─────────────────────────────┤
 │                             │
-│ 12 members                  │
+│ 4 members (4 not invited)   │
 │                             │
 │ Upcoming                    │
 │ ┌─────────────────────────┐ │
@@ -142,13 +194,7 @@ Toast appears briefly, then Team Detail shows:
 └─────────────────────────────┘
 ```
 
----
-
-## Assigning Volunteers
-
-After roster is created, team lead assigns volunteers by tapping **[+ Assign]** on any slot.
-
-### Quick Assign Sheet
+Tap **[+ Assign]** → Quick Assign sheet:
 
 ```
 ┌─────────────────────────────┐
@@ -160,32 +206,104 @@ After roster is created, team lead assigns volunteers by tapping **[+ Assign]** 
 │                             │
 │ Available                   │
 │ ┌─────────────────────────┐ │
-│ │ Emma Davis              │ │
-│ │ Tom Wilson              │ │
-│ │ Lisa Brown              │ │
-│ │ David Lee               │ │
-│ └─────────────────────────┘ │
-│                             │
-│ Unavailable                 │
-│ ┌─────────────────────────┐ │
-│ │ John Smith (Away)       │ │
+│ │ John Smith ○            │ │
+│ │ Sarah Johnson ○         │ │
+│ │ Tom Wilson ○            │ │
 │ └─────────────────────────┘ │
 │                             │
 └─────────────────────────────┘
 ```
 
-Team lead taps a name → Assigned immediately → Notification sent
+**All members are placeholders (○)** — that's fine! Tap a name to assign.
+
+**Toast:** "John Smith assigned. Invite them to notify."
+
+After assigning both slots:
 
 ```
 ┌─────────────────────────────┐
+│ ┌─────────────────────────┐ │
+│ │ Sun, Jan 21             │ │
+│ │ Sunday Service • 9 AM   │ │
+│ │ John Smith ○            │ │
+│ │ Sarah Johnson ○         │ │
+│ └─────────────────────────┘ │
+```
+
+---
+
+### Step 5: Invite Members (Optional, anytime)
+
+When ready to notify people, tap a placeholder member → Member Detail:
+
+```
+┌─────────────────────────────┐
+│ ← John Smith                │
+├─────────────────────────────┤
 │                             │
-│  ✅ Emma Davis assigned     │
-│  Notification sent          │
+│       ○                     │
+│    John Smith               │
+│    Not yet invited          │
+│                             │
+│ Upcoming Assignments        │
+│ ┌─────────────────────────┐ │
+│ │ Sun, Jan 21 (assigned)  │ │
+│ │ Sun, Feb 4 (assigned)   │ │
+│ └─────────────────────────┘ │
+│                             │
+│ Invite John to let them     │
+│ see their assignments and   │
+│ respond.                    │
+│                             │
+│ [Invite via Email]          │
 │                             │
 └─────────────────────────────┘
 ```
 
-Sheet closes, slot now shows assigned person.
+Tap **[Invite via Email]** → Invite sheet:
+
+```
+┌─────────────────────────────┐
+│ Invite John Smith           │
+├─────────────────────────────┤
+│                             │
+│ John has 2 upcoming         │
+│ assignments. Once invited,  │
+│ they can see and respond.   │
+│                             │
+│ Email                       │
+│ ┌───────────────────────┐   │
+│ │ john@email.com        │   │
+│ └───────────────────────┘   │
+│                             │
+│ [Cancel]    [Send Invite]   │
+│                             │
+└─────────────────────────────┘
+```
+
+**Toast:** "Invite sent to john@email.com"
+
+John receives email → clicks link → creates account → sees his assignments.
+
+---
+
+## Flow 2: Assign to Existing Roster
+
+From Home, team lead sees unfilled slots:
+
+```
+┌─────────────────────────────┐
+│ ⚠️ Needs Attention          │
+│ ┌─────────────────────────┐ │
+│ │ Media Team              │ │
+│ │ Sun, Jan 28 • 1 unfilled│ │
+│ │ [+ Assign]              │ │
+│ └─────────────────────────┘ │
+```
+
+Tap **[+ Assign]** → Quick Assign → Tap member → Done.
+
+**Total taps:** 2
 
 ---
 
@@ -193,8 +311,9 @@ Sheet closes, slot now shows assigned person.
 
 | Field | Rule |
 |-------|------|
+| Team name | Required, 2-50 characters |
+| Member name | Required, 2-50 characters |
 | Roster name | Required, 3-50 characters |
-| Team | Required |
 | Recurrence | Required (default: Weekly) |
 | Day | At least one selected |
 | Volunteers needed | 1-10 |
@@ -203,29 +322,26 @@ Sheet closes, slot now shows assigned person.
 
 ## Error Handling
 
-### Validation Error
+### Duplicate Member Name
 
 ```
 ┌─────────────────────────────┐
-│ Roster Name                 │
-│ ┌───────────────────────┐   │
-│ │ Su                    │   │
-│ └───────────────────────┘   │
-│ ⚠️ Name must be at least    │
-│    3 characters             │
+│ ⚠️ "John Smith" already     │
+│    exists in this team      │
 └─────────────────────────────┘
 ```
 
-### Network Error
+Allow anyway (some teams might have two Johns).
+
+### Invalid Email on Invite
 
 ```
 ┌─────────────────────────────┐
-│     ⚠️ Couldn't create      │
-│                             │
-│ Check your connection and   │
-│ try again.                  │
-│                             │
-│ [Retry]                     │
+│ Email                       │
+│ ┌───────────────────────┐   │
+│ │ johnsmith             │   │
+│ └───────────────────────┘   │
+│ ⚠️ Enter a valid email      │
 └─────────────────────────────┘
 ```
 
@@ -233,16 +349,16 @@ Sheet closes, slot now shows assigned person.
 
 ## Success Criteria
 
-- **Total screens:** 1 (single form)
-- **Total taps to create roster:** 3-4 (navigate → fill → create)
-- **Total taps to assign volunteer:** 2 (tap slot → tap name)
+- **Time to first roster:** Under 5 minutes
+- **Members required to sign up first:** Zero
+- **Taps to assign a volunteer:** 2
 
 ---
 
 ## What's NOT in This Flow
 
-- Review/confirm screen before creation (unnecessary friction)
-- Success screen with "next steps" (just return to team)
-- AI-powered suggestions (deferred)
-- Auto-assign/auto-rotate (deferred)
-- Bulk assignment (deferred)
+- Requiring email to add members (just names work)
+- Review/confirm screen before creation
+- AI-powered suggestions
+- Auto-assign/auto-rotate
+- Bulk operations
