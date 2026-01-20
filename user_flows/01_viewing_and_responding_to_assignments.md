@@ -1,183 +1,129 @@
 # User Flow: Viewing and Responding to Assignments
 
-**User Role:** Team Member  
-**Goal:** View upcoming assignments and respond (accept/decline)  
-**Platform:** Mobile-first (iOS/Android), Web-compatible  
-**Estimated Time:** 30 seconds - 1 minute
+**User Role:** Team Member
+**Goal:** View upcoming assignments and respond (accept/decline)
+**Primary Interface:** Push notification → App
 
 ---
 
 ## Overview
 
-Team members need a quick, glanceable view of their upcoming commitments and an easy way to respond. This is the most frequently used flow in the app, so it must be fast, clear, and require minimal taps.
+This is the most common flow in the app. A volunteer receives a notification about an assignment and responds. The goal is **2 taps** from notification to done.
 
 ---
 
-## User Journey
+## Entry Points
 
-### Entry Points
-1. **Primary:** App launch → Auto-navigate to Home tab (if logged in)
-2. **Push notification:** "You have a new assignment" → Opens to Home tab
-3. **Email link:** Click assignment link → Opens app to specific assignment
-
-### Success Criteria
-- Member sees all upcoming assignments at a glance
-- Can accept or decline in 2 taps
-- Receives confirmation of action
-- Team lead is notified of response
+1. **Push notification** (primary) - "New assignment: Sunday Service"
+2. **App launch** - Home screen shows pending assignments
+3. **Email link** - Opens app to assignment detail
 
 ---
 
-## Screen-by-Screen Flow
+## The Flow
 
-### Screen 1: Home Dashboard
-**Purpose:** Overview of all assignments
+### Step 1: Notification Arrives
 
-**UI Layout (Mobile):**
 ```
 ┌─────────────────────────────┐
-│ Rooster                  🔔3│
-├─────────────────────────────┤
-│                             │
-│ Welcome back, John! 👋      │
-│                             │
-│ Your Assignments            │
-│                             │
-│ ┌─────────────────────────┐ │
-│ │ 🔴 PENDING RESPONSE     │ │
-│ │                         │ │
-│ │ Sunday Service - Media  │ │
-│ │ Sun, Jan 21 • 9:00 AM   │ │
-│ │                         │ │
-│ │ [Decline]    [Accept] ✓ │ │
-│ └─────────────────────────┘ │
-│                             │
-│ ┌─────────────────────────┐ │
-│ │ ✅ ACCEPTED             │ │
-│ │                         │ │
-│ │ Sunday Service - Media  │ │
-│ │ Sun, Jan 28 • 9:00 AM   │ │
-│ │                         │ │
-│ │ Tap to view details     │ │
-│ └─────────────────────────┘ │
-│                             │
-│ ┌─────────────────────────┐ │
-│ │ ✅ ACCEPTED             │ │
-│ │                         │ │
-│ │ Prayer Night - Worship  │ │
-│ │ Tue, Jan 23 • 7:00 PM   │ │
-│ │                         │ │
-│ │ Tap to view details     │ │
-│ └─────────────────────────┘ │
-│                             │
-│ [View All Assignments]      │
-│                             │
-├─────────────────────────────┤
-│ [Home] [Assignments] [🔔]   │
+│ 🔔 Rooster                  │
+│ New assignment              │
+│ Sunday Service - Media Team │
+│ Sun, Jan 21 • 9:00 AM       │
 └─────────────────────────────┘
 ```
 
-**Design Decisions:**
-- **Status-first:** Pending assignments at top with red indicator
-- **Action buttons visible:** No need to tap into card to respond
-- **Visual hierarchy:** 
-  - Pending = Red badge + action buttons
-  - Accepted = Green checkmark + subtle
-  - Declined = Gray + collapsed
-- **Key information:** Date, time, and roster name immediately visible
-- **Notification badge:** Shows unread count in top right
-
-**Interaction:**
-- **Tap card:** Expands to show full details
-- **Tap Accept:** Immediate feedback, card turns green, moves to "Accepted" section
-- **Tap Decline:** Shows confirmation dialog first
-- **Pull to refresh:** Syncs latest assignments
+User taps notification → App opens to Assignment Detail
 
 ---
 
-### Screen 2: Assignment Detail (Expanded)
-**Purpose:** Show full assignment information
+### Step 2: Assignment Detail
 
-**Accessed by:** Tapping on an assignment card
-
-**UI Layout (Mobile):**
 ```
 ┌─────────────────────────────┐
-│ ← Assignment Details         │
+│ ← Assignment                │
 ├─────────────────────────────┤
 │                             │
-│ Sunday Service - Media      │
+│ Sunday Service              │
 │ Media Team                  │
 │                             │
 │ ┌─────────────────────────┐ │
 │ │ 📅 Sun, Jan 21, 2026    │ │
 │ │ ⏰ 9:00 AM - 11:00 AM   │ │
 │ │ 📍 Main Sanctuary       │ │
-│ │ 👥 2 volunteers         │ │
 │ └─────────────────────────┘ │
 │                             │
-│ Your Role                   │
+│ Notes                       │
 │ ┌─────────────────────────┐ │
 │ │ Run slides and sound    │ │
 │ │ system for service      │ │
 │ └─────────────────────────┘ │
 │                             │
-│ Serving With                │
+│ Also Serving                │
 │ ┌─────────────────────────┐ │
-│ │ 👤 Sarah Johnson        │ │
-│ │    ✅ Accepted          │ │
+│ │ Sarah Johnson ✅        │ │
 │ └─────────────────────────┘ │
 │                             │
 │ Team Lead                   │
 │ ┌─────────────────────────┐ │
-│ │ 👤 Mike Chen            │ │
-│ │    📞 Contact           │ │
+│ │ Mike Chen               │ │
+│ │ [Contact]               │ │
 │ └─────────────────────────┘ │
 │                             │
-│ ⚠️ Can't make it?          │
-│ [Request Swap]              │
-│                             │
-│ [Decline]        [Accept] ✓ │
+│ [Decline]        [Accept]   │
 │                             │
 └─────────────────────────────┘
 ```
 
-**Design Decisions:**
-- **All relevant info:** Date, time, location, co-volunteers
-- **Social proof:** Show who else is serving (builds commitment)
-- **Easy contact:** Quick access to team lead
-- **Swap option:** Alternative to declining
-- **Persistent actions:** Accept/Decline always visible at bottom
+**Key information shown:**
+- Date, time, location
+- Role/notes (what they'll be doing)
+- Who else is serving (social accountability)
+- Team lead contact (if they have questions)
 
 ---
 
-### Screen 3: Decline Confirmation
-**Purpose:** Confirm decline and optionally provide reason
+### Step 3a: Accept
 
-**UI Layout (Bottom Sheet):**
+User taps **[Accept]**
+
 ```
 ┌─────────────────────────────┐
-│ Decline Assignment?         │
+│                             │
+│  ✅ Accepted                │
+│  Team lead notified         │
+│                             │
+└─────────────────────────────┘
+```
+
+Toast appears for 3 seconds. User can close app or continue browsing.
+
+**Backend actions:**
+- Assignment status → "accepted"
+- Notification sent to team lead
+- Assignment moves to "Upcoming" on home screen
+
+---
+
+### Step 3b: Decline
+
+User taps **[Decline]** → Bottom sheet appears
+
+```
+┌─────────────────────────────┐
+│ Decline this assignment?    │
 ├─────────────────────────────┤
 │                             │
-│ Sunday Service - Media      │
-│ Sun, Jan 21, 2026           │
+│ Sunday Service • Jan 21     │
 │                             │
 │ Your team lead will be      │
-│ notified. They may reach    │
-│ out to find a replacement.  │
+│ notified.                   │
 │                             │
 │ Reason (optional)           │
 │ ┌─────────────────────────┐ │
-│ │ ○ Out of town           │ │
-│ │ ○ Sick                  │ │
-│ │ ○ Work conflict         │ │
+│ │ ○ Can't make it         │ │
+│ │ ○ Schedule conflict     │ │
 │ │ ○ Other                 │ │
-│ └─────────────────────────┘ │
-│                             │
-│ Additional notes            │
-│ ┌─────────────────────────┐ │
-│ │ (optional)              │ │
 │ └─────────────────────────┘ │
 │                             │
 │ [Cancel]  [Confirm Decline] │
@@ -185,227 +131,106 @@ Team members need a quick, glanceable view of their upcoming commitments and an 
 └─────────────────────────────┘
 ```
 
-**Design Decisions:**
-- **Soft confirmation:** Not too aggressive, but prevents accidents
-- **Optional reason:** Helps team lead understand patterns
-- **Quick select:** Common reasons as radio buttons
-- **Free text:** For specific situations
-- **Clear consequences:** Explain what happens next
+User taps **[Confirm Decline]**
 
----
-
-### Screen 4: Success Feedback
-**Purpose:** Confirm action taken
-
-**UI (Toast/Snackbar):**
 ```
 ┌─────────────────────────────┐
 │                             │
-│  ✅ Assignment Accepted     │
-│  Mike Chen has been notified│
-│                             │
-│  [Undo]                     │
+│  Declined                   │
+│  Team lead notified         │
 │                             │
 └─────────────────────────────┘
 ```
 
-**Design Decisions:**
-- **Non-intrusive:** Toast appears at bottom, auto-dismisses
-- **Undo option:** 5-second window to reverse action
-- **Social feedback:** Mention who was notified
-- **Positive reinforcement:** Green color, checkmark
+**Backend actions:**
+- Assignment status → "declined"
+- Notification sent to team lead with reason
+- Assignment removed from user's list
 
 ---
 
-## Alternative Flows
+## Alternative: Respond from Home Screen
 
-### Flow A: Accepting from Notification
-**Scenario:** User taps push notification
+If user opens app directly (not from notification):
 
 ```
-Push Notification:
 ┌─────────────────────────────┐
-│ 🔔 New Assignment           │
-│ Sunday Service - Media      │
-│ Sun, Jan 21 • 9:00 AM       │
+│ Rooster              🔔  ⚙️  │
+├─────────────────────────────┤
 │                             │
-│ [Decline]        [Accept]   │
+│ Hi John                     │
+│                             │
+│ Action Required             │
+│ ┌─────────────────────────┐ │
+│ │ 🔴 Sunday Service       │ │
+│ │ Media Team              │ │
+│ │ Tomorrow • 9:00 AM      │ │
+│ │                         │ │
+│ │ [Decline]    [Accept]   │ │
+│ └─────────────────────────┘ │
+│                             │
+│ Upcoming                    │
+│ ┌─────────────────────────┐ │
+│ │ ✅ Prayer Night         │ │
+│ │ Worship Team            │ │
+│ │ In 3 days • 7:00 PM     │ │
+│ └─────────────────────────┘ │
+│                             │
 └─────────────────────────────┘
 ```
 
-**Tap notification body:**
-- Opens app to assignment detail screen
-- Can accept/decline from there
-
-**Tap "Accept" in notification:**
-- Accepts immediately
-- Opens app to show confirmation
-- No additional taps needed
+User can:
+- Tap **[Accept]** directly on card (1 tap)
+- Tap **[Decline]** → confirmation sheet (2 taps)
+- Tap card body → opens Assignment Detail for more info
 
 ---
 
-### Flow B: Bulk Response
-**Scenario:** User has multiple pending assignments
+## Notification Schedule
 
-**UI Enhancement:**
-```
-┌─────────────────────────────┐
-│ 3 Pending Assignments       │
-│                             │
-│ [Accept All]  [Review Each] │
-└─────────────────────────────┘
-```
-
-**Design Decisions:**
-- **Quick path:** "Accept All" for committed members
-- **Careful path:** "Review Each" for those who need to check
-- **Smart default:** Only show if 3+ pending assignments
-
----
-
-## Mobile Optimizations
-
-### Gestures
-- **Swipe right on card:** Quick accept
-- **Swipe left on card:** Quick decline (with confirmation)
-- **Long press:** Show quick actions menu
-- **Pull down:** Refresh assignments
-
-### Haptic Feedback
-- **Light tap:** On button press
-- **Success haptic:** On accept
-- **Warning haptic:** On decline confirmation
-
-### Offline Support
-- **Cache assignments:** Show last known state
-- **Queue actions:** Accept/decline syncs when online
-- **Offline indicator:** Show when not connected
-
----
-
-## Accessibility
-
-### Screen Reader
-```
-"Assignment card. Sunday Service, Media Team.
-Sunday, January 21st, 2026 at 9 AM.
-Status: Pending response.
-Accept button. Decline button."
-```
-
-### Voice Control
-- "Accept assignment"
-- "Decline assignment"
-- "Show assignment details"
-
-### Visual
-- **High contrast mode:** Stronger colors for status
-- **Large text:** Scales up to 200%
-- **Reduced motion:** No animations if preferred
+| Trigger | Timing | Channel |
+|---------|--------|---------|
+| New assignment | Immediate | Push + Email |
+| Reminder (if pending) | 1 day before | Push |
+| Day-of reminder | Morning of | Push |
 
 ---
 
 ## Edge Cases
 
-### Case 1: Assignment in the Past
+### Past Assignment
+
+If assignment date has passed:
+
 ```
 ┌─────────────────────────────┐
-│ ⏰ PAST ASSIGNMENT          │
-│                             │
-│ Sunday Service - Media      │
-│ Sun, Jan 14 • 9:00 AM       │
-│                             │
 │ This assignment has passed  │
-│ [Mark as Completed]         │
+│                             │
+│ [Dismiss]                   │
 └─────────────────────────────┘
 ```
 
-### Case 2: Conflicting Assignment
-```
-┌─────────────────────────────┐
-│ ⚠️ CONFLICT DETECTED        │
-│                             │
-│ Sunday Service - Media      │
-│ Sun, Jan 21 • 9:00 AM       │
-│                             │
-│ You're also assigned to:    │
-│ Worship Team at 9:00 AM     │
-│                             │
-│ [Decline One] [Contact Lead]│
-└─────────────────────────────┘
-```
+### Already Responded
 
-### Case 3: Last-Minute Assignment
-```
-┌─────────────────────────────┐
-│ 🔴 URGENT                   │
-│                             │
-│ Sunday Service - Media      │
-│ Tomorrow • 9:00 AM          │
-│                             │
-│ Sarah Johnson can't make it │
-│ Can you fill in?            │
-│                             │
-│ [Sorry, No]      [Yes! 👍]  │
-└─────────────────────────────┘
-```
+If user has already accepted/declined:
+
+- Show current status
+- No action buttons
+- Just informational view
 
 ---
 
-## Notification Strategy
+## Success Criteria
 
-### Timing
-- **New assignment:** Immediate
-- **Reminder:** 7 days before (if not responded)
-- **Final reminder:** 24 hours before
-- **Day-of:** Morning of assignment
-
-### Content
-```
-📱 Push: "New assignment: Sunday Service - Jan 21"
-📧 Email: Full details + calendar invite
-💬 SMS: (Optional) For urgent assignments
-```
-
-### Frequency Control
-- **Quiet hours:** No notifications 10 PM - 7 AM
-- **Batch mode:** Group multiple assignments
-- **Snooze:** "Remind me tomorrow"
+- **Total taps to accept:** 2 (notification → accept)
+- **Total taps to decline:** 3 (notification → decline → confirm)
+- **Time to complete:** Under 10 seconds
 
 ---
 
-## Performance Targets
+## What's NOT in This Flow
 
-- **Load time:** < 1 second for assignment list
-- **Action response:** < 200ms perceived (optimistic UI)
-- **Offline mode:** Full functionality except sync
-- **Battery impact:** < 2% per day with background sync
-
----
-
-## Analytics to Track
-
-- **Response rate:** % of assignments accepted
-- **Response time:** How quickly members respond
-- **Decline reasons:** Most common reasons
-- **Notification effectiveness:** Which notifications drive responses
-- **Drop-off points:** Where users abandon the flow
-
----
-
-## Future Enhancements
-
-### Smart Features
-- **Predictive accept:** "You usually accept Sunday mornings"
-- **Auto-decline:** Set recurring unavailability
-- **Calendar integration:** Sync with Google/Apple Calendar
-
-### Social Features
-- **Team chat:** Message co-volunteers
-- **Appreciation:** Thank teammates after serving
-- **Streaks:** Gamify consistent service
-
-### Personalization
-- **Preferred roles:** Highlight matching assignments
-- **Custom notifications:** Choose which alerts to receive
-- **Home screen widgets:** Quick glance at next assignment
+- Swap requests (deferred)
+- Calendar integration (deferred)
+- Bulk accept/decline (unnecessary complexity)
+- Response time tracking (no gamification)
