@@ -12,6 +12,7 @@ Rooster is a church volunteer rostering application built with:
 - **Commit after each feature** - Keep commits atomic and focused
 - Write clear commit messages describing what and why
 - Format: `<type>: <description>` (e.g., `feat: add user authentication`)
+- Make sure that the code compiles before committing anything. If it doesn't, fix it first.
 
 ### Environment
 - **Always use `nix-shell`** for development environment

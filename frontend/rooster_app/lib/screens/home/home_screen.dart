@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-    await assignmentProvider.fetchAssignments();
+    await assignmentProvider.fetchMyAssignments();
   }
 
   @override
