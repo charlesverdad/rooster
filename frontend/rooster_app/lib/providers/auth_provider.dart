@@ -97,13 +97,19 @@ class AuthProvider with ChangeNotifier {
       final response = await ApiClient.get('/auth/me');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('🔍 DEBUG: User data from API: $data');
         _user = User.fromJson(data);
+        print('🔍 DEBUG: Parsed user: ${_user?.name}');
+        print('🔍 DEBUG: User roles: ${_user?.roles}');
+        print('🔍 DEBUG: Is team lead: ${_user?.isTeamLead}');
         notifyListeners();
       }
     } catch (e) {
+      print('❌ DEBUG: Error fetching user: $e');
       debugPrint('Error fetching user: $e');
     }
   }
+
 
   Future<void> logout() async {
     await ApiClient.clearToken();

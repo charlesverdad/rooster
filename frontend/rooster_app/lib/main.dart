@@ -90,11 +90,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         print('🔍 DEBUG AuthWrapper: roles=${authProvider.user?.roles}');
         
         if (authProvider.isAuthenticated) {
-          // Show appropriate navigation based on user role
-          final isTeamLead = authProvider.user?.isTeamLead == true || 
-                            authProvider.user?.isAdmin == true;
-          print('🔍 DEBUG AuthWrapper: isTeamLead=$isTeamLead');
-          return MainNavigation(isTeamLead: isTeamLead);
+          return const MainNavigation();
         } else {
           return const LoginScreen();
         }
@@ -104,9 +100,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 }
 
 class MainNavigation extends StatefulWidget {
-  final bool isTeamLead;
-  
-  const MainNavigation({super.key, required this.isTeamLead});
+  const MainNavigation({super.key});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -117,55 +111,62 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    print('🔍 DEBUG MainNavigation: isTeamLead=${widget.isTeamLead}');
-    
-    // Different screens based on role
-    final List<Widget> screens = widget.isTeamLead
-        ? const [
-            TeamLeadDashboard(),
-            AvailabilityScreen(),
-            NotificationsScreen(),
-          ]
-        : const [
-            DashboardScreen(),
-            AvailabilityScreen(),
-            NotificationsScreen(),
-          ];
-    
-    print('🔍 DEBUG MainNavigation: Showing ${widget.isTeamLead ? "TeamLeadDashboard" : "DashboardScreen"}');
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final isTeamLead = authProvider.user?.isTeamLead == true || 
+                          authProvider.user?.isAdmin == true;
+        
+        print('🔍 DEBUG MainNavigation: isTeamLead=$isTeamLead');
+        
+        // Different screens based on role
+        final List<Widget> screens = isTeamLead
+            ? const [
+                TeamLeadDashboard(),
+                AvailabilityScreen(),
+                NotificationsScreen(),
+              ]
+            : const [
+                DashboardScreen(),
+                AvailabilityScreen(),
+                NotificationsScreen(),
+              ];
+        
+        print('🔍 DEBUG MainNavigation: Showing ${isTeamLead ? "TeamLeadDashboard" : "DashboardScreen"}');
 
-    return Scaffold(
-      body: screens[_selectedIndex],
-      bottomNavigationBar: Consumer<NotificationProvider>(
-        builder: (context, notificationProvider, child) {
-          return NavigationBar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
+        return Scaffold(
+          body: screens[_selectedIndex],
+          bottomNavigationBar: Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, child) {
+              return NavigationBar(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: (index) {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                },
+                destinations: [
+                  const NavigationDestination(
+                    icon: Icon(Icons.home),
+                    label: 'Home',
+                  ),
+                  const NavigationDestination(
+                    icon: Icon(Icons.event_busy),
+                    label: 'Availability',
+                  ),
+                  NavigationDestination(
+                    icon: Badge(
+                      label: Text('${notificationProvider.unreadCount}'),
+                      isLabelVisible: notificationProvider.unreadCount > 0,
+                      child: const Icon(Icons.notifications),
+                    ),
+                    label: 'Notifications',
+                  ),
+                ],
+              );
             },
-            destinations: [
-              const NavigationDestination(
-                icon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              const NavigationDestination(
-                icon: Icon(Icons.event_busy),
-                label: 'Availability',
-              ),
-              NavigationDestination(
-                icon: Badge(
-                  label: Text('${notificationProvider.unreadCount}'),
-                  isLabelVisible: notificationProvider.unreadCount > 0,
-                  child: const Icon(Icons.notifications),
-                ),
-                label: 'Notifications',
-              ),
-            ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
