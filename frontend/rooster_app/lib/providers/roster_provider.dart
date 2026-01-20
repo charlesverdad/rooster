@@ -71,9 +71,8 @@ class RosterProvider with ChangeNotifier {
         id: 'roster${_rosters.length + 1}',
         teamId: teamId,
         name: name,
-        recurrence: recurrence,
-        recurrenceDay: dayOfWeek,
         recurrencePattern: recurrence,
+        recurrenceDay: dayOfWeek,
         slotsNeeded: volunteersNeeded,
         assignmentMode: 'manual',
         createdAt: DateTime.now(),
@@ -186,7 +185,7 @@ class RosterProvider with ChangeNotifier {
   }
 
   DateTime _calculateNextOccurrence(DateTime current, Roster roster) {
-    switch (roster.recurrence) {
+    switch (roster.recurrencePattern) {
       case 'weekly':
         return current.add(const Duration(days: 7));
       case 'biweekly':

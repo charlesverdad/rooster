@@ -9,9 +9,8 @@ class MockData {
       id: 'roster1',
       teamId: '1',
       name: 'Sunday Service',
-      recurrence: 'weekly',
-      recurrenceDay: 0, // Sunday
       recurrencePattern: 'weekly',
+      recurrenceDay: 0, // Sunday
       slotsNeeded: 2,
       assignmentMode: 'manual',
       createdAt: DateTime.now().subtract(const Duration(days: 30)),
@@ -20,9 +19,8 @@ class MockData {
       id: 'roster2',
       teamId: '1',
       name: 'Wednesday Prayer',
-      recurrence: 'weekly',
-      recurrenceDay: 3, // Wednesday
       recurrencePattern: 'weekly',
+      recurrenceDay: 3, // Wednesday
       slotsNeeded: 1,
       assignmentMode: 'manual',
       createdAt: DateTime.now().subtract(const Duration(days: 20)),
