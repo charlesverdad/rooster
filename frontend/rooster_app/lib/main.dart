@@ -112,8 +112,6 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final notificationProvider = Provider.of<NotificationProvider>(context);
-    
     // Different screens based on role
     final List<Widget> screens = widget.isTeamLead
         ? const [

@@ -45,7 +45,6 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AssignmentProvider>(context);
-    final dateFormat = DateFormat('EEEE, MMMM d, y');
     
     // Group assignments by status
     final pending = provider.assignments.where((a) => a.status == 'pending').toList();
