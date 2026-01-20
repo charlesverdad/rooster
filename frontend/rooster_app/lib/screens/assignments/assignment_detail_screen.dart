@@ -3,15 +3,23 @@ import 'package:provider/provider.dart';
 import '../../models/assignment.dart';
 import '../../providers/assignment_provider.dart';
 
-class AssignmentDetailScreen extends StatelessWidget {
+class AssignmentDetailScreen extends StatefulWidget {
   final Assignment assignment;
 
   const AssignmentDetailScreen({super.key, required this.assignment});
 
   @override
+  State<AssignmentDetailScreen> createState() => _AssignmentDetailScreenState();
+}
+
+class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
+  bool _showingActions = false;
+
+  @override
   Widget build(BuildContext context) {
-    final isPending = assignment.status == 'pending';
-    final isAccepted = assignment.status == 'accepted';
+    final isPending = widget.assignment.status == 'pending';
+    final isAccepted = widget.assignment.status == 'accepted';
+    final isDeclined = widget.assignment.status == 'declined';
 
     return Scaffold(
       appBar: AppBar(
@@ -22,7 +30,7 @@ class AssignmentDetailScreen extends StatelessWidget {
         children: [
           // Roster name
           Text(
-            assignment.rosterName ?? 'Assignment',
+            widget.assignment.rosterName ?? 'Assignment',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -45,9 +53,9 @@ class AssignmentDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow(Icons.calendar_today, _formatDate(assignment.date)),
+                  _buildInfoRow(Icons.calendar_today, _formatDate(widget.assignment.date)),
                   const SizedBox(height: 12),
-                  _buildInfoRow(Icons.access_time, _formatTime(assignment.date)),
+                  _buildInfoRow(Icons.access_time, _formatTime(widget.assignment.date)),
                   const SizedBox(height: 12),
                   _buildInfoRow(Icons.location_on, 'Main Sanctuary'), // TODO: Get from assignment
                 ],
@@ -171,8 +179,8 @@ class AssignmentDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
 
-          // Action buttons (only for pending)
-          if (isPending) ...[
+          // Action buttons (for pending or when changing response)
+          if (isPending || _showingActions) ...[
             Row(
               children: [
                 Expanded(
@@ -199,8 +207,8 @@ class AssignmentDetailScreen extends StatelessWidget {
             ),
           ],
 
-          // Status indicator (for accepted/declined)
-          if (isAccepted) ...[
+          // Status indicator for accepted
+          if (isAccepted && !_showingActions) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -223,6 +231,58 @@ class AssignmentDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _showingActions = true;
+                  });
+                },
+                child: const Text('Change Response'),
+              ),
+            ),
+          ],
+
+          // Status indicator for declined
+          if (isDeclined && !_showingActions) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.cancel, color: Colors.orange.shade700),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'You\'ve declined this assignment',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.orange.shade900,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _showingActions = true;
+                  });
+                },
+                child: const Text('Change Response'),
               ),
             ),
           ],
@@ -263,16 +323,22 @@ class AssignmentDetailScreen extends StatelessWidget {
 
   Future<void> _handleAccept(BuildContext context) async {
     final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-    final success = await assignmentProvider.updateAssignmentStatus(assignment.id, 'accepted');
+    final success = await assignmentProvider.updateAssignmentStatus(widget.assignment.id, 'accepted');
     
     if (success && context.mounted) {
+      setState(() {
+        _showingActions = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Assignment accepted'),
           duration: Duration(seconds: 2),
         ),
       );
-      Navigator.of(context).pop();
+      // Only pop if this was a pending assignment, otherwise stay on the page
+      if (widget.assignment.status == 'pending') {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -285,16 +351,22 @@ class AssignmentDetailScreen extends StatelessWidget {
 
     if (confirmed == true && context.mounted) {
       final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-      final success = await assignmentProvider.updateAssignmentStatus(assignment.id, 'declined');
+      final success = await assignmentProvider.updateAssignmentStatus(widget.assignment.id, 'declined');
       
       if (success && context.mounted) {
+        setState(() {
+          _showingActions = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Declined'),
             duration: Duration(seconds: 2),
           ),
         );
-        Navigator.of(context).pop();
+        // Only pop if this was a pending assignment, otherwise stay on the page
+        if (widget.assignment.status == 'pending') {
+          Navigator.of(context).pop();
+        }
       }
     }
   }
