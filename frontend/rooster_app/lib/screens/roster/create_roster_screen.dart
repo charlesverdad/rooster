@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../../providers/roster_provider.dart';
 
 class CreateRosterScreen extends StatefulWidget {
   final String? teamId;
@@ -14,7 +17,9 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
   String _recurrence = 'weekly';
   int _selectedDay = 0; // Sunday
   int _volunteersNeeded = 2;
-  String _generateFor = '3_months';
+  String _endType = 'never'; // 'never', 'on_date', 'after_occurrences'
+  DateTime? _endDate;
+  int _occurrences = 10;
 
   @override
   void dispose() {
@@ -68,6 +73,13 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
             spacing: 8,
             children: [
               ChoiceChip(
+                label: const Text('One-time'),
+                selected: _recurrence == 'once',
+                onSelected: (selected) {
+                  if (selected) setState(() => _recurrence = 'once');
+                },
+              ),
+              ChoiceChip(
                 label: const Text('Weekly'),
                 selected: _recurrence == 'weekly',
                 onSelected: (selected) {
@@ -92,25 +104,56 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Day selector
-          const Text(
-            'Day',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildDayButton('S', 0),
-              _buildDayButton('M', 1),
-              _buildDayButton('T', 2),
-              _buildDayButton('W', 3),
-              _buildDayButton('T', 4),
-              _buildDayButton('F', 5),
-              _buildDayButton('S', 6),
-            ],
-          ),
-          const SizedBox(height: 24),
+          // Day selector (only show if not one-time)
+          if (_recurrence != 'once') ...[
+            const Text(
+              'Day',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildDayButton('S', 0),
+                _buildDayButton('M', 1),
+                _buildDayButton('T', 2),
+                _buildDayButton('W', 3),
+                _buildDayButton('T', 4),
+                _buildDayButton('F', 5),
+                _buildDayButton('S', 6),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Date selector (only show if one-time)
+          if (_recurrence == 'once') ...[
+            const Text(
+              'Date',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (date != null) {
+                  setState(() => _endDate = date);
+                }
+              },
+              icon: const Icon(Icons.calendar_today),
+              label: Text(
+                _endDate != null
+                    ? DateFormat('EEE, MMM d, y').format(_endDate!)
+                    : 'Select date',
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
 
           // Volunteers needed
           const Text(
@@ -148,31 +191,127 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Generate for
-          DropdownButtonFormField<String>(
-            value: _generateFor,
-            decoration: const InputDecoration(
-              labelText: 'Generate for next',
-              border: OutlineInputBorder(),
+          // End condition (only show if recurring)
+          if (_recurrence != 'once') ...[
+            const Text(
+              'Ends',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
-            items: const [
-              DropdownMenuItem(value: '1_month', child: Text('1 month')),
-              DropdownMenuItem(value: '3_months', child: Text('3 months')),
-              DropdownMenuItem(value: '6_months', child: Text('6 months')),
+            const SizedBox(height: 12),
+            RadioListTile<String>(
+              title: const Text('Never'),
+              subtitle: const Text('Continues indefinitely (generates 7 events at a time)'),
+              value: 'never',
+              groupValue: _endType,
+              onChanged: (value) {
+                if (value != null) setState(() => _endType = value);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('On date'),
+              value: 'on_date',
+              groupValue: _endType,
+              onChanged: (value) {
+                if (value != null) setState(() => _endType = value);
+              },
+            ),
+            if (_endType == 'on_date') ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _endDate ?? DateTime.now().add(const Duration(days: 90)),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 730)),
+                    );
+                    if (date != null) {
+                      setState(() => _endDate = date);
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today),
+                  label: Text(
+                    _endDate != null
+                        ? DateFormat('EEE, MMM d, y').format(_endDate!)
+                        : 'Select end date',
+                  ),
+                ),
+              ),
             ],
-            onChanged: (value) {
-              if (value != null) setState(() => _generateFor = value);
-            },
-          ),
-          const SizedBox(height: 32),
+            RadioListTile<String>(
+              title: const Text('After number of occurrences'),
+              value: 'after_occurrences',
+              groupValue: _endType,
+              onChanged: (value) {
+                if (value != null) setState(() => _endType = value);
+              },
+            ),
+            if (_endType == 'after_occurrences') ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Text('After'),
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 80,
+                      child: TextField(
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        controller: TextEditingController(text: '$_occurrences'),
+                        onChanged: (value) {
+                          final num = int.tryParse(value);
+                          if (num != null && num > 0) {
+                            setState(() => _occurrences = num);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Text('occurrences'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            const SizedBox(height: 16),
+          ],
 
           // Create button
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () {
-                if (_nameController.text.trim().isNotEmpty) {
-                  // TODO: Create roster
+              onPressed: () async {
+                if (_nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a roster name')),
+                  );
+                  return;
+                }
+
+                if (_recurrence == 'once' && _endDate == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a date')),
+                  );
+                  return;
+                }
+
+                final rosterProvider = Provider.of<RosterProvider>(context, listen: false);
+                final success = await rosterProvider.createRoster(
+                  teamId: widget.teamId ?? '1',
+                  name: _nameController.text.trim(),
+                  recurrence: _recurrence,
+                  dayOfWeek: _selectedDay,
+                  time: '09:00',
+                  volunteersNeeded: _volunteersNeeded,
+                );
+
+                if (success && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('✅ Roster "${_nameController.text.trim()}" created'),
