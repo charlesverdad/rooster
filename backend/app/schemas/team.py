@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -11,6 +12,13 @@ class TeamCreate(BaseModel):
 
     name: str
     organisation_id: uuid.UUID
+
+
+class AddPlaceholderMemberRequest(BaseModel):
+    """Schema for adding a placeholder member to a team (name only)."""
+
+    name: str
+    role: TeamRole = TeamRole.MEMBER
 
 
 class TeamUpdate(BaseModel):
@@ -36,8 +44,10 @@ class TeamMemberResponse(BaseModel):
     user_id: uuid.UUID
     team_id: uuid.UUID
     role: TeamRole
-    user_email: str
+    user_email: Optional[str] = None
     user_name: str
+    is_placeholder: bool = False
+    is_invited: bool = False
 
     model_config = {"from_attributes": True}
 

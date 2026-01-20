@@ -1,7 +1,8 @@
 import uuid
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import String
+from sqlalchemy import String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -16,13 +17,25 @@ if TYPE_CHECKING:
 
 
 class User(Base, UUIDMixin, TimestampMixin):
-    """User model for authentication and profile."""
+    """User model for authentication and profile.
+
+    Supports placeholder users (name only, no email/password) that can be
+    invited later to create a full account.
+    """
 
     __tablename__ = "users"
 
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    # Email and password are nullable for placeholder users
+    email: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    # Placeholder user fields
+    is_placeholder: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    invited_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    invited_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     organisation_memberships: Mapped[list["OrganisationMember"]] = relationship(
@@ -39,4 +52,9 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
     notifications: Mapped[list["Notification"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
+    )
+
+    # Self-referential relationship for invited_by
+    invited_by: Mapped[Optional["User"]] = relationship(
+        "User", remote_side="User.id", foreign_keys=[invited_by_id]
     )

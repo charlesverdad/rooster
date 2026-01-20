@@ -1,12 +1,13 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.organisation import OrganisationMember, OrganisationRole
 from app.models.team import Team, TeamMember, TeamRole
 from app.models.user import User
+from app.models.invite import Invite
 from app.schemas.team import TeamCreate, TeamUpdate
 
 
@@ -152,3 +153,73 @@ class TeamService:
             .where(TeamMember.team_id == team_id)
         )
         return list(result.scalars().all())
+
+    async def create_placeholder_member(
+        self, team_id: uuid.UUID, name: str, role: TeamRole, created_by_id: uuid.UUID
+    ) -> TeamMember:
+        """Create a placeholder user and add them to a team."""
+        # Create placeholder user
+        user = User(
+            name=name,
+            is_placeholder=True,
+            invited_by_id=created_by_id,
+        )
+        self.db.add(user)
+        await self.db.flush()
+
+        # Add to team
+        membership = TeamMember(
+            user_id=user.id,
+            team_id=team_id,
+            role=role,
+        )
+        self.db.add(membership)
+        await self.db.flush()
+        await self.db.refresh(membership)
+
+        # Load user relationship
+        result = await self.db.execute(
+            select(TeamMember)
+            .options(selectinload(TeamMember.user))
+            .where(
+                TeamMember.user_id == user.id,
+                TeamMember.team_id == team_id,
+            )
+        )
+        return result.scalar_one()
+
+    async def has_active_invite(self, user_id: uuid.UUID, team_id: uuid.UUID) -> bool:
+        """Check if a user has an active (non-accepted) invite for a team."""
+        result = await self.db.execute(
+            select(Invite).where(
+                and_(
+                    Invite.user_id == user_id,
+                    Invite.team_id == team_id,
+                    Invite.accepted_at.is_(None),
+                )
+            )
+        )
+        return result.scalar_one_or_none() is not None
+
+    async def get_member_invite_status(
+        self, members: list[TeamMember], team_id: uuid.UUID
+    ) -> dict[uuid.UUID, bool]:
+        """Get invite status for a list of members.
+
+        Returns a dict mapping user_id -> is_invited (True if has active invite).
+        """
+        user_ids = [m.user_id for m in members]
+        if not user_ids:
+            return {}
+
+        result = await self.db.execute(
+            select(Invite.user_id).where(
+                and_(
+                    Invite.team_id == team_id,
+                    Invite.user_id.in_(user_ids),
+                    Invite.accepted_at.is_(None),
+                )
+            )
+        )
+        invited_user_ids = set(result.scalars().all())
+        return {uid: uid in invited_user_ids for uid in user_ids}

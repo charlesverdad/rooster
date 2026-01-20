@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.user import User
     from app.models.organisation import Organisation
     from app.models.roster import Roster
+    from app.models.invite import Invite
 
 
 class TeamRole(str, enum.Enum):
@@ -37,6 +38,9 @@ class Team(Base, UUIDMixin, TimestampMixin):
         back_populates="team", cascade="all, delete-orphan"
     )
     rosters: Mapped[list["Roster"]] = relationship(
+        back_populates="team", cascade="all, delete-orphan"
+    )
+    invites: Mapped[list["Invite"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
 

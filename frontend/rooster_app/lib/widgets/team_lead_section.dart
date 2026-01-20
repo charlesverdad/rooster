@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../mock_data/mock_data.dart';
 import '../models/roster_event.dart';
 import '../screens/teams/my_teams_screen.dart';

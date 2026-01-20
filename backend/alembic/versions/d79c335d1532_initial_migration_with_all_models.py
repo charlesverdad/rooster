@@ -1,8 +1,8 @@
 """Initial migration with all models
 
-Revision ID: b2b9dd157299
+Revision ID: d79c335d1532
 Revises: 
-Create Date: 2026-01-20 00:20:11.010986
+Create Date: 2026-01-21 10:26:53.455205
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b2b9dd157299'
+revision: str = 'd79c335d1532'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,12 +28,16 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
-    sa.Column('email', sa.String(length=255), nullable=False),
+    sa.Column('email', sa.String(length=255), nullable=True),
     sa.Column('name', sa.String(length=255), nullable=False),
-    sa.Column('password_hash', sa.String(length=255), nullable=False),
+    sa.Column('password_hash', sa.String(length=255), nullable=True),
+    sa.Column('is_placeholder', sa.Boolean(), nullable=False),
+    sa.Column('invited_by_id', sa.Uuid(), nullable=True),
+    sa.Column('invited_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['invited_by_id'], ['users.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
@@ -79,13 +83,33 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('invites',
+    sa.Column('team_id', sa.Uuid(), nullable=False),
+    sa.Column('user_id', sa.Uuid(), nullable=False),
+    sa.Column('email', sa.String(length=255), nullable=False),
+    sa.Column('token', sa.String(length=64), nullable=False),
+    sa.Column('accepted_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['team_id'], ['teams.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_invites_token'), 'invites', ['token'], unique=True)
     op.create_table('rosters',
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('team_id', sa.Uuid(), nullable=False),
-    sa.Column('recurrence_pattern', sa.Enum('WEEKLY', 'BIWEEKLY', 'MONTHLY', name='recurrencepattern'), nullable=False),
+    sa.Column('recurrence_pattern', sa.Enum('WEEKLY', 'BIWEEKLY', 'MONTHLY', 'ONE_TIME', name='recurrencepattern'), nullable=False),
     sa.Column('recurrence_day', sa.Integer(), nullable=False),
     sa.Column('slots_needed', sa.Integer(), nullable=False),
     sa.Column('assignment_mode', sa.Enum('MANUAL', 'AUTO_ROTATE', 'RANDOM', name='assignmentmode'), nullable=False),
+    sa.Column('location', sa.String(length=255), nullable=True),
+    sa.Column('notes', sa.Text(), nullable=True),
+    sa.Column('start_date', sa.Date(), nullable=False),
+    sa.Column('end_date', sa.Date(), nullable=True),
+    sa.Column('end_after_occurrences', sa.Integer(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
@@ -115,14 +139,40 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('roster_events',
+    sa.Column('roster_id', sa.Uuid(), nullable=False),
+    sa.Column('date', sa.Date(), nullable=False),
+    sa.Column('notes', sa.Text(), nullable=True),
+    sa.Column('is_cancelled', sa.Boolean(), nullable=False),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['roster_id'], ['rosters.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('event_assignments',
+    sa.Column('event_id', sa.Uuid(), nullable=False),
+    sa.Column('user_id', sa.Uuid(), nullable=False),
+    sa.Column('status', sa.Enum('PENDING', 'CONFIRMED', 'DECLINED', name='assignmentstatus'), nullable=False),
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.ForeignKeyConstraint(['event_id'], ['roster_events.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('event_assignments')
+    op.drop_table('roster_events')
     op.drop_table('assignments')
     op.drop_table('team_members')
     op.drop_table('rosters')
+    op.drop_index(op.f('ix_invites_token'), table_name='invites')
+    op.drop_table('invites')
     op.drop_table('unavailabilities')
     op.drop_table('teams')
     op.drop_table('organisation_members')
@@ -130,13 +180,4 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
     op.drop_table('organisations')
-    
-    # Drop enum types
-    op.execute('DROP TYPE IF EXISTS assignmentstatus')
-    op.execute('DROP TYPE IF EXISTS teamrole')
-    op.execute('DROP TYPE IF EXISTS assignmentmode')
-    op.execute('DROP TYPE IF EXISTS recurrencepattern')
-    op.execute('DROP TYPE IF EXISTS organisationrole')
-    op.execute('DROP TYPE IF EXISTS notificationtype')
     # ### end Alembic commands ###
-

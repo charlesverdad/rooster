@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.team import (
+    AddPlaceholderMemberRequest,
     AddTeamMemberRequest,
     TeamCreate,
     TeamMemberResponse,
@@ -187,6 +188,8 @@ async def list_members(
         )
 
     members = await team_service.get_members(team_id)
+    invite_status = await team_service.get_member_invite_status(members, team_id)
+
     return [
         TeamMemberResponse(
             user_id=m.user_id,
@@ -194,6 +197,8 @@ async def list_members(
             role=m.role,
             user_email=m.user.email,
             user_name=m.user.name,
+            is_placeholder=m.user.is_placeholder,
+            is_invited=invite_status.get(m.user_id, False),
         )
         for m in members
     ]
@@ -206,7 +211,7 @@ async def add_member(
     current_user: CurrentUser,
     db: DbSession,
 ) -> TeamMemberResponse:
-    """Add a member to a team. Org admin or team lead only."""
+    """Add an existing user to a team. Org admin or team lead only."""
     team_service = TeamService(db)
 
     team = await team_service.get_team(team_id)
@@ -231,6 +236,7 @@ async def add_member(
 
     # Reload with user info
     members = await team_service.get_members(team_id)
+    invite_status = await team_service.get_member_invite_status(members, team_id)
     for m in members:
         if m.user_id == data.user_id:
             return TeamMemberResponse(
@@ -239,9 +245,52 @@ async def add_member(
                 role=m.role,
                 user_email=m.user.email,
                 user_name=m.user.name,
+                is_placeholder=m.user.is_placeholder,
+                is_invited=invite_status.get(m.user_id, False),
             )
 
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@router.post("/{team_id}/members/placeholder", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
+async def add_placeholder_member(
+    team_id: uuid.UUID,
+    data: AddPlaceholderMemberRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> TeamMemberResponse:
+    """Add a placeholder member to a team (name only). Org admin or team lead only."""
+    team_service = TeamService(db)
+
+    team = await team_service.get_team(team_id)
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found",
+        )
+
+    if not await team_service.can_manage_team(current_user.id, team):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to manage this team",
+        )
+
+    membership = await team_service.create_placeholder_member(
+        team_id=team_id,
+        name=data.name,
+        role=data.role,
+        created_by_id=current_user.id,
+    )
+
+    return TeamMemberResponse(
+        user_id=membership.user_id,
+        team_id=membership.team_id,
+        role=membership.role,
+        user_email=membership.user.email,
+        user_name=membership.user.name,
+        is_placeholder=membership.user.is_placeholder,
+        is_invited=False,  # New placeholder, no invite yet
+    )
 
 
 @router.delete("/{team_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
