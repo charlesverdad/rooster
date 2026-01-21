@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/event_assignment.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/assignment_provider.dart';
 import '../../providers/notification_provider.dart';
@@ -27,8 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-    final notificationProvider = Provider.of<NotificationProvider>(context, listen: false);
+    final assignmentProvider =
+        Provider.of<AssignmentProvider>(context, listen: false);
+    final notificationProvider =
+        Provider.of<NotificationProvider>(context, listen: false);
     await Future.wait([
       assignmentProvider.fetchMyAssignments(),
       notificationProvider.fetchNotifications(),
@@ -42,8 +45,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final notificationProvider = Provider.of<NotificationProvider>(context);
 
     final isTeamLead = authProvider.user?.isTeamLead == true;
-    final pendingAssignments = assignmentProvider.assignments.where((a) => a.status == 'pending').toList();
-    final upcomingAssignments = assignmentProvider.assignments.where((a) => a.status == 'accepted').toList();
+    final pendingAssignments = assignmentProvider.pendingAssignments;
+    final upcomingAssignments = assignmentProvider.upcomingAssignments;
     final unreadCount = notificationProvider.unreadCount;
 
     return Scaffold(
@@ -65,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   top: 6,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
                     ),
@@ -124,7 +127,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.red.shade100,
                             borderRadius: BorderRadius.circular(12),
@@ -141,12 +145,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...pendingAssignments.map((assignment) => AssignmentActionCard(
-                      assignment: assignment,
-                      onAccept: () => _handleAccept(assignment),
-                      onDecline: () => _handleDecline(assignment),
-                      onTap: () => _navigateToDetail(assignment),
-                    )),
+                    ...pendingAssignments.map((assignment) =>
+                        AssignmentActionCard(
+                          assignment: assignment,
+                          onAccept: () => _handleAccept(assignment),
+                          onDecline: () => _handleDecline(assignment),
+                          onTap: () => _navigateToDetail(assignment),
+                        )),
                     const SizedBox(height: 24),
                   ],
 
@@ -169,10 +174,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       subtitle: 'Accept pending assignments to see them here',
                     )
                   else
-                    ...upcomingAssignments.take(5).map((assignment) => UpcomingAssignmentCard(
-                      assignment: assignment,
-                      onTap: () => _navigateToDetail(assignment),
-                    )),
+                    ...upcomingAssignments
+                        .take(5)
+                        .map((assignment) => UpcomingAssignmentCard(
+                              assignment: assignment,
+                              onTap: () => _navigateToDetail(assignment),
+                            )),
 
                   // Team Lead Section (if applicable)
                   if (isTeamLead) ...[
@@ -220,18 +227,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _navigateToDetail(assignment) {
+  void _navigateToDetail(EventAssignment assignment) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AssignmentDetailScreen(assignment: assignment),
+        builder: (context) => AssignmentDetailScreen(assignmentId: assignment.id),
       ),
     );
   }
 
-  Future<void> _handleAccept(assignment) async {
-    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-    final success = await assignmentProvider.updateAssignmentStatus(assignment.id, 'accepted');
+  Future<void> _handleAccept(EventAssignment assignment) async {
+    final assignmentProvider =
+        Provider.of<AssignmentProvider>(context, listen: false);
+    final success = await assignmentProvider.confirmAssignment(assignment.id);
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -243,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _handleDecline(assignment) async {
+  Future<void> _handleDecline(EventAssignment assignment) async {
     // Show decline confirmation sheet
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -251,8 +259,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-      final success = await assignmentProvider.updateAssignmentStatus(assignment.id, 'declined');
+      final assignmentProvider =
+          Provider.of<AssignmentProvider>(context, listen: false);
+      final success = await assignmentProvider.declineAssignment(assignment.id);
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -270,7 +279,8 @@ class _DeclineConfirmationSheet extends StatefulWidget {
   const _DeclineConfirmationSheet();
 
   @override
-  State<_DeclineConfirmationSheet> createState() => _DeclineConfirmationSheetState();
+  State<_DeclineConfirmationSheet> createState() =>
+      _DeclineConfirmationSheetState();
 }
 
 class _DeclineConfirmationSheetState extends State<_DeclineConfirmationSheet> {

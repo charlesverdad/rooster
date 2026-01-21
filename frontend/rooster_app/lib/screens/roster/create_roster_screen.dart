@@ -342,8 +342,10 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                   name: _nameController.text.trim(),
                   recurrence: _recurrence,
                   dayOfWeek: _selectedDay,
-                  time: '09:00',
                   volunteersNeeded: _volunteersNeeded,
+                  startDate: _startDate!,
+                  endDate: _endDate,
+                  endAfterOccurrences: _endType == 'after_occurrences' ? _occurrences : null,
                 );
 
                 if (success && context.mounted) {

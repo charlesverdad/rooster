@@ -1,14 +1,16 @@
 class User {
   final String id;
-  final String email;
+  final String? email;
   final String name;
   final List<String> roles;
+  final bool isPlaceholder;
 
   User({
     required this.id,
-    required this.email,
+    this.email,
     required this.name,
     List<String>? roles,
+    this.isPlaceholder = false,
   }) : roles = roles ?? ['member'];
 
   bool get isTeamLead => roles.contains('team_lead');
@@ -20,9 +22,10 @@ class User {
       id: json['id'],
       email: json['email'],
       name: json['name'],
-      roles: json['roles'] != null 
-          ? List<String>.from(json['roles']) 
+      roles: json['roles'] != null
+          ? List<String>.from(json['roles'])
           : null,
+      isPlaceholder: json['is_placeholder'] ?? false,
     );
   }
 
@@ -32,6 +35,7 @@ class User {
       'email': email,
       'name': name,
       'roles': roles,
+      'is_placeholder': isPlaceholder,
     };
   }
 }

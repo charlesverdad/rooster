@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../models/roster.dart';
 import '../models/roster_event.dart';
-import '../mock_data/mock_data.dart';
+import '../models/event_assignment.dart';
+import '../services/roster_service.dart';
+import '../services/assignment_service.dart';
+import '../services/team_service.dart';
 
 class RosterProvider with ChangeNotifier {
   List<Roster> _rosters = [];
@@ -22,13 +25,10 @@ class RosterProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Simulate network delay
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Use mock data
-      _rosters = MockData.getRostersForTeam(teamId);
+      _rosters = await RosterService.getTeamRosters(teamId);
     } catch (e) {
-      _error = 'Connection error: $e';
+      _error = _getErrorMessage(e);
+      debugPrint('Error fetching rosters: $e');
     }
 
     _isLoading = false;
@@ -36,22 +36,34 @@ class RosterProvider with ChangeNotifier {
   }
 
   Future<void> fetchRosterDetail(String rosterId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
     try {
-      // Simulate network delay
-      await Future.delayed(const Duration(milliseconds: 300));
-      
-      _currentRoster = MockData.getRosterById(rosterId);
-      _currentEvents = MockData.getEventsForRoster(rosterId);
-      
+      // Fetch roster and events in parallel
+      final results = await Future.wait([
+        RosterService.getRoster(rosterId),
+        RosterService.getRosterEvents(rosterId),
+      ]);
+
+      _currentRoster = results[0] as Roster;
+      _currentEvents = results[1] as List<RosterEvent>;
+
+      // Sort events by date
+      _currentEvents.sort((a, b) => a.date.compareTo(b.date));
+
       // Auto-generate more events if running low (≤ 3 remaining)
       if (_currentEvents.length <= 3 && _currentRoster != null) {
-        await _generateMoreEvents();
+        await _generateMoreEventsInternal();
       }
-      
-      notifyListeners();
     } catch (e) {
+      _error = _getErrorMessage(e);
       debugPrint('Error fetching roster detail: $e');
     }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<bool> createRoster({
@@ -59,177 +71,115 @@ class RosterProvider with ChangeNotifier {
     required String name,
     required String recurrence,
     required int dayOfWeek,
-    required String time,
     required int volunteersNeeded,
+    required DateTime startDate,
+    String? location,
+    String? notes,
+    DateTime? endDate,
+    int? endAfterOccurrences,
   }) async {
     try {
-      // Simulate network delay
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Create roster
-      final roster = Roster(
-        id: 'roster${_rosters.length + 1}',
+      final roster = await RosterService.createRoster(
         teamId: teamId,
         name: name,
         recurrencePattern: recurrence,
         recurrenceDay: dayOfWeek,
         slotsNeeded: volunteersNeeded,
-        assignmentMode: 'manual',
-        createdAt: DateTime.now(),
+        startDate: startDate,
+        location: location,
+        notes: notes,
+        endDate: endDate,
+        endAfterOccurrences: endAfterOccurrences,
       );
-      
-      // Generate 7 initial events
-      final events = _generateInitialEvents(roster, 7);
-      
-      // Add to mock data
-      MockData.addRoster(roster, events);
-      
-      // Set as current
+
+      // Set as current roster
       _currentRoster = roster;
-      _currentEvents = events;
-      
+
+      // Fetch the generated events
+      _currentEvents = await RosterService.getRosterEvents(roster.id);
+      _currentEvents.sort((a, b) => a.date.compareTo(b.date));
+
+      // Add to local list
+      _rosters.add(roster);
+
       notifyListeners();
       return true;
     } catch (e) {
+      _error = _getErrorMessage(e);
       debugPrint('Error creating roster: $e');
       return false;
     }
   }
 
   Future<void> generateMoreEvents() async {
-    await _generateMoreEvents();
+    await _generateMoreEventsInternal();
   }
 
-  Future<void> _generateMoreEvents() async {
+  Future<void> _generateMoreEventsInternal() async {
     if (_currentRoster == null) return;
-    
+
     try {
-      // Simulate network delay
-      await Future.delayed(const Duration(milliseconds: 300));
-      
-      // Get the last event date
-      final lastEvent = _currentEvents.isNotEmpty
-          ? _currentEvents.last
-          : null;
-      
-      final startDate = lastEvent?.dateTime ?? DateTime.now();
-      
-      // Generate 7 more events
-      final newEvents = _generateEventsFromDate(
-        _currentRoster!,
-        startDate,
-        7,
-      );
-      
-      // Add to mock data and current events
-      MockData.addEventsToRoster(_currentRoster!.id, newEvents);
+      final newEvents =
+          await RosterService.generateMoreEvents(_currentRoster!.id);
+
+      // Add new events to current list
       _currentEvents.addAll(newEvents);
-      
+      _currentEvents.sort((a, b) => a.date.compareTo(b.date));
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error generating more events: $e');
     }
   }
 
-  List<RosterEvent> _generateInitialEvents(Roster roster, int count) {
-    return _generateEventsFromDate(roster, DateTime.now(), count);
-  }
-
-  List<RosterEvent> _generateEventsFromDate(
-    Roster roster,
-    DateTime startDate,
-    int count,
-  ) {
-    final events = <RosterEvent>[];
-    DateTime currentDate = _findNextOccurrence(startDate, roster);
-
-    for (int i = 0; i < count; i++) {
-      final eventId = 'event_${roster.id}_${currentDate.millisecondsSinceEpoch}';
-      
-      events.add(RosterEvent(
-        id: eventId,
-        rosterId: roster.id,
-        rosterName: roster.name,
-        dateTime: currentDate,
-        volunteersNeeded: roster.slotsNeeded,
-        assignedUserIds: [],
-      ));
-
-      // Calculate next occurrence
-      currentDate = _calculateNextOccurrence(currentDate, roster);
-    }
-
-    return events;
-  }
-
-  DateTime _findNextOccurrence(DateTime from, Roster roster) {
-    DateTime candidate = from;
-    
-    // Find the next occurrence of the specified day
-    while (candidate.weekday % 7 != roster.recurrenceDay) {
-      candidate = candidate.add(const Duration(days: 1));
-    }
-    
-    // Set the time
-    final timeParts = roster.recurrencePattern.contains(':')
-        ? roster.recurrencePattern.split(':')
-        : ['09', '00'];
-    
-    return DateTime(
-      candidate.year,
-      candidate.month,
-      candidate.day,
-      int.parse(timeParts[0]),
-      int.parse(timeParts.length > 1 ? timeParts[1] : '00'),
-    );
-  }
-
-  DateTime _calculateNextOccurrence(DateTime current, Roster roster) {
-    switch (roster.recurrencePattern) {
-      case 'weekly':
-        return current.add(const Duration(days: 7));
-      case 'biweekly':
-        return current.add(const Duration(days: 14));
-      case 'monthly':
-        return DateTime(
-          current.month == 12 ? current.year + 1 : current.year,
-          current.month == 12 ? 1 : current.month + 1,
-          current.day,
-          current.hour,
-          current.minute,
-        );
-      default:
-        return current.add(const Duration(days: 7));
-    }
-  }
-
   Future<bool> assignVolunteerToEvent(String eventId, String userId) async {
     try {
-      // Simulate network delay
-      await Future.delayed(const Duration(milliseconds: 300));
-      
+      await AssignmentService.assignUserToEvent(eventId, userId);
+
+      // Refresh the event to get updated filled_slots
       final eventIndex = _currentEvents.indexWhere((e) => e.id == eventId);
-      if (eventIndex != -1) {
-        final event = _currentEvents[eventIndex];
-        final updatedEvent = RosterEvent(
-          id: event.id,
-          rosterId: event.rosterId,
-          rosterName: event.rosterName,
-          dateTime: event.dateTime,
-          volunteersNeeded: event.volunteersNeeded,
-          assignedUserIds: [...event.assignedUserIds, userId],
-          assignedUserNames: event.assignedUserNames,
-        );
-        
-        _currentEvents[eventIndex] = updatedEvent;
-        MockData.updateEvent(updatedEvent);
+      if (eventIndex != -1 && _currentRoster != null) {
+        // Refresh events from server
+        final events = await RosterService.getRosterEvents(_currentRoster!.id);
+        _currentEvents = events;
+        _currentEvents.sort((a, b) => a.date.compareTo(b.date));
         notifyListeners();
-        return true;
       }
-      return false;
+
+      return true;
     } catch (e) {
+      _error = _getErrorMessage(e);
       debugPrint('Error assigning volunteer: $e');
       return false;
+    }
+  }
+
+  Future<bool> removeAssignment(String assignmentId) async {
+    try {
+      await AssignmentService.deleteAssignment(assignmentId);
+
+      // Refresh events to update filled slots
+      if (_currentRoster != null) {
+        final events = await RosterService.getRosterEvents(_currentRoster!.id);
+        _currentEvents = events;
+        _currentEvents.sort((a, b) => a.date.compareTo(b.date));
+        notifyListeners();
+      }
+
+      return true;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error removing assignment: $e');
+      return false;
+    }
+  }
+
+  Future<List<EventAssignment>> getEventAssignments(String eventId) async {
+    try {
+      return await AssignmentService.getEventAssignments(eventId);
+    } catch (e) {
+      debugPrint('Error fetching event assignments: $e');
+      return [];
     }
   }
 
@@ -237,5 +187,17 @@ class RosterProvider with ChangeNotifier {
     _currentRoster = null;
     _currentEvents = [];
     notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  String _getErrorMessage(dynamic error) {
+    if (error is ApiException) {
+      return error.message;
+    }
+    return error.toString();
   }
 }

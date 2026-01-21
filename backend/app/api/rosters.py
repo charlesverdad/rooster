@@ -946,6 +946,9 @@ async def list_my_event_assignments(
             is_placeholder=a.user.is_placeholder if a.user else False,
             is_invited=False,  # Current user is not a placeholder
             created_at=a.created_at,
+            event_date=a.event.date if a.event else None,
+            roster_name=a.event.roster.name if a.event and a.event.roster else None,
+            team_name=None,  # Would need another join to get team name
         )
         for a in assignments
     ]

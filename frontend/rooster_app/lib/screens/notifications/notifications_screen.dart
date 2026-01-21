@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/notification.dart';
 import '../../providers/notification_provider.dart';
-import '../../providers/assignment_provider.dart';
 import '../assignments/assignment_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -204,20 +203,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _navigateToAssignment(BuildContext context, String assignmentId) {
-    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-
-    // Find the assignment by ID
-    final assignment = assignmentProvider.assignments.firstWhere(
-      (a) => a.id == assignmentId,
-      orElse: () => assignmentProvider.assignments.isNotEmpty
-          ? assignmentProvider.assignments.first
-          : throw Exception('No assignments available'),
-    );
-
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AssignmentDetailScreen(assignment: assignment),
+        builder: (context) => AssignmentDetailScreen(assignmentId: assignmentId),
       ),
     );
   }

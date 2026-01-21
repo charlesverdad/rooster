@@ -137,7 +137,6 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
 
   Widget _buildEventCard(BuildContext context, event, String teamId) {
     final dateFormat = DateFormat('EEE, MMM d, y');
-    final timeFormat = DateFormat('h:mm a');
     final isFilled = event.isFilled;
     final isPartial = event.isPartial;
 
@@ -173,17 +172,10 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          dateFormat.format(event.dateTime),
+                          dateFormat.format(event.date),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          timeFormat.format(event.dateTime),
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
                           ),
                         ),
                       ],
@@ -194,7 +186,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                       Icon(statusIcon, color: statusColor, size: 20),
                       const SizedBox(width: 4),
                       Text(
-                        '${event.assignedUserIds.length}/${event.volunteersNeeded}',
+                        '${event.filledSlots}/${event.slotsNeeded}',
                         style: TextStyle(
                           color: statusColor,
                           fontWeight: FontWeight.bold,
@@ -204,13 +196,12 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                   ),
                 ],
               ),
-              if (event.assignedUserNames != null &&
-                  event.assignedUserNames!.isNotEmpty) ...[
+              if (event.assignedUserNames.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: event.assignedUserNames!
+                  children: event.assignedUserNames
                       .map<Widget>((name) => Chip(
                             label: Text(name),
                             labelStyle: const TextStyle(fontSize: 12),

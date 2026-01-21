@@ -39,14 +39,16 @@ class AppNotification {
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
-      id: json['id'],
-      userId: json['user_id'],
-      type: json['type'],
-      title: json['title'],
-      message: json['message'],
+      id: json['id'].toString(),
+      userId: json['user_id'].toString(),
+      type: json['type'] ?? 'info',
+      title: json['title'] ?? '',
+      message: json['message'] ?? '',
       readAt: json['read_at'] != null ? DateTime.parse(json['read_at']) : null,
-      createdAt: DateTime.parse(json['created_at']),
-      referenceId: json['reference_id'],
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      referenceId: json['reference_id']?.toString(),
     );
   }
 

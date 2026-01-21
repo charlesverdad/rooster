@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/assignment_provider.dart';
-import '../../models/assignment.dart';
+import '../../models/event_assignment.dart';
 
 class AvailabilityScreen extends StatefulWidget {
   const AvailabilityScreen({super.key});
@@ -27,7 +27,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   Future<void> _updateStatus(String assignmentId, String newStatus) async {
     final provider = Provider.of<AssignmentProvider>(context, listen: false);
     final success = await provider.updateAssignmentStatus(assignmentId, newStatus);
-    
+
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -45,11 +45,11 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AssignmentProvider>(context);
-    
+
     // Group assignments by status
-    final pending = provider.assignments.where((a) => a.status == 'pending').toList();
-    final confirmed = provider.assignments.where((a) => a.status == 'confirmed').toList();
-    final declined = provider.assignments.where((a) => a.status == 'declined').toList();
+    final pending = provider.pendingAssignments;
+    final confirmed = provider.upcomingAssignments;
+    final declined = provider.assignments.where((a) => a.isDeclined).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -155,7 +155,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -172,12 +172,14 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
 
   Widget _buildAssignmentCard(
     BuildContext context,
-    Assignment assignment, {
+    EventAssignment assignment, {
     required bool showActions,
   }) {
     final dateFormat = DateFormat('EEEE, MMMM d, y');
-    final isToday = DateTime.now().difference(assignment.date).inDays == 0;
-    final isPast = assignment.date.isBefore(DateTime.now());
+    final eventDate = assignment.eventDate;
+    final isToday = eventDate != null &&
+        DateTime.now().difference(eventDate).inDays == 0;
+    final isPast = eventDate != null && eventDate.isBefore(DateTime.now());
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -201,7 +203,9 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        dateFormat.format(assignment.date),
+                        eventDate != null
+                            ? dateFormat.format(eventDate)
+                            : 'Date TBD',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade700,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/team_member.dart';
 import '../../providers/team_provider.dart';
 import '../../providers/roster_provider.dart';
 
@@ -57,8 +58,10 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final teamId = widget.teamId ?? '1'; // Default to team 1 for home screen
-      Provider.of<TeamProvider>(context, listen: false).fetchTeamDetail(teamId);
+      if (widget.teamId != null) {
+        Provider.of<TeamProvider>(context, listen: false)
+            .fetchTeamDetail(widget.teamId!);
+      }
     });
   }
 
@@ -69,7 +72,10 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   }
 
   String _formatDate(DateTime date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
     return '${months[date.month - 1]} ${date.day}';
   }
 
@@ -81,19 +87,17 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
     final filteredMembers = _searchQuery.isEmpty
         ? members
         : members
-            .where((m) => (m['name'] as String)
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()))
+            .where((m) =>
+                m.userName.toLowerCase().contains(_searchQuery.toLowerCase()))
             .toList();
 
     final available = filteredMembers
-        .where((m) =>
-            m['isPlaceholder'] == false && m['isInvited'] != true)
+        .where((m) => !m.isPlaceholder && !m.isInvited)
         .toList();
-    final unavailable = filteredMembers.where((m) => false).toList(); // TODO: Add unavailability logic
-    final placeholders = filteredMembers
-        .where((m) => m['isPlaceholder'] == true)
-        .toList();
+    final unavailable =
+        <TeamMember>[]; // TODO: Add unavailability logic
+    final placeholders =
+        filteredMembers.where((m) => m.isPlaceholder).toList();
 
     // Build header text
     String headerText = 'Assign Volunteer';
@@ -179,7 +183,8 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...available.map((member) => _buildMemberTile(member, true, false)),
+                  ...available.map((member) =>
+                      _buildMemberTile(member, true, false)),
                   const SizedBox(height: 16),
                 ],
                 if (placeholders.isNotEmpty) ...[
@@ -192,7 +197,8 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...placeholders.map((member) => _buildMemberTile(member, true, true)),
+                  ...placeholders.map((member) =>
+                      _buildMemberTile(member, true, true)),
                   const SizedBox(height: 16),
                 ],
                 if (unavailable.isNotEmpty) ...[
@@ -205,7 +211,8 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...unavailable.map((member) => _buildMemberTile(member, false, false)),
+                  ...unavailable.map((member) =>
+                      _buildMemberTile(member, false, false)),
                 ],
               ],
             ),
@@ -215,22 +222,28 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
     );
   }
 
-  Widget _buildMemberTile(Map<String, dynamic> member, bool isAvailable, bool isPlaceholder) {
+  Widget _buildMemberTile(
+      TeamMember member, bool isAvailable, bool isPlaceholder) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isPlaceholder ? Colors.grey.shade400 : Colors.deepPurple.shade300,
+          backgroundColor: isPlaceholder
+              ? Colors.grey.shade400
+              : Colors.deepPurple.shade300,
           child: isPlaceholder
               ? Icon(Icons.person_outline, color: Colors.grey.shade100, size: 20)
               : Text(
-                  (member['name'] as String).substring(0, 1),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  member.userName.isNotEmpty
+                      ? member.userName.substring(0, 1)
+                      : '?',
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
         ),
         title: Row(
           children: [
-            Text(member['name'] as String),
+            Text(member.userName),
             if (isPlaceholder) ...[
               const SizedBox(width: 8),
               Container(
@@ -240,7 +253,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  'Not invited',
+                  member.isInvited ? 'Invited' : 'Not invited',
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.grey.shade600,
@@ -250,12 +263,6 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
             ],
           ],
         ),
-        subtitle: member['reason'] != null
-            ? Text(
-                member['reason'] as String,
-                style: TextStyle(color: Colors.orange.shade700),
-              )
-            : null,
         trailing: isAvailable ? const Icon(Icons.chevron_right) : null,
         onTap: isAvailable
             ? () async {
@@ -267,10 +274,10 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
     );
   }
 
-  Future<void> _handleAssign(Map<String, dynamic> member) async {
-    final memberId = member['id'] as String;
-    final memberName = member['name'] as String;
-    final isPlaceholder = member['isPlaceholder'] == true;
+  Future<void> _handleAssign(TeamMember member) async {
+    final memberId = member.userId;
+    final memberName = member.userName;
+    final isPlaceholder = member.isPlaceholder;
 
     // Use callback if provided (roster detail flow)
     if (widget.onAssign != null) {
@@ -284,8 +291,10 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
 
     // Otherwise use eventId (home screen flow)
     if (widget.eventId != null) {
-      final rosterProvider = Provider.of<RosterProvider>(context, listen: false);
-      final success = await rosterProvider.assignVolunteerToEvent(widget.eventId!, memberId);
+      final rosterProvider =
+          Provider.of<RosterProvider>(context, listen: false);
+      final success = await rosterProvider.assignVolunteerToEvent(
+          widget.eventId!, memberId);
 
       if (mounted) {
         Navigator.of(context).pop();

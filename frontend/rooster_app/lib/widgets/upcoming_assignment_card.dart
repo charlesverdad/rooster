@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/assignment.dart';
+import '../models/event_assignment.dart';
 
 class UpcomingAssignmentCard extends StatelessWidget {
-  final Assignment assignment;
+  final EventAssignment assignment;
   final VoidCallback? onTap;
 
   const UpcomingAssignmentCard({
@@ -40,7 +40,7 @@ class UpcomingAssignmentCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _formatDate(assignment.date),
+                      _formatDate(assignment.eventDate),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade600,
@@ -57,34 +57,33 @@ class UpcomingAssignmentCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Date TBD';
+
     final now = DateTime.now();
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
     final assignmentDate = DateTime(date.year, date.month, date.day);
 
     if (assignmentDate == DateTime(now.year, now.month, now.day)) {
-      return 'Today • ${_formatTime(date)}';
+      return 'Today';
     } else if (assignmentDate == tomorrow) {
-      return 'Tomorrow • ${_formatTime(date)}';
+      return 'Tomorrow';
     } else {
-      final daysUntil = assignmentDate.difference(DateTime(now.year, now.month, now.day)).inDays;
+      final daysUntil =
+          assignmentDate.difference(DateTime(now.year, now.month, now.day)).inDays;
       if (daysUntil < 7) {
-        return 'In $daysUntil days • ${_formatTime(date)}';
+        return 'In $daysUntil days';
       } else {
-        return '${_formatMonthDay(date)} • ${_formatTime(date)}';
+        return _formatMonthDay(date);
       }
     }
   }
 
-  String _formatTime(DateTime date) {
-    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
-    final minute = date.minute.toString().padLeft(2, '0');
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $period';
-  }
-
   String _formatMonthDay(DateTime date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
     return '${months[date.month - 1]} ${date.day}';
   }
 }

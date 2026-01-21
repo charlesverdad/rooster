@@ -105,6 +105,11 @@ class EventAssignmentResponse(BaseModel):
     is_invited: bool = False
     created_at: datetime
 
+    # Additional fields for display (populated from related data)
+    event_date: Optional[date] = None
+    roster_name: Optional[str] = None
+    team_name: Optional[str] = None
+
     model_config = {"from_attributes": True}
 
 

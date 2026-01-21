@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../models/assignment.dart';
+import '../../models/event_assignment.dart';
 import '../../providers/assignment_provider.dart';
-import '../../mock_data/mock_data.dart';
 
 class AssignmentDetailScreen extends StatefulWidget {
-  final Assignment assignment;
+  final String assignmentId;
 
-  const AssignmentDetailScreen({super.key, required this.assignment});
+  const AssignmentDetailScreen({super.key, required this.assignmentId});
 
   @override
   State<AssignmentDetailScreen> createState() => _AssignmentDetailScreenState();
@@ -17,53 +16,30 @@ class AssignmentDetailScreen extends StatefulWidget {
 class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   bool _showingActions = false;
 
-  // Mock data for co-volunteers and team info
-  List<Map<String, dynamic>> get _coVolunteers => [
-    {
-      'name': 'Sarah Johnson',
-      'status': 'accepted',
-      'isPlaceholder': false,
-      'isInvited': false,
-    },
-    {
-      'name': 'Tom Wilson',
-      'status': 'pending',
-      'isPlaceholder': true,
-      'isInvited': true,
-    },
-  ];
-
-  Map<String, dynamic> get _teamLead => {
-    'name': 'Mike Chen',
-    'email': 'mike@example.com',
-    'phone': '(555) 123-4567',
-  };
-
-  String get _teamName {
-    // Get team name from mock data based on roster
-    final roster = MockData.getRosterById(widget.assignment.rosterId);
-    if (roster != null) {
-      final team = MockData.teams.firstWhere(
-        (t) => t['id'] == roster.teamId,
-        orElse: () => {'name': 'Team'},
-      );
-      return team['name'] as String;
-    }
-    return 'Media Team';
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AssignmentProvider>(context, listen: false)
+          .fetchAssignmentDetail(widget.assignmentId);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get the current assignment from the provider (to react to status changes)
     final assignmentProvider = Provider.of<AssignmentProvider>(context);
-    final currentAssignment = assignmentProvider.assignments.firstWhere(
-      (a) => a.id == widget.assignment.id,
-      orElse: () => widget.assignment,
-    );
+    final detail = assignmentProvider.currentAssignmentDetail;
 
-    final isPending = currentAssignment.status == 'pending';
-    final isAccepted = currentAssignment.status == 'accepted';
-    final isDeclined = currentAssignment.status == 'declined';
+    if (assignmentProvider.isLoadingDetail || detail == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Assignment')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final isPending = detail.isPending;
+    final isConfirmed = detail.isConfirmed;
+    final isDeclined = detail.isDeclined;
 
     return Scaffold(
       appBar: AppBar(
@@ -74,7 +50,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
         children: [
           // Roster name
           Text(
-            currentAssignment.rosterName ?? 'Assignment',
+            detail.rosterName,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -82,7 +58,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            _teamName,
+            detail.teamName,
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey.shade600,
@@ -90,18 +66,18 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Date, Time, Location Card
+          // Date, Location Card
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow(Icons.calendar_today, _formatDate(currentAssignment.date)),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(Icons.access_time, _formatTime(currentAssignment.date)),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(Icons.location_on, 'Main Sanctuary'),
+                  _buildInfoRow(Icons.calendar_today, _formatDate(detail.eventDate)),
+                  if (detail.location != null) ...[
+                    const SizedBox(height: 12),
+                    _buildInfoRow(Icons.location_on, detail.location!),
+                  ],
                 ],
               ),
             ),
@@ -109,101 +85,110 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           const SizedBox(height: 16),
 
           // Notes
-          const Text(
-            'Notes',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+          if (detail.notes != null && detail.notes!.isNotEmpty) ...[
+            const Text(
+              'Notes',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Run slides and sound system for service',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade700,
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  detail.notes!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
 
           // Also Serving
-          const Text(
-            'Also Serving',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: _coVolunteers.map((volunteer) =>
-                  _buildCoVolunteerRow(volunteer)
-                ).toList(),
+          if (detail.coVolunteers.isNotEmpty) ...[
+            const Text(
+              'Also Serving',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: detail.coVolunteers.map((volunteer) =>
+                    _buildCoVolunteerRow(volunteer)
+                  ).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Team Lead
-          const Text(
-            'Team Lead',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.deepPurple.shade300,
-                    child: Text(
-                      _teamLead['name'].toString().substring(0, 1),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _teamLead['name'] as String,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          'Team Lead',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  FilledButton.tonal(
-                    onPressed: () => _showContactSheet(context),
-                    child: const Text('Contact'),
-                  ),
-                ],
+          if (detail.teamLead != null) ...[
+            const Text(
+              'Team Lead',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.deepPurple.shade300,
+                      child: Text(
+                        detail.teamLead!.name.isNotEmpty
+                            ? detail.teamLead!.name.substring(0, 1)
+                            : '?',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            detail.teamLead!.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Team Lead',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (detail.teamLead!.email != null || detail.teamLead!.phone != null)
+                      FilledButton.tonal(
+                        onPressed: () => _showContactSheet(context, detail.teamLead!),
+                        child: const Text('Contact'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
 
           // Action buttons (for pending or when changing response)
           if (isPending || _showingActions) ...[
@@ -211,7 +196,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _handleDecline(context),
+                    onPressed: () => _handleDecline(context, detail.id),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -222,7 +207,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: FilledButton(
-                    onPressed: () => _handleAccept(context),
+                    onPressed: () => _handleAccept(context, detail.id),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -233,8 +218,8 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             ),
           ],
 
-          // Status indicator for accepted
-          if (isAccepted && !_showingActions) ...[
+          // Status indicator for confirmed
+          if (isConfirmed && !_showingActions) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -317,10 +302,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     );
   }
 
-  Widget _buildCoVolunteerRow(Map<String, dynamic> volunteer) {
-    final status = volunteer['status'] as String;
-    final isPlaceholder = volunteer['isPlaceholder'] as bool;
-    final isInvited = volunteer['isInvited'] as bool;
+  Widget _buildCoVolunteerRow(CoVolunteer volunteer) {
+    final status = volunteer.status;
+    final isPlaceholder = volunteer.isPlaceholder;
+    final isInvited = volunteer.isInvited;
 
     // Determine status indicator
     IconData statusIcon;
@@ -328,19 +313,17 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     String statusText;
 
     if (isPlaceholder && !isInvited) {
-      // Placeholder - not invited
       statusIcon = Icons.circle_outlined;
       statusColor = Colors.grey.shade500;
       statusText = 'Not invited';
     } else if (isPlaceholder && isInvited) {
-      // Placeholder - invited
       statusIcon = Icons.mail_outline;
       statusColor = Colors.blue.shade600;
       statusText = 'Invited';
-    } else if (status == 'accepted') {
+    } else if (status == 'confirmed') {
       statusIcon = Icons.check_circle;
       statusColor = Colors.green.shade600;
-      statusText = 'Accepted';
+      statusText = 'Confirmed';
     } else if (status == 'declined') {
       statusIcon = Icons.cancel;
       statusColor = Colors.red.shade600;
@@ -362,7 +345,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             child: isPlaceholder
                 ? Icon(Icons.person_outline, color: Colors.grey.shade100, size: 18)
                 : Text(
-                    (volunteer['name'] as String).substring(0, 1),
+                    volunteer.name.isNotEmpty ? volunteer.name.substring(0, 1) : '?',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
           ),
@@ -372,7 +355,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  volunteer['name'] as String,
+                  volunteer.name,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -394,10 +377,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     );
   }
 
-  void _showContactSheet(BuildContext context) {
+  void _showContactSheet(BuildContext context, TeamLead teamLead) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => ContactTeamLeadSheet(teamLead: _teamLead),
+      builder: (context) => ContactTeamLeadSheet(teamLead: teamLead),
     );
   }
 
@@ -422,18 +405,9 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     return '${days[date.weekday % 7]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  String _formatTime(DateTime date) {
-    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
-    final minute = date.minute.toString().padLeft(2, '0');
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-    final endHour = (date.hour + 2) > 12 ? (date.hour + 2) - 12 : (date.hour + 2);
-    final endPeriod = (date.hour + 2) >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $period - $endHour:$minute $endPeriod';
-  }
-
-  Future<void> _handleAccept(BuildContext context) async {
+  Future<void> _handleAccept(BuildContext context, String assignmentId) async {
     final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-    final success = await assignmentProvider.updateAssignmentStatus(widget.assignment.id, 'accepted');
+    final success = await assignmentProvider.confirmAssignment(assignmentId);
 
     if (success && context.mounted) {
       setState(() {
@@ -445,14 +419,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      // Only pop if this was a pending assignment, otherwise stay on the page
-      if (widget.assignment.status == 'pending') {
-        Navigator.of(context).pop();
-      }
     }
   }
 
-  Future<void> _handleDecline(BuildContext context) async {
+  Future<void> _handleDecline(BuildContext context, String assignmentId) async {
     // Show decline confirmation bottom sheet
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -461,7 +431,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
 
     if (confirmed == true && context.mounted) {
       final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-      final success = await assignmentProvider.updateAssignmentStatus(widget.assignment.id, 'declined');
+      final success = await assignmentProvider.declineAssignment(assignmentId);
 
       if (success && context.mounted) {
         setState(() {
@@ -473,17 +443,13 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             duration: Duration(seconds: 2),
           ),
         );
-        // Only pop if this was a pending assignment, otherwise stay on the page
-        if (widget.assignment.status == 'pending') {
-          Navigator.of(context).pop();
-        }
       }
     }
   }
 }
 
 class ContactTeamLeadSheet extends StatelessWidget {
-  final Map<String, dynamic> teamLead;
+  final TeamLead teamLead;
 
   const ContactTeamLeadSheet({super.key, required this.teamLead});
 
@@ -501,7 +467,7 @@ class ContactTeamLeadSheet extends StatelessWidget {
                 radius: 24,
                 backgroundColor: Colors.deepPurple.shade300,
                 child: Text(
-                  teamLead['name'].toString().substring(0, 1),
+                  teamLead.name.isNotEmpty ? teamLead.name.substring(0, 1) : '?',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
               ),
@@ -510,7 +476,7 @@ class ContactTeamLeadSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    teamLead['name'] as String,
+                    teamLead.name,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -528,54 +494,56 @@ class ContactTeamLeadSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue.shade100,
-              child: Icon(Icons.email, color: Colors.blue.shade700),
+          if (teamLead.email != null)
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.blue.shade100,
+                child: Icon(Icons.email, color: Colors.blue.shade700),
+              ),
+              title: const Text('Send Email'),
+              subtitle: Text(teamLead.email!),
+              onTap: () async {
+                final uri = Uri.parse('mailto:${teamLead.email}');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                }
+                if (context.mounted) Navigator.pop(context);
+              },
             ),
-            title: const Text('Send Email'),
-            subtitle: Text(teamLead['email'] as String),
-            onTap: () async {
-              final email = teamLead['email'] as String;
-              final uri = Uri.parse('mailto:$email');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri);
-              }
-              if (context.mounted) Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.green.shade100,
-              child: Icon(Icons.phone, color: Colors.green.shade700),
+          if (teamLead.phone != null) ...[
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.green.shade100,
+                child: Icon(Icons.phone, color: Colors.green.shade700),
+              ),
+              title: const Text('Call'),
+              subtitle: Text(teamLead.phone!),
+              onTap: () async {
+                final phone = teamLead.phone!.replaceAll(RegExp(r'[^\d+]'), '');
+                final uri = Uri.parse('tel:$phone');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                }
+                if (context.mounted) Navigator.pop(context);
+              },
             ),
-            title: const Text('Call'),
-            subtitle: Text(teamLead['phone'] as String),
-            onTap: () async {
-              final phone = (teamLead['phone'] as String).replaceAll(RegExp(r'[^\d+]'), '');
-              final uri = Uri.parse('tel:$phone');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri);
-              }
-              if (context.mounted) Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.purple.shade100,
-              child: Icon(Icons.message, color: Colors.purple.shade700),
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.purple.shade100,
+                child: Icon(Icons.message, color: Colors.purple.shade700),
+              ),
+              title: const Text('Send Message'),
+              subtitle: Text(teamLead.phone!),
+              onTap: () async {
+                final phone = teamLead.phone!.replaceAll(RegExp(r'[^\d+]'), '');
+                final uri = Uri.parse('sms:$phone');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri);
+                }
+                if (context.mounted) Navigator.pop(context);
+              },
             ),
-            title: const Text('Send Message'),
-            subtitle: Text(teamLead['phone'] as String),
-            onTap: () async {
-              final phone = (teamLead['phone'] as String).replaceAll(RegExp(r'[^\d+]'), '');
-              final uri = Uri.parse('sms:$phone');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri);
-              }
-              if (context.mounted) Navigator.pop(context);
-            },
-          ),
+          ],
           const SizedBox(height: 16),
         ],
       ),

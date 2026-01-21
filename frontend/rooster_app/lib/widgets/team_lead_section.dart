@@ -1,30 +1,80 @@
 import 'package:flutter/material.dart';
-import '../mock_data/mock_data.dart';
+import 'package:provider/provider.dart';
 import '../models/roster_event.dart';
+import '../providers/team_provider.dart';
+import '../services/roster_service.dart';
 import '../screens/teams/my_teams_screen.dart';
 import '../screens/roster/assign_volunteers_sheet.dart';
 
-class TeamLeadSection extends StatelessWidget {
+class TeamLeadSection extends StatefulWidget {
   const TeamLeadSection({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Get unfilled events from mock data
-    final allEvents = <RosterEvent>[];
-    for (final roster in MockData.getRostersForTeam('1')) {
-      allEvents.addAll(MockData.getEventsForRoster(roster.id));
+  State<TeamLeadSection> createState() => _TeamLeadSectionState();
+}
+
+class _TeamLeadSectionState extends State<TeamLeadSection> {
+  List<RosterEvent> _unfilledEvents = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnfilledEvents();
+  }
+
+  Future<void> _loadUnfilledEvents() async {
+    try {
+      final teamProvider = Provider.of<TeamProvider>(context, listen: false);
+      final teams = teamProvider.teams;
+
+      if (teams.isEmpty) {
+        await teamProvider.fetchMyTeams();
+      }
+
+      // Get unfilled events for teams where user is lead
+      final leadTeams =
+          teamProvider.teams.where((t) => t.isTeamLead).toList();
+
+      final allUnfilledEvents = <RosterEvent>[];
+
+      for (final team in leadTeams) {
+        try {
+          final events = await RosterService.getUnfilledEvents(team.id);
+          allUnfilledEvents.addAll(events);
+        } catch (e) {
+          debugPrint('Error fetching unfilled events for team ${team.id}: $e');
+        }
+      }
+
+      // Sort by date and take events in the next 4 weeks
+      final now = DateTime.now();
+      final fourWeeksFromNow = now.add(const Duration(days: 28));
+
+      allUnfilledEvents.sort((a, b) => a.date.compareTo(b.date));
+      final filtered = allUnfilledEvents
+          .where(
+              (e) => e.date.isAfter(now) && e.date.isBefore(fourWeeksFromNow))
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          _unfilledEvents = filtered;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading unfilled events: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
 
-    // Filter to unfilled/partial events in the next 4 weeks
-    final now = DateTime.now();
-    final fourWeeksFromNow = now.add(const Duration(days: 28));
-    final unfilledEvents = allEvents.where((e) =>
-      !e.isFilled &&
-      e.dateTime.isAfter(now) &&
-      e.dateTime.isBefore(fourWeeksFromNow)
-    ).toList()
-      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -44,7 +94,8 @@ class TeamLeadSection extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const MyTeamsScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const MyTeamsScreen()),
                 );
               },
               child: const Text('View Teams'),
@@ -53,11 +104,19 @@ class TeamLeadSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
+        // Loading state
+        if (_isLoading)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          )
         // Needs Attention Section
-        if (unfilledEvents.isEmpty)
+        else if (_unfilledEvents.isEmpty)
           _buildAllFilledCard()
         else
-          _buildNeedsAttentionCard(context, unfilledEvents),
+          _buildNeedsAttentionCard(context, _unfilledEvents),
       ],
     );
   }
@@ -98,7 +157,8 @@ class TeamLeadSection extends StatelessWidget {
     );
   }
 
-  Widget _buildNeedsAttentionCard(BuildContext context, List<RosterEvent> unfilledEvents) {
+  Widget _buildNeedsAttentionCard(
+      BuildContext context, List<RosterEvent> unfilledEvents) {
     return Card(
       color: Colors.orange.shade50,
       child: Padding(
@@ -120,7 +180,8 @@ class TeamLeadSection extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.orange.shade200,
                     borderRadius: BorderRadius.circular(12),
@@ -138,7 +199,9 @@ class TeamLeadSection extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             // Show first 3 unfilled events
-            ...unfilledEvents.take(3).map((event) => _buildUnfilledEventItem(context, event)),
+            ...unfilledEvents
+                .take(3)
+                .map((event) => _buildUnfilledEventItem(context, event)),
             if (unfilledEvents.length > 3)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -158,7 +221,7 @@ class TeamLeadSection extends StatelessWidget {
   }
 
   Widget _buildUnfilledEventItem(BuildContext context, RosterEvent event) {
-    final slotsRemaining = event.volunteersNeeded - event.assignedUserIds.length;
+    final slotsRemaining = event.slotsNeeded - event.filledSlots;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -169,14 +232,14 @@ class TeamLeadSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  event.rosterName,
+                  event.rosterName ?? 'Roster',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
-                  '${_formatDate(event.dateTime)} • $slotsRemaining slot${slotsRemaining == 1 ? '' : 's'} needed',
+                  '${_formatDate(event.date)} • $slotsRemaining slot${slotsRemaining == 1 ? '' : 's'} needed',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey.shade600,
@@ -205,8 +268,8 @@ class TeamLeadSection extends StatelessWidget {
       isScrollControlled: true,
       builder: (context) => AssignVolunteersSheet.forEvent(
         eventId: event.id,
-        eventDate: event.dateTime,
-        rosterName: event.rosterName,
+        eventDate: event.date,
+        rosterName: event.rosterName ?? 'Roster',
       ),
     );
   }
@@ -224,7 +287,10 @@ class TeamLeadSection extends StatelessWidget {
       return days[date.weekday % 7];
     }
 
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
     return '${months[date.month - 1]} ${date.day}';
   }
 }
