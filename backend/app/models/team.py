@@ -2,8 +2,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Enum, ForeignKey, String, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -63,7 +62,7 @@ class TeamMember(Base, TimestampMixin):
         Enum(TeamRole), default=TeamRole.MEMBER, nullable=False
     )
     permissions: Mapped[list[str]] = mapped_column(
-        ARRAY(String), default=list, server_default="{}", nullable=False
+        JSON, default=list, server_default="[]", nullable=False
     )
 
     # Relationships

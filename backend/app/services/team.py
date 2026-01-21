@@ -295,9 +295,7 @@ class TeamService:
     ) -> int:
         """Count how many members have a specific permission in a team."""
         result = await self.db.execute(
-            select(TeamMember).where(
-                TeamMember.team_id == team_id,
-                TeamMember.permissions.contains([permission]),
-            )
+            select(TeamMember).where(TeamMember.team_id == team_id)
         )
-        return len(list(result.scalars().all()))
+        members = result.scalars().all()
+        return sum(1 for m in members if m.has_permission(permission))

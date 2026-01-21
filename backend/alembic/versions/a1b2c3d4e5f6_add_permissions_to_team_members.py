@@ -9,7 +9,6 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -31,24 +30,26 @@ ALL_PERMISSIONS = [
 
 
 def upgrade() -> None:
-    # Add permissions column with empty array default
+    # Add permissions column with empty JSON array default
     op.add_column(
         'team_members',
         sa.Column(
             'permissions',
-            postgresql.ARRAY(sa.String()),
+            sa.JSON(),
             nullable=False,
-            server_default='{}'
+            server_default='[]'
         )
     )
 
     # Migrate existing data: team leads get all permissions, members get none
+    # Use JSON format for PostgreSQL
+    # Note: PostgreSQL enums are case-sensitive, use uppercase to match the enum definition
     op.execute(
         """
         UPDATE team_members
-        SET permissions = ARRAY['manage_team', 'manage_members', 'send_invites',
-                                'manage_rosters', 'assign_volunteers', 'view_responses']
-        WHERE role = 'lead'
+        SET permissions = '["manage_team", "manage_members", "send_invites",
+                           "manage_rosters", "assign_volunteers", "view_responses"]'::json
+        WHERE role = 'LEAD'
         """
     )
 
