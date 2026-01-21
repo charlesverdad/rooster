@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbSession
+from app.core.permissions import TeamPermission
 from app.schemas.team import (
     AddPlaceholderMemberRequest,
     AddTeamMemberRequest,
@@ -11,6 +12,7 @@ from app.schemas.team import (
     TeamResponse,
     TeamUpdate,
     TeamWithRole,
+    UpdateMemberPermissionsRequest,
 )
 from app.services.organisation import OrganisationService
 from app.services.team import TeamService
@@ -54,9 +56,10 @@ async def list_my_teams(
             name=team.name,
             organisation_id=team.organisation_id,
             role=role,
+            permissions=permissions or [],
             created_at=team.created_at,
         )
-        for team, role in teams
+        for team, role, permissions in teams
     ]
 
 
@@ -195,6 +198,7 @@ async def list_members(
             user_id=m.user_id,
             team_id=m.team_id,
             role=m.role,
+            permissions=m.permissions or [],
             user_email=m.user.email,
             user_name=m.user.name,
             is_placeholder=m.user.is_placeholder,
@@ -227,7 +231,9 @@ async def add_member(
             detail="Not authorized to manage this team",
         )
 
-    membership = await team_service.add_member(team_id, data.user_id, data.role)
+    membership = await team_service.add_member(
+        team_id, data.user_id, data.role, data.permissions
+    )
     if not membership:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -243,6 +249,7 @@ async def add_member(
                 user_id=m.user_id,
                 team_id=m.team_id,
                 role=m.role,
+                permissions=m.permissions or [],
                 user_email=m.user.email,
                 user_name=m.user.name,
                 is_placeholder=m.user.is_placeholder,
@@ -286,6 +293,7 @@ async def add_placeholder_member(
         user_id=membership.user_id,
         team_id=membership.team_id,
         role=membership.role,
+        permissions=membership.permissions or [],
         user_email=membership.user.email,
         user_name=membership.user.name,
         is_placeholder=membership.user.is_placeholder,
@@ -321,3 +329,70 @@ async def remove_member(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Member not found",
         )
+
+
+@router.patch("/{team_id}/members/{user_id}/permissions", response_model=TeamMemberResponse)
+async def update_member_permissions(
+    team_id: uuid.UUID,
+    user_id: uuid.UUID,
+    data: UpdateMemberPermissionsRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> TeamMemberResponse:
+    """Update a team member's permissions. Requires manage_members permission."""
+    team_service = TeamService(db)
+
+    team = await team_service.get_team(team_id)
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found",
+        )
+
+    # Check if current user has permission to manage members
+    await team_service.require_permission(
+        current_user.id, team_id, TeamPermission.MANAGE_MEMBERS
+    )
+
+    # Prevent removing the last manage_members permission
+    if TeamPermission.MANAGE_MEMBERS not in data.permissions:
+        count = await team_service.count_members_with_permission(
+            team_id, TeamPermission.MANAGE_MEMBERS
+        )
+        target_membership = await team_service.get_team_membership(user_id, team_id)
+        if (
+            target_membership
+            and target_membership.has_permission(TeamPermission.MANAGE_MEMBERS)
+            and count <= 1
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot remove the last member with manage_members permission",
+            )
+
+    membership = await team_service.update_member_permissions(
+        team_id, user_id, data.permissions
+    )
+    if not membership:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found",
+        )
+
+    # Reload with user info
+    members = await team_service.get_members(team_id)
+    invite_status = await team_service.get_member_invite_status(members, team_id)
+    for m in members:
+        if m.user_id == user_id:
+            return TeamMemberResponse(
+                user_id=m.user_id,
+                team_id=m.team_id,
+                role=m.role,
+                permissions=m.permissions or [],
+                user_email=m.user.email,
+                user_name=m.user.name,
+                is_placeholder=m.user.is_placeholder,
+                is_invited=invite_status.get(m.user_id, False),
+            )
+
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

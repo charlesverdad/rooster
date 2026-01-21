@@ -1,9 +1,11 @@
 import uuid
 
+from fastapi import HTTPException
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.permissions import TeamPermission
 from app.models.organisation import OrganisationMember, OrganisationRole
 from app.models.team import Team, TeamMember, TeamRole
 from app.models.user import User
@@ -18,16 +20,17 @@ class TeamService:
         self.db = db
 
     async def create_team(self, data: TeamCreate, creator_id: uuid.UUID) -> Team:
-        """Create a new team with the creator as lead."""
+        """Create a new team with the creator as lead with all permissions."""
         team = Team(name=data.name, organisation_id=data.organisation_id)
         self.db.add(team)
         await self.db.flush()
 
-        # Add creator as team lead
+        # Add creator as team lead with all permissions
         membership = TeamMember(
             user_id=creator_id,
             team_id=team.id,
             role=TeamRole.LEAD,
+            permissions=TeamPermission.TEAM_CREATOR_DEFAULT.copy(),
         )
         self.db.add(membership)
         await self.db.flush()
@@ -48,10 +51,10 @@ class TeamService:
 
     async def get_user_teams(
         self, user_id: uuid.UUID, org_id: uuid.UUID | None = None
-    ) -> list[tuple[Team, TeamRole]]:
-        """Get all teams a user belongs to with their roles."""
+    ) -> list[tuple[Team, TeamRole, list[str]]]:
+        """Get all teams a user belongs to with their roles and permissions."""
         query = (
-            select(Team, TeamMember.role)
+            select(Team, TeamMember.role, TeamMember.permissions)
             .join(TeamMember)
             .where(TeamMember.user_id == user_id)
         )
@@ -96,6 +99,25 @@ class TeamService:
         membership = await self.get_team_membership(user_id, team_id)
         return membership is not None and membership.role == TeamRole.LEAD
 
+    async def check_permission(
+        self, user_id: uuid.UUID, team_id: uuid.UUID, permission: str
+    ) -> bool:
+        """Check if a user has a specific permission in a team."""
+        membership = await self.get_team_membership(user_id, team_id)
+        if not membership:
+            return False
+        return membership.has_permission(permission)
+
+    async def require_permission(
+        self, user_id: uuid.UUID, team_id: uuid.UUID, permission: str
+    ) -> None:
+        """Require a user to have a specific permission, raise HTTPException if not."""
+        if not await self.check_permission(user_id, team_id, permission):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Permission denied: {permission} required",
+            )
+
     async def is_org_admin(self, user_id: uuid.UUID, org_id: uuid.UUID) -> bool:
         """Check if a user is an admin of an organisation."""
         result = await self.db.execute(
@@ -114,9 +136,13 @@ class TeamService:
         return await self.is_team_lead(user_id, team.id)
 
     async def add_member(
-        self, team_id: uuid.UUID, user_id: uuid.UUID, role: TeamRole
+        self,
+        team_id: uuid.UUID,
+        user_id: uuid.UUID,
+        role: TeamRole,
+        permissions: list[str] | None = None,
     ) -> TeamMember | None:
-        """Add a member to a team."""
+        """Add a member to a team with optional permissions."""
         # Check if user exists
         user_result = await self.db.execute(select(User).where(User.id == user_id))
         if not user_result.scalar_one_or_none():
@@ -127,10 +153,15 @@ class TeamService:
         if existing:
             return existing
 
+        # Default to empty permissions for invited members
+        if permissions is None:
+            permissions = TeamPermission.INVITED_MEMBER_DEFAULT.copy()
+
         membership = TeamMember(
             user_id=user_id,
             team_id=team_id,
             role=role,
+            permissions=permissions,
         )
         self.db.add(membership)
         await self.db.flush()
@@ -155,7 +186,12 @@ class TeamService:
         return list(result.scalars().all())
 
     async def create_placeholder_member(
-        self, team_id: uuid.UUID, name: str, role: TeamRole, created_by_id: uuid.UUID
+        self,
+        team_id: uuid.UUID,
+        name: str,
+        role: TeamRole,
+        created_by_id: uuid.UUID,
+        permissions: list[str] | None = None,
     ) -> TeamMember:
         """Create a placeholder user and add them to a team."""
         # Create placeholder user
@@ -167,11 +203,16 @@ class TeamService:
         self.db.add(user)
         await self.db.flush()
 
-        # Add to team
+        # Default to empty permissions for placeholder members
+        if permissions is None:
+            permissions = TeamPermission.INVITED_MEMBER_DEFAULT.copy()
+
+        # Add to team with permissions
         membership = TeamMember(
             user_id=user.id,
             team_id=team_id,
             role=role,
+            permissions=permissions,
         )
         self.db.add(membership)
         await self.db.flush()
@@ -223,3 +264,40 @@ class TeamService:
         )
         invited_user_ids = set(result.scalars().all())
         return {uid: uid in invited_user_ids for uid in user_ids}
+
+    async def update_member_permissions(
+        self,
+        team_id: uuid.UUID,
+        user_id: uuid.UUID,
+        permissions: list[str],
+    ) -> TeamMember | None:
+        """Update a team member's permissions."""
+        membership = await self.get_team_membership(user_id, team_id)
+        if not membership:
+            return None
+
+        # Validate permissions
+        valid_permissions = set(TeamPermission.ALL)
+        for perm in permissions:
+            if perm not in valid_permissions:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid permission: {perm}",
+                )
+
+        membership.permissions = permissions
+        await self.db.flush()
+        await self.db.refresh(membership)
+        return membership
+
+    async def count_members_with_permission(
+        self, team_id: uuid.UUID, permission: str
+    ) -> int:
+        """Count how many members have a specific permission in a team."""
+        result = await self.db.execute(
+            select(TeamMember).where(
+                TeamMember.team_id == team_id,
+                TeamMember.permissions.contains([permission]),
+            )
+        )
+        return len(list(result.scalars().all()))

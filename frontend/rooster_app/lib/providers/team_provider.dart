@@ -92,13 +92,8 @@ class TeamProvider with ChangeNotifier {
       final index = _currentTeamMembers.indexWhere((m) => m.userId == memberId);
       if (index != -1) {
         final member = _currentTeamMembers[index];
-        _currentTeamMembers[index] = TeamMember(
-          userId: member.userId,
-          teamId: member.teamId,
-          role: member.role,
-          userName: member.userName,
+        _currentTeamMembers[index] = member.copyWith(
           userEmail: email,
-          isPlaceholder: member.isPlaceholder,
           isInvited: true,
         );
         notifyListeners();

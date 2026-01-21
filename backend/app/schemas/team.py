@@ -44,6 +44,7 @@ class TeamMemberResponse(BaseModel):
     user_id: uuid.UUID
     team_id: uuid.UUID
     role: TeamRole
+    permissions: list[str] = []
     user_email: Optional[str] = None
     user_name: str
     is_placeholder: bool = False
@@ -53,12 +54,13 @@ class TeamMemberResponse(BaseModel):
 
 
 class TeamWithRole(BaseModel):
-    """Schema for team with the user's role."""
+    """Schema for team with the user's role and permissions."""
 
     id: uuid.UUID
     name: str
     organisation_id: uuid.UUID
     role: TeamRole
+    permissions: list[str] = []
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -69,3 +71,10 @@ class AddTeamMemberRequest(BaseModel):
 
     user_id: uuid.UUID
     role: TeamRole = TeamRole.MEMBER
+    permissions: list[str] = []
+
+
+class UpdateMemberPermissionsRequest(BaseModel):
+    """Schema for updating a member's permissions."""
+
+    permissions: list[str]

@@ -5,6 +5,7 @@ import 'member_detail_screen.dart';
 import '../roster/create_roster_screen.dart';
 import '../../providers/roster_provider.dart';
 import '../../providers/team_provider.dart';
+import '../../models/team.dart';
 import '../../models/team_member.dart';
 
 class TeamDetailScreen extends StatefulWidget {
@@ -122,18 +123,19 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            CreateRosterScreen(teamId: widget.teamId),
-                      ),
-                    );
-                  },
-                  child: const Text('+ Create Roster'),
-                ),
+                if (team?.canManageRosters ?? false)
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CreateRosterScreen(teamId: widget.teamId),
+                        ),
+                      );
+                    },
+                    child: const Text('+ Create Roster'),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
@@ -179,29 +181,30 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                TextButton(
-                  onPressed: () async {
-                    final name = await showModalBottomSheet<String>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (context) => const AddMemberSheet(),
-                    );
-                    if (name != null && context.mounted) {
-                      final success =
-                          await teamProvider.addMember(widget.teamId, name);
-                      if (success && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Added $name as placeholder')),
-                        );
+                if (team?.canManageMembers ?? false)
+                  TextButton(
+                    onPressed: () async {
+                      final name = await showModalBottomSheet<String>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (context) => const AddMemberSheet(),
+                      );
+                      if (name != null && context.mounted) {
+                        final success =
+                            await teamProvider.addMember(widget.teamId, name);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Added $name as placeholder')),
+                          );
+                        }
                       }
-                    }
-                  },
-                  child: const Text('+ Add Member'),
-                ),
+                    },
+                    child: const Text('+ Add Member'),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
-            ...members.map((member) => _buildMemberCard(context, member)),
+            ...members.map((member) => _buildMemberCard(context, member, team)),
           ],
         ),
       ),
@@ -265,10 +268,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     );
   }
 
-  Widget _buildMemberCard(BuildContext context, TeamMember member) {
+  Widget _buildMemberCard(BuildContext context, TeamMember member, Team? team) {
     final isPlaceholder = member.isPlaceholder;
     final isInvited = member.isInvited;
     final isLead = member.isTeamLead;
+    final canSendInvites = team?.canSendInvites ?? false;
 
     String statusIcon = '';
     Color? statusColor;
@@ -345,7 +349,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   ],
                 ),
               ),
-              if (isPlaceholder && !isInvited)
+              if (isPlaceholder && !isInvited && canSendInvites)
                 OutlinedButton(
                   onPressed: () {
                     Navigator.pushNamed(context, '/send-invite',
