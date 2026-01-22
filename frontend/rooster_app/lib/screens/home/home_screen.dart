@@ -4,11 +4,13 @@ import '../../models/event_assignment.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/assignment_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/team_provider.dart';
 import '../../widgets/assignment_action_card.dart';
 import '../../widgets/upcoming_assignment_card.dart';
 import '../../widgets/team_lead_section.dart';
 import '../../widgets/empty_state.dart';
 import '../assignments/assignment_detail_screen.dart';
+import '../teams/team_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,9 +34,11 @@ class _HomeScreenState extends State<HomeScreen> {
         Provider.of<AssignmentProvider>(context, listen: false);
     final notificationProvider =
         Provider.of<NotificationProvider>(context, listen: false);
+    final teamProvider = Provider.of<TeamProvider>(context, listen: false);
     await Future.wait([
       assignmentProvider.fetchMyAssignments(),
       notificationProvider.fetchNotifications(),
+      teamProvider.fetchMyTeams(),
     ]);
   }
 
@@ -43,11 +47,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final assignmentProvider = Provider.of<AssignmentProvider>(context);
     final notificationProvider = Provider.of<NotificationProvider>(context);
+    final teamProvider = Provider.of<TeamProvider>(context);
 
     final isTeamLead = authProvider.user?.isTeamLead == true;
     final pendingAssignments = assignmentProvider.pendingAssignments;
     final upcomingAssignments = assignmentProvider.upcomingAssignments;
     final unreadCount = notificationProvider.unreadCount;
+    final hasTeams = teamProvider.teams.isNotEmpty;
+    final hasNoContent = pendingAssignments.isEmpty &&
+                         upcomingAssignments.isEmpty &&
+                         !hasTeams;
 
     return Scaffold(
       appBar: AppBar(
@@ -165,7 +174,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  if (upcomingAssignments.isEmpty && pendingAssignments.isEmpty)
+                  if (hasNoContent)
+                    _buildCreateFirstTeamState()
+                  else if (upcomingAssignments.isEmpty && pendingAssignments.isEmpty)
                     _buildNoAssignmentsState()
                   else if (upcomingAssignments.isEmpty)
                     const EmptyState(
@@ -190,6 +201,116 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
       ),
     );
+  }
+
+  Widget _buildCreateFirstTeamState() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          children: [
+            Icon(
+              Icons.group_add,
+              size: 64,
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Welcome to Rooster!',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Create your first team to start rostering volunteers',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _showCreateTeamDialog,
+              icon: const Icon(Icons.add),
+              label: const Text('Create your first team'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCreateTeamDialog() async {
+    final nameController = TextEditingController();
+
+    final teamName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create Team'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Team Name',
+            hintText: 'e.g., Media Team',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.words,
+          onSubmitted: (value) {
+            if (value.trim().isNotEmpty) {
+              Navigator.of(context).pop(value.trim());
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                Navigator.of(context).pop(name);
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (teamName != null && mounted) {
+      final teamProvider = Provider.of<TeamProvider>(context, listen: false);
+      final team = await teamProvider.createTeam(teamName);
+
+      if (team != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${team.name} created!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Navigate to the new team's detail page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TeamDetailScreen(teamId: team.id),
+          ),
+        );
+      } else if (teamProvider.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${teamProvider.error}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildNoAssignmentsState() {

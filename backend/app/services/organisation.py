@@ -128,3 +128,38 @@ class OrganisationService:
             .where(OrganisationMember.organisation_id == org_id)
         )
         return list(result.scalars().all())
+
+    async def get_or_create_default(self, user_id: uuid.UUID) -> Organisation:
+        """Get the user's default organisation, creating one if needed.
+
+        For MVP, each user gets a personal organisation when they first create a team.
+        This simplifies the model by not requiring explicit org creation.
+        """
+        # Check if user already has an organisation (take the first one as default)
+        user_orgs = await self.get_user_organisations(user_id)
+        if user_orgs:
+            return user_orgs[0][0]  # Return the first organisation
+
+        # Get user's name for the org name
+        user_result = await self.db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if not user:
+            raise ValueError("User not found")
+
+        # Create a personal organisation for this user
+        org_name = f"{user.name}'s Organisation"
+        org = Organisation(name=org_name)
+        self.db.add(org)
+        await self.db.flush()
+
+        # Add user as admin
+        membership = OrganisationMember(
+            user_id=user_id,
+            organisation_id=org.id,
+            role=OrganisationRole.ADMIN,
+        )
+        self.db.add(membership)
+        await self.db.flush()
+        await self.db.refresh(org)
+
+        return org

@@ -26,18 +26,39 @@ async def create_team(
     current_user: CurrentUser,
     db: DbSession,
 ) -> TeamResponse:
-    """Create a new team. Must be org admin."""
+    """Create a new team.
+
+    Any authenticated user can create a team. If no organisation_id is provided,
+    the user's default organisation is used (created automatically if needed).
+    The creator becomes the team lead with all permissions.
+    """
     org_service = OrganisationService(db)
     team_service = TeamService(db)
 
-    # Check org membership
-    if not await org_service.is_admin(current_user.id, data.organisation_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required to create teams",
-        )
+    # Get or create the organisation
+    if data.organisation_id:
+        # If org specified, check that user is a member (not necessarily admin for MVP)
+        org = await org_service.get_organisation(data.organisation_id)
+        if not org:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organisation not found",
+            )
+        membership = await org_service.get_membership(current_user.id, data.organisation_id)
+        if not membership:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must be a member of the organisation to create teams",
+            )
+        org_id = data.organisation_id
+    else:
+        # Use or create the user's default organisation
+        org = await org_service.get_or_create_default(current_user.id)
+        org_id = org.id
 
-    team = await team_service.create_team(data, current_user.id)
+    # Create the team with the resolved org_id
+    team_data = TeamCreate(name=data.name, organisation_id=org_id)
+    team = await team_service.create_team(team_data, current_user.id)
     return TeamResponse.model_validate(team)
 
 

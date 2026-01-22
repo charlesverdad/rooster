@@ -8,10 +8,14 @@ from app.models.team import TeamRole
 
 
 class TeamCreate(BaseModel):
-    """Schema for creating a new team."""
+    """Schema for creating a new team.
+
+    organisation_id is optional - if not provided, the user's default
+    organisation will be used (created automatically if needed).
+    """
 
     name: str
-    organisation_id: uuid.UUID
+    organisation_id: uuid.UUID | None = None
 
 
 class AddPlaceholderMemberRequest(BaseModel):

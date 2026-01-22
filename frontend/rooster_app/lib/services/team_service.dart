@@ -4,6 +4,17 @@ import '../models/team_member.dart';
 import 'api_client.dart';
 
 class TeamService {
+  /// Create a new team
+  static Future<Team> createTeam(String name) async {
+    final response = await ApiClient.post('/teams', {'name': name});
+
+    if (response.statusCode == 201) {
+      return Team.fromJson(jsonDecode(response.body));
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
   /// Get all teams for the current user
   static Future<List<Team>> getMyTeams() async {
     final response = await ApiClient.get('/teams');

@@ -37,6 +37,27 @@ class TeamProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Create a new team. Returns the created team or null on error.
+  Future<Team?> createTeam(String name) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final team = await TeamService.createTeam(name);
+      _teams.add(team);
+      _isLoading = false;
+      notifyListeners();
+      return team;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error creating team: $e');
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<void> fetchTeamDetail(String teamId) async {
     _isLoading = true;
     _error = null;
