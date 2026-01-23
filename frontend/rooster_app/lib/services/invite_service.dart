@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'api_client.dart';
-import 'team_service.dart';
 
 class Invite {
   final String id;

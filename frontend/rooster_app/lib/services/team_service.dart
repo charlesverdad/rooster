@@ -96,21 +96,4 @@ class TeamService {
   }
 }
 
-class ApiException implements Exception {
-  final int statusCode;
-  final String body;
-
-  ApiException(this.statusCode, this.body);
-
-  String get message {
-    try {
-      final data = jsonDecode(body);
-      return data['detail'] ?? 'Unknown error';
-    } catch (_) {
-      return body;
-    }
-  }
-
-  @override
-  String toString() => 'ApiException($statusCode): $message';
-}
+// ApiException is now defined in api_client.dart and exported from there

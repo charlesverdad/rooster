@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/notification.dart';
+import '../services/api_client.dart';
 import '../services/notification_service.dart';
-import '../services/team_service.dart';
 
 class NotificationProvider with ChangeNotifier {
   List<AppNotification> _notifications = [];

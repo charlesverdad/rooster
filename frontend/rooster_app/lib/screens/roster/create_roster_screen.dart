@@ -14,6 +14,8 @@ class CreateRosterScreen extends StatefulWidget {
 
 class _CreateRosterScreenState extends State<CreateRosterScreen> {
   final _nameController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _notesController = TextEditingController();
   String _recurrence = 'weekly';
   int _selectedDay = 0; // Sunday
   int _volunteersNeeded = 2;
@@ -21,10 +23,13 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   int _occurrences = 10;
+  TimeOfDay? _eventTime;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _locationController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -204,6 +209,67 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
           ),
           const SizedBox(height: 24),
 
+          // Time
+          const Text(
+            'Time (optional)',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final time = await showTimePicker(
+                context: context,
+                initialTime: _eventTime ?? const TimeOfDay(hour: 9, minute: 0),
+              );
+              if (time != null) {
+                setState(() => _eventTime = time);
+              }
+            },
+            icon: const Icon(Icons.access_time),
+            label: Text(
+              _eventTime != null
+                  ? _eventTime!.format(context)
+                  : 'Select time',
+            ),
+          ),
+          if (_eventTime != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => setState(() => _eventTime = null),
+                child: Text(
+                  'Clear time',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ),
+            ),
+          const SizedBox(height: 24),
+
+          // Location
+          TextField(
+            controller: _locationController,
+            decoration: const InputDecoration(
+              labelText: 'Location (optional)',
+              hintText: 'Main Hall, Room 101, etc.',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.location_on_outlined),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Notes
+          TextField(
+            controller: _notesController,
+            decoration: const InputDecoration(
+              labelText: 'Notes (optional)',
+              hintText: 'Any additional details for volunteers',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.notes_outlined),
+            ),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 24),
+
           // End condition (only show if recurring)
           if (_recurrence != 'once') ...[
             const Text(
@@ -321,6 +387,17 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                   return;
                 }
 
+                // Build notes including time if set
+                String? notes = _notesController.text.trim().isNotEmpty
+                    ? _notesController.text.trim()
+                    : null;
+                if (_eventTime != null) {
+                  final timeStr = _eventTime!.format(context);
+                  notes = notes != null
+                      ? 'Time: $timeStr\n$notes'
+                      : 'Time: $timeStr';
+                }
+
                 final rosterProvider = Provider.of<RosterProvider>(context, listen: false);
                 final success = await rosterProvider.createRoster(
                   teamId: widget.teamId ?? '1',
@@ -329,6 +406,10 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                   dayOfWeek: _selectedDay,
                   volunteersNeeded: _volunteersNeeded,
                   startDate: _startDate!,
+                  location: _locationController.text.trim().isNotEmpty
+                      ? _locationController.text.trim()
+                      : null,
+                  notes: notes,
                   endDate: _endDate,
                   endAfterOccurrences: _endType == 'after_occurrences' ? _occurrences : null,
                 );

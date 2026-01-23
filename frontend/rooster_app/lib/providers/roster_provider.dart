@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import '../models/roster.dart';
 import '../models/roster_event.dart';
 import '../models/event_assignment.dart';
+import '../services/api_client.dart';
 import '../services/roster_service.dart';
 import '../services/assignment_service.dart';
-import '../services/team_service.dart';
 
 class RosterProvider with ChangeNotifier {
   List<Roster> _rosters = [];
@@ -180,6 +180,60 @@ class RosterProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error fetching event assignments: $e');
       return [];
+    }
+  }
+
+  Future<bool> updateRoster({
+    String? name,
+    int? slotsNeeded,
+    String? location,
+    String? notes,
+  }) async {
+    if (_currentRoster == null) return false;
+
+    try {
+      final updated = await RosterService.updateRoster(
+        _currentRoster!.id,
+        name: name,
+        slotsNeeded: slotsNeeded,
+        location: location,
+        notes: notes,
+      );
+
+      _currentRoster = updated;
+
+      // Update in local list
+      final index = _rosters.indexWhere((r) => r.id == updated.id);
+      if (index != -1) {
+        _rosters[index] = updated;
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error updating roster: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteRoster() async {
+    if (_currentRoster == null) return false;
+
+    try {
+      await RosterService.deleteRoster(_currentRoster!.id);
+
+      // Remove from local list
+      _rosters.removeWhere((r) => r.id == _currentRoster!.id);
+      _currentRoster = null;
+      _currentEvents = [];
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error deleting roster: $e');
+      return false;
     }
   }
 

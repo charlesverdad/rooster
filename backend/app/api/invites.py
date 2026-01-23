@@ -12,6 +12,7 @@ from app.schemas.invite import (
 )
 from app.services.invite import InviteService
 from app.services.team import TeamService
+from app.services.email import get_email_service
 
 router = APIRouter(prefix="/invites", tags=["invites"])
 
@@ -71,8 +72,15 @@ async def send_invite(
         email=data.email,
     )
 
-    # TODO: Send email with invite link
-    # For now, just return the invite with token
+    # Send invite email
+    email_service = get_email_service()
+    await email_service.send_invite_email(
+        to_email=data.email,
+        invitee_name=user.name,
+        team_name=team.name,
+        inviter_name=current_user.name,
+        token=invite.token,
+    )
 
     return InviteResponse.model_validate(invite)
 
@@ -151,7 +159,21 @@ async def resend_invite(
             detail="Cannot resend invite - already accepted or not found",
         )
 
-    # TODO: Send email with new invite link
+    # Get user info for the email
+    from app.models.user import User
+    result = await db.execute(select(User).where(User.id == invite.user_id))
+    user = result.scalar_one_or_none()
+
+    # Send invite email with new token
+    if user:
+        email_service = get_email_service()
+        await email_service.send_invite_email(
+            to_email=updated_invite.email,
+            invitee_name=user.name,
+            team_name=team.name,
+            inviter_name=current_user.name,
+            token=updated_invite.token,
+        )
 
     return InviteResponse.model_validate(updated_invite)
 

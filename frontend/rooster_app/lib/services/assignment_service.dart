@@ -1,7 +1,6 @@
 import 'dart:convert';
 import '../models/event_assignment.dart';
 import 'api_client.dart';
-import 'team_service.dart';
 
 class AssignmentService {
   /// Get all event assignments for the current user

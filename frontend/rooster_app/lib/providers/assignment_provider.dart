@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/event_assignment.dart';
+import '../services/api_client.dart';
 import '../services/assignment_service.dart';
-import '../services/team_service.dart';
 
 class AssignmentProvider with ChangeNotifier {
   List<EventAssignment> _assignments = [];

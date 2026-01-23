@@ -1,7 +1,6 @@
 import 'dart:convert';
 import '../models/notification.dart';
 import 'api_client.dart';
-import 'team_service.dart';
 
 class NotificationService {
   /// Get all notifications for the current user

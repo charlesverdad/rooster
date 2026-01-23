@@ -1,176 +1,218 @@
-# Frontend-Backend Integration TODO
+# Rooster - Prioritized TODO List
 
-## Overview
-Connect the Flutter frontend to the FastAPI backend, replacing all mock data with real API calls.
-
-**STATUS: COMPLETED**
+**Last Updated:** January 2026
+**Status:** MVP ~85% complete
 
 ---
 
-## Phase 1: Core Infrastructure (HIGH PRIORITY) ✅
+## Summary
 
-### 1.1 Update Data Models
-- [x] Update `RosterEvent` model to match backend `RosterEventResponse`
-- [x] Create `EventAssignment` model to match backend `EventAssignmentResponse`
-- [x] Create `EventAssignmentDetail` model for detailed assignment view
-- [x] Update `Roster` model - verified `startDate` serialization
-- [x] Add `TeamMember` model to replace Map<String, dynamic>
-- [x] Update `Team` model with `role` field for current user's role
-
-### 1.2 API Service Layer
-- [x] Create `team_service.dart` for team API calls
-- [x] Create `roster_service.dart` for roster/event API calls
-- [x] Create `assignment_service.dart` for event-assignment API calls
-- [x] Create `notification_service.dart` for notification API calls
-- [x] Create `invite_service.dart` for invite API calls
-- [x] Add consistent error handling across all services (ApiException class)
+The core backend and frontend are functional. Users can register, create teams, add members, create rosters, assign volunteers, and accept/decline assignments. The main gaps are the invite acceptance flow and notifications infrastructure.
 
 ---
 
-## Phase 2: Provider Integration (HIGH PRIORITY) ✅
+## Priority 1: Critical MVP Features (Must Have)
 
-### 2.1 TeamProvider - Full API Integration
-- [x] `fetchMyTeams()` → GET `/teams`
-- [x] `fetchTeamDetail()` → GET `/teams/{teamId}`
-- [x] `fetchTeamMembers()` → GET `/teams/{teamId}/members`
-- [x] `addPlaceholderMember()` → POST `/teams/{teamId}/members/placeholder`
-- [x] `sendInvite()` → POST `/invites/team/{teamId}/user/{userId}`
-- [x] Remove mock data usage
+### 1.1 Accept Invite Screen (Frontend)
+**Status:** Not implemented
+**Backend:** ✅ Ready (`POST /invites/accept/{token}`, `GET /invites/validate/{token}`)
+**Effort:** Medium
 
-### 2.2 RosterProvider - Full API Integration
-- [x] `fetchTeamRosters()` → GET `/rosters/team/{teamId}`
-- [x] `fetchRosterDetail()` → GET `/rosters/{rosterId}`
-- [x] `fetchRosterEvents()` → GET `/rosters/{rosterId}/events`
-- [x] `createRoster()` → POST `/rosters` (with start_date, end conditions)
-- [x] `generateMoreEvents()` → POST `/rosters/{rosterId}/events/generate`
-- [x] `assignVolunteerToEvent()` → POST `/rosters/events/{eventId}/assignments`
-- [x] Remove mock data and local event generation
+Create `lib/screens/auth/accept_invite_screen.dart`:
+- [ ] Parse invite token from URL/deep link
+- [ ] Call `GET /invites/validate/{token}` to get team name and invitee info
+- [ ] Display: "You've been invited to join [Team Name]"
+- [ ] Show pre-filled email (readonly) from invite
+- [ ] Password field for account creation
+- [ ] Call `POST /invites/accept/{token}` with password
+- [ ] On success: Store access token, navigate to Home
+- [ ] Handle invalid/expired token errors
 
-### 2.3 AssignmentProvider - Full API Integration
-- [x] Rename to use EventAssignments (backend's current model)
-- [x] `fetchMyAssignments()` → GET `/rosters/event-assignments/my`
-- [x] `fetchAssignmentDetail()` → GET `/rosters/event-assignments/{id}/detail`
-- [x] `updateAssignmentStatus()` → PATCH `/rosters/event-assignments/{id}`
-- [x] Remove mock data usage
+### 1.2 Deep Link Handling
+**Status:** Not implemented
+**Effort:** Medium
 
-### 2.4 NotificationProvider - Full API Integration
-- [x] `fetchNotifications()` → GET `/notifications`
-- [x] `markAsRead()` → POST `/notifications/{id}/read`
-- [x] `markAllAsRead()` → POST `/notifications/read-all`
-- [x] `deleteNotification()` → DELETE `/notifications/{id}`
-- [x] Remove mock data usage
+- [ ] Configure URL scheme `rooster://invite/:token` for mobile
+- [ ] Configure web URL handling for `/invite/:token`
+- [ ] Add route in `main.dart` to handle invite deep links
+- [ ] Test on web, iOS, and Android
 
----
+### 1.3 Email Sending for Invites
+**Status:** Not implemented (TODOs in backend code)
+**Effort:** Medium
 
-## Phase 3: Screen Updates (MEDIUM PRIORITY) ✅
-
-### 3.1 Assignment Detail Screen
-- [x] Fetch detail from `/rosters/event-assignments/{id}/detail`
-- [x] Use real co-volunteers data from API
-- [x] Use real team lead data from API
-- [x] Remove hardcoded mock data
-
-### 3.2 Roster Detail Screen
-- [x] Update to use new `RosterEvent` model fields
-- [x] Handle events without time (date only)
-- [x] Updated to use `event.date` instead of `event.dateTime`
-
-### 3.3 Home Screen
-- [x] Wire up to real assignment data via AssignmentProvider
-- [x] Show actual pending/upcoming assignments
-
-### 3.4 Other Screens Updated
-- [x] my_teams_screen.dart - uses TeamProvider
-- [x] team_detail_screen.dart - uses TeamProvider + RosterProvider
-- [x] availability_screen.dart - uses EventAssignment model
-- [x] notifications_screen.dart - fixed navigation to use assignmentId
-- [x] create_roster_screen.dart - updated for new Roster model
+- [ ] Choose email provider (SendGrid, AWS SES, or similar)
+- [ ] Create email templates for invite
+- [ ] Implement `send_invite_email()` in `backend/app/services/invite.py`
+- [ ] Include invite link with token in email
+- [ ] Add environment variables for email configuration
 
 ---
 
-## Phase 4: Error Handling & Polish (MEDIUM PRIORITY) - Partial ✅
+## Priority 2: Important MVP Features (Should Have)
 
-### 4.1 Error Handling
-- [x] Add try-catch with user-friendly error messages in all providers
-- [x] ApiException class for consistent error handling
-- [ ] Handle 401 (unauthorized) - redirect to login (TODO: implement in ApiClient)
-- [ ] Handle 403 (forbidden) - show permission error
-- [ ] Handle 404 (not found) - show not found message
-- [ ] Handle network errors - show offline/retry message
+### 2.1 Push Notifications (FCM)
+**Status:** Not implemented
+**Effort:** High
 
-### 4.2 Loading States
-- [x] Add granular loading states in providers
-- [x] Show loading indicators during API calls
-- [ ] Disable buttons during submissions (TODO)
+Backend:
+- [ ] Add FCM admin SDK dependency
+- [ ] Create `backend/app/services/push_notification.py`
+- [ ] Store FCM tokens per user/device
+- [ ] Send push on: new assignment, reminder (1 day before), assignment declined
 
-### 4.3 Data Refresh
-- [x] Pull-to-refresh on list screens
-- [x] Auto-refresh after mutations (create, update, delete)
+Frontend:
+- [ ] Add `firebase_messaging` package
+- [ ] Request notification permissions
+- [ ] Register FCM token with backend on login
+- [ ] Handle foreground/background notifications
 
----
+### 2.2 Assignment Detail Enhancements
+**Status:** Partially done
+**Effort:** Low
 
-## Phase 5: Cleanup (LOW PRIORITY) ✅
+- [ ] Show co-volunteer status indicators:
+  - ✅ = Accepted
+  - ⏳ = Pending (registered user)
+  - ○ = Placeholder (not invited)
+  - ✉️ = Invited (awaiting response)
+- [ ] Add "Contact Team Lead" button with actions (email, phone)
+- [ ] Show location/notes from roster data (if available)
 
-### 5.1 Remove Mock Data
-- [x] Delete `lib/mock_data/mock_data.dart`
-- [x] Remove all MockData imports
-- [x] Remove unused mock-related code
+### 2.3 Create Roster Improvements
+**Status:** Basic form done
+**Effort:** Low
 
-### 5.2 Code Quality
-- [x] Ensure consistent naming conventions
-- [x] Add proper null safety handling
-- [x] Review and clean up unused imports
-
----
-
-## Backend Changes Made
-
-### EventAssignmentResponse Schema Updated
-Added fields to include event details for display:
-- `event_date: Optional[date]`
-- `roster_name: Optional[str]`
-- `team_name: Optional[str]`
-
-### API Endpoint Updated
-`/rosters/event-assignments/my` now returns event_date and roster_name for each assignment.
+- [ ] Add time selection for events
+- [ ] Add location field
+- [ ] Add notes/description field
 
 ---
 
-## Files Created/Modified
+## Priority 3: Polish & Edge Cases (Nice to Have)
 
-### New Files
-- `lib/models/event_assignment.dart` - EventAssignment, EventAssignmentDetail, CoVolunteer, TeamLead
-- `lib/models/team_member.dart` - TeamMember model
-- `lib/services/team_service.dart` - TeamService + ApiException
-- `lib/services/roster_service.dart` - RosterService
-- `lib/services/assignment_service.dart` - AssignmentService
-- `lib/services/notification_service.dart` - NotificationService
-- `lib/services/invite_service.dart` - InviteService + Invite model
+### 3.1 Error Handling Improvements
+**Status:** Basic try-catch exists
+**Effort:** Medium
 
-### Modified Files
-- `lib/models/roster_event.dart` - Updated to match backend
-- `lib/models/team.dart` - Added role field
-- `lib/models/notification.dart` - Fixed fromJson for UUIDs
-- `lib/providers/team_provider.dart` - Full API integration
-- `lib/providers/roster_provider.dart` - Full API integration
-- `lib/providers/assignment_provider.dart` - Full API integration
-- `lib/providers/notification_provider.dart` - Full API integration
-- `lib/screens/home/home_screen.dart` - Uses EventAssignment
-- `lib/screens/assignments/assignment_detail_screen.dart` - Uses EventAssignmentDetail
-- `lib/screens/roster/roster_detail_screen.dart` - Uses new RosterEvent fields
-- `lib/screens/availability/availability_screen.dart` - Uses EventAssignment
-- `lib/screens/notifications/notifications_screen.dart` - Fixed navigation
-- `lib/screens/teams/my_teams_screen.dart` - Uses TeamProvider
-- `lib/screens/teams/team_detail_screen.dart` - Uses TeamProvider
-- `lib/screens/roster/assign_volunteers_sheet.dart` - Uses TeamMember model
-- `lib/screens/roster/create_roster_screen.dart` - Updated for new Roster model
-- `lib/widgets/team_lead_section.dart` - Uses API for unfilled events
-- `lib/widgets/upcoming_assignment_card.dart` - Uses EventAssignment
-- `lib/widgets/assignment_action_card.dart` - Uses EventAssignment
+- [ ] Handle 401 (unauthorized) - redirect to login, clear stored token
+- [ ] Handle 403 (forbidden) - show permission denied message
+- [ ] Handle 404 (not found) - show not found screen/message
+- [ ] Handle network errors - show offline state with retry button
+- [ ] Disable buttons during form submissions to prevent double-taps
 
-### Deleted Files
-- `lib/mock_data/mock_data.dart` - Removed
+### 3.2 Roster Detail Enhancements
+**Status:** Basic list done
+**Effort:** Medium
 
-### Backend Changes
-- `backend/app/schemas/roster.py` - Added event_date, roster_name, team_name to EventAssignmentResponse
-- `backend/app/api/rosters.py` - Updated list_my_event_assignments to include event details
+- [ ] Show roster info card (recurrence, day, slots needed)
+- [ ] Visual slot status indicators (green=filled, orange=partial, red=empty)
+- [ ] "Generate more dates" button for ongoing rosters
+- [ ] Edit roster (name, slots needed)
+- [ ] Delete roster with confirmation
+
+### 3.3 Quick Assign Improvements
+**Status:** Basic assignment works
+**Effort:** Low
+
+- [ ] Search/filter members in assign sheet
+- [ ] Show "Unavailable" section with reasons
+- [ ] Toast variants based on user type:
+  - Registered: "Emma assigned. Notification sent."
+  - Placeholder: "Tom assigned. Invite them to notify."
+
+### 3.4 Member Detail Improvements
+**Status:** Basic view done
+**Effort:** Low
+
+- [ ] Show upcoming assignments for the member
+- [ ] Show assignment count in invite prompt ("John has 2 upcoming assignments")
+- [ ] Fetch real team data instead of hardcoded "Media Team"
+
+---
+
+## Priority 4: Deferred (Post-MVP)
+
+These are explicitly out of scope for MVP per PRD.md:
+
+- [ ] Google OAuth login
+- [ ] Auto-rotate assignment suggestions
+- [ ] Swap requests between members
+- [ ] Calendar view
+- [ ] Analytics/reporting
+- [ ] Multiple organizations
+- [ ] Offline support with data caching
+- [ ] Weekly email digest
+
+---
+
+## Completed Features ✅
+
+### Backend
+- [x] User authentication (register, login, JWT)
+- [x] Team CRUD with membership management
+- [x] Placeholder users and invite system
+- [x] Roster creation with recurrence patterns
+- [x] Event generation from rosters
+- [x] Event assignments (create, update status)
+- [x] Availability/unavailability tracking
+- [x] In-app notifications
+- [x] Granular team permissions
+- [x] Comprehensive unit tests for all services
+
+### Frontend
+- [x] Login and Register screens
+- [x] Home screen with adaptive layout (member vs team lead)
+- [x] "Needs Attention" section for team leads with unfilled slots
+- [x] Assignment detail with accept/decline
+- [x] Change response after confirming
+- [x] My Teams screen with create team
+- [x] Team Detail with members and rosters
+- [x] Add Member (placeholder) flow
+- [x] Send Invite flow
+- [x] Member Detail with placeholder indicators
+- [x] Create Roster with recurrence options
+- [x] Roster Detail with event list
+- [x] Assign Volunteers sheet
+- [x] Availability screen (mark unavailable dates)
+- [x] Notifications screen with navigation
+- [x] Settings screen with logout
+- [x] Pull-to-refresh on all list screens
+- [x] Full API integration (no mock data)
+
+---
+
+## File References
+
+Key files for upcoming work:
+
+```
+# Accept Invite Screen (to create)
+frontend/rooster_app/lib/screens/auth/accept_invite_screen.dart
+
+# Deep link configuration
+frontend/rooster_app/lib/main.dart
+
+# Email sending (to implement)
+backend/app/services/invite.py:74  # TODO comment
+backend/app/services/invite.py:155 # TODO comment
+
+# Push notifications (to create)
+backend/app/services/push_notification.py
+
+# Assignment detail enhancements
+frontend/rooster_app/lib/screens/assignments/assignment_detail_screen.dart
+
+# Invite service (frontend - has acceptInvite method ready)
+frontend/rooster_app/lib/services/invite_service.dart
+```
+
+---
+
+## Notes
+
+- Backend invite endpoints are fully functional and tested
+- Frontend `InviteService` already has `validateToken()` and `acceptInvite()` methods
+- The accept invite screen is the last critical piece for the full invite flow
+- Push notifications require Firebase project setup
+- Email requires third-party service account

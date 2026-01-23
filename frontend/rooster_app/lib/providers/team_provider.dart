@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/team.dart';
 import '../models/team_member.dart';
+import '../services/api_client.dart';
 import '../services/team_service.dart';
 import '../services/invite_service.dart';
 

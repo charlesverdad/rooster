@@ -53,6 +53,9 @@ dependencies:
   # URL launcher for contact actions (email, phone, sms)
   url_launcher: ^6.2.0
 
+  # Deep linking for invite URLs
+  app_links: ^6.3.3
+
 
 dev_dependencies:
   flutter_test:

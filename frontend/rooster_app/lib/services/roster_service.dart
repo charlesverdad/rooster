@@ -2,7 +2,6 @@ import 'dart:convert';
 import '../models/roster.dart';
 import '../models/roster_event.dart';
 import 'api_client.dart';
-import 'team_service.dart';
 
 class RosterService {
   /// Get all rosters for a team
@@ -24,6 +23,40 @@ class RosterService {
     if (response.statusCode == 200) {
       return Roster.fromJson(jsonDecode(response.body));
     } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
+  /// Update a roster
+  static Future<Roster> updateRoster(
+    String rosterId, {
+    String? name,
+    int? slotsNeeded,
+    String? location,
+    String? notes,
+    bool? isActive,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (slotsNeeded != null) body['slots_needed'] = slotsNeeded;
+    if (location != null) body['location'] = location;
+    if (notes != null) body['notes'] = notes;
+    if (isActive != null) body['is_active'] = isActive;
+
+    final response = await ApiClient.patch('/rosters/$rosterId', body);
+
+    if (response.statusCode == 200) {
+      return Roster.fromJson(jsonDecode(response.body));
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
+  /// Delete a roster
+  static Future<void> deleteRoster(String rosterId) async {
+    final response = await ApiClient.delete('/rosters/$rosterId');
+
+    if (response.statusCode != 204) {
       throw ApiException(response.statusCode, response.body);
     }
   }
@@ -68,29 +101,6 @@ class RosterService {
     if (response.statusCode == 201) {
       return Roster.fromJson(jsonDecode(response.body));
     } else {
-      throw ApiException(response.statusCode, response.body);
-    }
-  }
-
-  /// Update a roster
-  static Future<Roster> updateRoster(
-    String rosterId,
-    Map<String, dynamic> updates,
-  ) async {
-    final response = await ApiClient.patch('/rosters/$rosterId', updates);
-
-    if (response.statusCode == 200) {
-      return Roster.fromJson(jsonDecode(response.body));
-    } else {
-      throw ApiException(response.statusCode, response.body);
-    }
-  }
-
-  /// Delete a roster
-  static Future<void> deleteRoster(String rosterId) async {
-    final response = await ApiClient.delete('/rosters/$rosterId');
-
-    if (response.statusCode != 204) {
       throw ApiException(response.statusCode, response.body);
     }
   }

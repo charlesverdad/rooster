@@ -42,12 +42,26 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {
-              // TODO: Navigate to edit roster screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edit roster coming soon')),
-              );
+            onPressed: () => _showEditDialog(context, roster),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'delete') {
+                _showDeleteConfirmation(context, roster.name);
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete Roster', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -272,5 +286,136 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
       'Saturday'
     ];
     return days[day % 7];
+  }
+
+  void _showEditDialog(BuildContext context, roster) {
+    final nameController = TextEditingController(text: roster.name);
+    int slotsNeeded = roster.slotsNeeded;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Roster'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Roster Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text('Volunteers needed: '),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: slotsNeeded > 1
+                        ? () => setState(() => slotsNeeded--)
+                        : null,
+                    icon: const Icon(Icons.remove_circle_outline),
+                  ),
+                  Text(
+                    '$slotsNeeded',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: slotsNeeded < 10
+                        ? () => setState(() => slotsNeeded++)
+                        : null,
+                    icon: const Icon(Icons.add_circle_outline),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final rosterProvider =
+                    Provider.of<RosterProvider>(context, listen: false);
+                final success = await rosterProvider.updateRoster(
+                  name: nameController.text.trim(),
+                  slotsNeeded: slotsNeeded,
+                );
+
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Roster updated')),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Failed to update: ${rosterProvider.error ?? "Unknown error"}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String rosterName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Roster'),
+        content: Text(
+          'Are you sure you want to delete "$rosterName"? This will also delete all associated events and assignments. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final rosterProvider =
+                  Provider.of<RosterProvider>(context, listen: false);
+              final success = await rosterProvider.deleteRoster();
+
+              if (context.mounted) {
+                Navigator.of(context).pop(); // Close dialog
+                if (success) {
+                  Navigator.of(context).pop(); // Go back to team detail
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Roster deleted')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Failed to delete: ${rosterProvider.error ?? "Unknown error"}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 }
