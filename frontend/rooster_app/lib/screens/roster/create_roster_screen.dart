@@ -49,21 +49,6 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Team (pre-filled if from team context)
-          DropdownButtonFormField<String>(
-            value: widget.teamId ?? '1',
-            decoration: const InputDecoration(
-              labelText: 'Team',
-              border: OutlineInputBorder(),
-            ),
-            items: const [
-              DropdownMenuItem(value: '1', child: Text('📹 Media Team')),
-              DropdownMenuItem(value: '2', child: Text('🎵 Worship Team')),
-            ],
-            onChanged: (value) {},
-          ),
-          const SizedBox(height: 24),
-
           // Repeats
           const Text(
             'Repeats',

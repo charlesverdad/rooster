@@ -106,13 +106,13 @@ async def list_organisation_teams(
     return [TeamResponse.model_validate(t) for t in teams]
 
 
-@router.get("/{team_id}", response_model=TeamResponse)
+@router.get("/{team_id}", response_model=TeamWithRole)
 async def get_team(
     team_id: uuid.UUID,
     current_user: CurrentUser,
     db: DbSession,
-) -> TeamResponse:
-    """Get a team by ID. Must be org member."""
+) -> TeamWithRole:
+    """Get a team by ID with the current user's role and permissions."""
     team_service = TeamService(db)
     org_service = OrganisationService(db)
 
@@ -124,14 +124,24 @@ async def get_team(
         )
 
     # Check org membership
-    membership = await org_service.get_membership(current_user.id, team.organisation_id)
-    if not membership:
+    org_membership = await org_service.get_membership(current_user.id, team.organisation_id)
+    if not org_membership:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this organisation",
         )
 
-    return TeamResponse.model_validate(team)
+    # Get user's team membership for role and permissions
+    team_membership = await team_service.get_team_membership(current_user.id, team_id)
+
+    return TeamWithRole(
+        id=team.id,
+        name=team.name,
+        organisation_id=team.organisation_id,
+        role=team_membership.role if team_membership else None,
+        permissions=team_membership.permissions if team_membership else [],
+        created_at=team.created_at,
+    )
 
 
 @router.patch("/{team_id}", response_model=TeamResponse)

@@ -63,7 +63,7 @@ class TeamWithRole(BaseModel):
     id: uuid.UUID
     name: str
     organisation_id: uuid.UUID
-    role: TeamRole
+    role: TeamRole | None = None
     permissions: list[str] = []
     created_at: datetime
 
