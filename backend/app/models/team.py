@@ -2,16 +2,18 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Enum, ForeignKey, String, UniqueConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.permissions import TeamPermission
 from app.models.base import TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.organisation import Organisation
     from app.models.roster import Roster
+    from app.models.invite import Invite
 
 
 class TeamRole(str, enum.Enum):
@@ -39,6 +41,9 @@ class Team(Base, UUIDMixin, TimestampMixin):
     rosters: Mapped[list["Roster"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
+    invites: Mapped[list["Invite"]] = relationship(
+        back_populates="team", cascade="all, delete-orphan"
+    )
 
 
 class TeamMember(Base, TimestampMixin):
@@ -56,7 +61,27 @@ class TeamMember(Base, TimestampMixin):
     role: Mapped[TeamRole] = mapped_column(
         Enum(TeamRole), default=TeamRole.MEMBER, nullable=False
     )
+    permissions: Mapped[list[str]] = mapped_column(
+        JSON, default=list, server_default="[]", nullable=False
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="team_memberships")
     team: Mapped["Team"] = relationship(back_populates="members")
+
+    def has_permission(self, permission: str) -> bool:
+        """Check if the member has a specific permission."""
+        return permission in self.permissions
+
+    def has_any_permission(self, *permissions: str) -> bool:
+        """Check if the member has any of the specified permissions."""
+        return any(p in self.permissions for p in permissions)
+
+    def has_all_permissions(self, *permissions: str) -> bool:
+        """Check if the member has all of the specified permissions."""
+        return all(p in self.permissions for p in permissions)
+
+    @property
+    def is_team_lead(self) -> bool:
+        """Check if member has team lead-level permissions (backward compat)."""
+        return self.has_permission(TeamPermission.MANAGE_TEAM)

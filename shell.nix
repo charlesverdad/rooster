@@ -32,14 +32,14 @@ pkgs.mkShell {
     # Install Python dependencies if pyproject.toml exists
     if [ -f "backend/pyproject.toml" ]; then
       echo "Syncing Python dependencies..."
-      uv sync --project backend
+      (cd backend && uv pip install -e '.[dev]')
     fi
 
     # Set up local PostgreSQL data directory
     export PGDATA="$PWD/.pgdata"
     export PGHOST="$PWD/.pgdata"
     export PGPORT="5433"
-    export DATABASE_URL="postgresql://localhost:5433/rooster"
+    export DATABASE_URL="postgresql+asyncpg://localhost:5433/rooster"
 
     if [ ! -d "$PGDATA" ]; then
       echo "Initializing PostgreSQL database..."

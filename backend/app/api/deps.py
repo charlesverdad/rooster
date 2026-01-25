@@ -1,3 +1,4 @@
+import uuid as uuid_module
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -26,10 +27,12 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        user_id: str | None = payload.get("sub")
-        if user_id is None:
+        user_id_str: str | None = payload.get("sub")
+        if user_id_str is None:
             raise credentials_exception
-    except JWTError:
+        # Convert string to UUID for proper database comparison
+        user_id = uuid_module.UUID(user_id_str)
+    except (JWTError, ValueError):
         raise credentials_exception
 
     result = await db.execute(select(User).where(User.id == user_id))

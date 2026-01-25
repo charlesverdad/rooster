@@ -3,13 +3,16 @@ from app.models.organisation import Organisation, OrganisationMember, Organisati
 from app.models.team import Team, TeamMember, TeamRole
 from app.models.roster import (
     Roster,
+    RosterEvent,
     Assignment,
+    EventAssignment,
     RecurrencePattern,
     AssignmentMode,
     AssignmentStatus,
 )
 from app.models.availability import Unavailability
 from app.models.notification import Notification, NotificationType
+from app.models.invite import Invite
 
 __all__ = [
     "User",
@@ -20,11 +23,14 @@ __all__ = [
     "TeamMember",
     "TeamRole",
     "Roster",
+    "RosterEvent",
     "Assignment",
+    "EventAssignment",
     "RecurrencePattern",
     "AssignmentMode",
     "AssignmentStatus",
     "Unavailability",
     "Notification",
     "NotificationType",
+    "Invite",
 ]

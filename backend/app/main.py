@@ -2,6 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.organisations import router as organisations_router
+from app.api.teams import router as teams_router
+from app.api.rosters import router as rosters_router
+from app.api.availability import router as availability_router
+from app.api.notifications import router as notifications_router
+from app.api.dashboard import router as dashboard_router
+from app.api.invites import router as invites_router
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -22,9 +29,17 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router, prefix="/api")
+app.include_router(organisations_router, prefix="/api")
+app.include_router(teams_router, prefix="/api")
+app.include_router(rosters_router, prefix="/api")
+app.include_router(availability_router, prefix="/api")
+app.include_router(notifications_router, prefix="/api")
+app.include_router(dashboard_router, prefix="/api")
+app.include_router(invites_router, prefix="/api")
 
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     """Health check endpoint."""
     return {"status": "healthy"}
+
