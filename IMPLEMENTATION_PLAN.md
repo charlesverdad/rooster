@@ -1,209 +1,189 @@
 # Rooster Frontend Implementation Plan
 
-**Created:** January 2026
-**Approach:** Frontend-first development for UI/UX testing
+**Created:** January 2026  
+**Approach:** Frontend-first development for UI/UX testing  
 **Target:** 14 core screens as defined in Information Architecture v2.1
 
 ---
 
 ## Current State Summary
 
-### Implemented (15 screen files)
+### Implemented Screens & Flows (MVP)
 | Screen | Status | Notes |
 |--------|--------|-------|
 | Login | Done | Real API integration |
 | Register | Done | Real API integration |
-| Home | Partial | Missing "Needs Attention" section, placeholder indicators |
-| Assignment Detail | Done | Accept/decline with change response |
-| My Teams | Done | Basic list view |
-| Team Detail | Partial | Missing placeholder indicators, roster list |
+| Home | Done | Needs Attention, pull-to-refresh, team lead section |
+| Assignment Detail | Done | Accept/decline, co-volunteer status, contact team lead, location/notes |
+| My Teams | Done | Create team dialog, list, empty state |
+| Team Detail | Done | Members + rosters, placeholder indicators, invite buttons |
 | Add Member | Done | Bottom sheet |
-| Member Detail | Partial | Missing placeholder-specific UI |
-| Send Invite | Done | Email invite flow |
-| Create Roster | Done | Full recurrence options |
-| Roster Detail | Done | Event list with assignment |
-| Assign Volunteers | Done | Bottom sheet |
+| Member Detail | Partial | Placeholder status + invite CTA; assignments list not wired |
+| Send Invite | Partial | UI complete; API wiring TODO |
+| Create Roster | Done | Recurrence, time, location, notes |
+| Roster Detail | Done | Info card, slot indicators, assign, edit/delete, generate more |
+| Assign Volunteers | Partial | Search + sections; unavailability logic TODO |
 | Availability | Done | Date-based unavailability |
-| Notifications | Done | Mock data |
+| Notifications | Done | API, swipe-to-dismiss, deep-link routing |
 | Settings | Done | Basic profile/logout |
+| Accept Invite | Done | Token validation + accept flow |
 
-### Not Yet Implemented
-| Screen | Priority | Notes |
-|--------|----------|-------|
-| Accept Invite (1.3) | High | Placeholder user registration via invite link |
-| Create Team | High | Team leads need to create teams |
-| Contact Team Lead | Low | Simple contact options |
+### Not Yet Implemented (Remaining Gaps)
+| Item | Priority | Notes |
+|------|----------|-------|
+| Member assignments for team lead view | Medium | Needs backend endpoint + UI wiring |
+| Send Invite API wiring | Medium | Hook screen to TeamProvider.sendInvite |
+| Unavailability logic in Quick Assign | Medium | Use availability conflicts API |
+| Team settings screen | Low | Placeholder action in team detail |
+| Browse teams flow | Low | Placeholder action in My Teams |
 
 ### Data Layer Status
 | Provider | Data Source | Notes |
 |----------|-------------|-------|
 | AuthProvider | Real API | Working |
 | AvailabilityProvider | Real API | Working |
-| RosterProvider | Mock Data | Needs API wiring |
-| TeamProvider | Mock Data | Needs API wiring |
-| AssignmentProvider | Mock Data | Needs API wiring |
-| NotificationProvider | Mock Data | Needs API wiring |
+| RosterProvider | Real API | Working |
+| TeamProvider | Real API | Working |
+| AssignmentProvider | Real API | Working |
+| NotificationProvider | Real API | Working |
+| InviteService | Real API | Working |
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Core Member Experience
+### Phase 1: Core Member Experience (Complete)
 **Goal:** Complete the member-facing flows for viewing and responding to assignments
 
 #### 1.1 Home Screen Enhancements
-- [ ] Add "Needs Attention" section for team leads
-  - Show unfilled slots with [+ Assign] button
-  - Link to Quick Assign sheet
-- [ ] Add placeholder indicators (circle icon) for placeholders in co-volunteer lists
-- [ ] Improve date formatting consistency (use `date_display.md` guidelines)
-- [ ] Add empty state when no pending/upcoming assignments
-- [ ] Add pull-to-refresh functionality
+- [x] Add "Needs Attention" section for team leads
+- [x] Add placeholder indicators for placeholders in co-volunteer lists
+- [x] Improve date formatting consistency
+- [x] Add empty state when no pending/upcoming assignments
+- [x] Add pull-to-refresh functionality
 
 #### 1.2 Assignment Detail Polish
 - [x] Accept/decline functionality
 - [x] Change response after confirming
-- [ ] Show co-volunteers with proper status indicators:
-  - `checkmark` = Accepted
-  - `clock` = Pending (registered user)
-  - `circle` = Placeholder (not invited)
-  - `envelope` = Invited (awaiting response)
-- [ ] Dynamic team name (currently hardcoded)
-- [ ] Dynamic location/notes from roster data
-- [ ] Contact Team Lead button with action options
+- [x] Show co-volunteers with proper status indicators
+- [x] Dynamic team name
+- [x] Dynamic location/notes from roster data
+- [x] Contact Team Lead button with action options
 
 #### 1.3 Notification Improvements
-- [ ] Link notifications to relevant screens (tap → assignment detail)
-- [ ] Different notification types with appropriate icons
-- [ ] Swipe to dismiss
+- [x] Link notifications to relevant screens
+- [x] Different notification types with appropriate icons
+- [x] Swipe to dismiss
 
 ---
 
-### Phase 2: Team Lead - Team Management
+### Phase 2: Team Lead - Team Management (Mostly Complete)
 **Goal:** Enable team leads to create and manage teams
 
-#### 2.1 Create Team Screen (New)
-```
-Route: /teams/create
-Access: All authenticated users (anyone can become a team lead)
-```
-- [ ] Simple form: Team name only
-- [ ] On create → navigate to Team Detail
-- [ ] Toast: "Team created"
+#### 2.1 Create Team
+- [x] Simple form (dialog in My Teams)
+- [x] Navigate to Team Detail on create
+- [x] Toast confirmation
 
 #### 2.2 Team Detail Enhancements
+- [x] Placeholder indicators next to member names
+- [x] [Invite] button next to placeholder members
+- [x] Show team's rosters section
+- [x] Quick navigation to roster detail
+- [x] Role badge for team lead
 - [ ] Show member count with "(X not invited)" suffix
-- [ ] Placeholder indicators next to member names
-- [ ] [Invite] button next to placeholder members
-- [ ] Show team's rosters section
-- [ ] Quick navigation to roster detail
-- [ ] Role badge for team lead
 
 #### 2.3 Member Detail Enhancements
-- [ ] Different views for registered vs placeholder members
-- [ ] For placeholders: Show "Not yet invited" status
-- [ ] For placeholders: Show assigned dates with "(assigned)" label
-- [ ] For placeholders: Prominent "Invite via Email" button
-- [ ] For registered: Show email, upcoming assignments with status
+- [x] Different views for registered vs placeholder members
+- [x] Placeholder status labels + invite CTA
+- [x] Registered member contact info
+- [ ] Registered member upcoming assignments (needs API)
 
 #### 2.4 Invite Flow Improvements
-- [ ] Show assignment count in invite sheet ("John has 2 upcoming assignments")
-- [ ] After invite sent, update member status to "Invited"
-- [ ] Handle re-invite scenario (wrong email)
+- [x] Invite token validation + accept flow
+- [ ] Show assignment count in invite sheet
+- [ ] Handle re-invite scenario in UI
 
 ---
 
-### Phase 3: Team Lead - Roster Management
+### Phase 3: Team Lead - Roster Management (Complete)
 **Goal:** Enable team leads to create rosters and assign volunteers
 
 #### 3.1 Create Roster Polish
 - [x] Basic form with recurrence options
 - [x] One-time event support
 - [x] Start date selection
-- [x] End conditions (never/on-date/after-occurrences)
-- [ ] Pre-fill team when navigating from Team Detail
-- [ ] Time selection for events
-- [ ] Location field
+- [x] End conditions
+- [x] Time selection for events
+- [x] Location field
 
 #### 3.2 Roster Detail Enhancements
-- [ ] Show roster info card (recurrence, day, slots needed)
-- [ ] Event list with assignment status per slot
-- [ ] Per-slot [+ Assign] buttons for unfilled slots
-- [ ] Visual indicators:
-  - Green = fully filled
-  - Orange = partially filled
-  - Red = unfilled
-- [ ] "Generate more dates" button
-- [ ] Edit roster (name, slots needed)
-- [ ] Delete roster with confirmation
+- [x] Roster info card (recurrence, day, slots needed)
+- [x] Event list with assignment status per slot
+- [x] Per-slot [+ Assign] buttons for unfilled slots
+- [x] Visual indicators for filled/partial/unfilled
+- [x] "Generate more dates" button
+- [x] Edit roster (name, slots needed)
+- [x] Delete roster with confirmation
 
 #### 3.3 Quick Assign Improvements
-- [ ] Search/filter members
-- [ ] Show "Available" vs "Unavailable" sections
+- [x] Search/filter members
+- [x] Show "Available" vs "Placeholders" sections
 - [ ] Unavailable reasons (marked unavailable, already assigned)
-- [ ] Placeholder indicator on member names
-- [ ] Toast variants:
-  - Registered: "Emma Davis assigned. Notification sent."
-  - Placeholder: "Tom Wilson assigned. Invite them to notify."
+- [x] Placeholder indicator on member names
+- [x] Toast variants (registered vs placeholder)
 
 ---
 
-### Phase 4: Invite Registration Flow
+### Phase 4: Invite Registration Flow (Complete)
 **Goal:** Allow invited placeholders to create accounts and see their assignments
 
-#### 4.1 Accept Invite Screen (New)
-```
-Route: /invite/:token
-Access: Public (with valid invite token)
-```
-- [ ] Parse token from URL/deep link
-- [ ] Display: "You've been invited to join [Team Name]"
-- [ ] Show invitee name: "Hi [Name]! Create your account..."
-- [ ] Pre-filled email from invite
-- [ ] Password field only (email readonly)
-- [ ] [Join Team] button
-- [ ] On success:
-  - Convert placeholder to registered user
-  - Navigate to Home with assignments visible
-  - Toast: "Welcome to [Team Name]!"
+#### 4.1 Accept Invite Screen
+- [x] Parse token from URL/deep link
+- [x] Display invite info (team + invitee)
+- [x] Pre-filled email (readonly)
+- [x] Password field only
+- [x] Join Team button
+- [x] Success -> login + Home
+- [x] Error handling for invalid/expired tokens
 
 #### 4.2 Deep Link Handling
-- [ ] Configure URL scheme for `rooster://invite/:token`
-- [ ] Configure web URL handling for `/invite/:token`
-- [ ] Handle expired/invalid tokens gracefully
+- [x] Configure URL scheme for `rooster://invite/:token`
+- [x] Configure web URL handling for `/invite/:token`
+- [x] Handle expired/invalid tokens gracefully
 
 ---
 
-### Phase 5: Data Integration
+### Phase 5: Data Integration (Complete)
 **Goal:** Replace mock data with real API calls
 
 #### 5.1 Team API Integration
-- [ ] GET `/teams` - Fetch user's teams
-- [ ] POST `/teams` - Create team
-- [ ] GET `/teams/:id` - Fetch team detail
-- [ ] GET `/teams/:id/members` - Fetch team members
-- [ ] POST `/teams/:id/members` - Add placeholder member
-- [ ] POST `/teams/:id/invites` - Send invite
+- [x] GET `/teams`
+- [x] POST `/teams`
+- [x] GET `/teams/:id`
+- [x] GET `/teams/:id/members`
+- [x] POST `/teams/:id/members`
+- [x] POST `/invites/team/:teamId/user/:userId`
 
 #### 5.2 Roster API Integration
-- [ ] GET `/teams/:id/rosters` - Fetch team's rosters
-- [ ] POST `/rosters` - Create roster
-- [ ] GET `/rosters/:id` - Fetch roster detail
-- [ ] GET `/rosters/:id/events` - Fetch roster events
-- [ ] POST `/rosters/:id/events/:eventId/assign` - Assign volunteer
-- [ ] DELETE `/rosters/:id` - Delete roster
+- [x] GET `/teams/:id/rosters`
+- [x] POST `/rosters`
+- [x] GET `/rosters/:id`
+- [x] GET `/rosters/:id/events`
+- [x] POST `/rosters/:id/events/:eventId/assign`
+- [x] DELETE `/rosters/:id`
 
 #### 5.3 Assignment API Integration
-- [ ] GET `/assignments/me` - Fetch user's assignments
-- [ ] PATCH `/assignments/:id` - Update status (accept/decline)
+- [x] GET `/assignments/me`
+- [x] PATCH `/assignments/:id`
 
 #### 5.4 Invite API Integration
-- [ ] GET `/invites/:token` - Validate invite token
-- [ ] POST `/invites/:token/accept` - Accept invite and create account
+- [x] GET `/invites/validate/:token`
+- [x] POST `/invites/accept/:token`
 
 ---
 
-### Phase 6: Polish & Edge Cases
+### Phase 6: Polish & Edge Cases (Remaining)
 **Goal:** Handle error states and improve UX
 
 #### 6.1 Error Handling
@@ -226,35 +206,13 @@ Access: Public (with valid invite token)
 
 ## Implementation Order (Recommended)
 
-For fastest path to testable UI/UX:
+For the next phase (post-MVP polish):
 
-### Sprint 1: Member Flow Complete
-1. Home screen "Needs Attention" section
-2. Assignment detail co-volunteer status indicators
-3. Contact team lead functionality
-4. Notification tap-to-navigate
-
-### Sprint 2: Team Lead - Teams
-5. Create Team screen
-6. Team Detail placeholder indicators
-7. Member Detail for placeholders
-8. Improved invite flow
-
-### Sprint 3: Team Lead - Rosters
-9. Create Roster pre-fill and time/location
-10. Roster Detail slot-level assignment
-11. Quick Assign improvements
-
-### Sprint 4: Invite Flow
-12. Accept Invite screen
-13. Deep link handling
-14. Token validation
-
-### Sprint 5: API Integration
-15. Wire up team APIs
-16. Wire up roster APIs
-17. Wire up assignment APIs
-18. Wire up invite APIs
+1. Wire Send Invite screen to API
+2. Add member assignment view for team leads
+3. Add unavailability logic to quick assign
+4. Add team settings + browse teams placeholders
+5. Error handling + accessibility pass
 
 ---
 
@@ -265,11 +223,10 @@ lib/screens/
 ├── auth/
 │   ├── login_screen.dart
 │   ├── register_screen.dart
-│   └── accept_invite_screen.dart    # NEW
+│   └── accept_invite_screen.dart
 ├── teams/
 │   ├── my_teams_screen.dart
 │   ├── team_detail_screen.dart
-│   ├── create_team_screen.dart      # NEW
 │   ├── add_member_sheet.dart
 │   ├── member_detail_screen.dart
 │   └── send_invite_screen.dart
@@ -295,7 +252,6 @@ Per PRD, we measure success by:
 
 ## Notes
 
-- All mock data continues to work for UI testing
-- API integration can happen incrementally per feature
-- Focus on the "happy path" first, then edge cases
-- Placeholder users are the key differentiator - make this flow smooth
+- All core MVP flows are now working end-to-end
+- Remaining work focuses on polish, gaps in team-lead tooling, and error handling
+- Placeholder users remain the key differentiator; ensure invite UX stays smooth
