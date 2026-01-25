@@ -537,7 +537,25 @@ class RosterService:
         self, assignment_id: uuid.UUID
     ) -> dict | None:
         """Get detailed info for an event assignment including co-volunteers and team lead."""
-        assignment = await self.get_event_assignment(assignment_id)
+        # Need to eagerly load all relationships we'll access:
+        # - assignment.user
+        # - assignment.event
+        # - event.roster
+        # - event.event_assignments (for co-volunteers)
+        # - event.event_assignments.user (for co-volunteer names)
+        result = await self.db.execute(
+            select(EventAssignment)
+            .options(
+                selectinload(EventAssignment.user),
+                selectinload(EventAssignment.event)
+                .selectinload(RosterEvent.roster),
+                selectinload(EventAssignment.event)
+                .selectinload(RosterEvent.event_assignments)
+                .selectinload(EventAssignment.user),
+            )
+            .where(EventAssignment.id == assignment_id)
+        )
+        assignment = result.scalar_one_or_none()
         if not assignment:
             return None
 
