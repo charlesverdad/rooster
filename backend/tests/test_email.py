@@ -1,5 +1,3 @@
-import logging
-
 import pytest
 
 from app.services.email import EmailService
@@ -16,7 +14,7 @@ async def test_send_invite_email_logs_in_debug(caplog):
     token = "test-token"
     expected_link = f"{service.settings.app_url}/invite/{token}"
 
-    with caplog.at_level(logging.INFO):
+    with caplog.at_level("WARNING"):
         result = await service.send_invite_email(
             to_email="recipient@example.com",
             invitee_name="Recipient",

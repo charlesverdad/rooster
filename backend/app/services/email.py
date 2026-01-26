@@ -18,6 +18,10 @@ class EmailService:
     def __init__(self):
         self.settings = get_settings()
 
+    def _refresh_settings(self) -> None:
+        """Refresh settings in case debug flags change at runtime."""
+        self.settings = get_settings()
+
     @property
     def is_enabled(self) -> bool:
         """Check if email sending is enabled."""
@@ -50,6 +54,7 @@ class EmailService:
         Returns:
             True if email was sent successfully, False otherwise
         """
+        self._refresh_settings()
         if not self.is_enabled:
             logger.warning(f"Email not sent (disabled): {subject} -> {to_email}")
             return False
@@ -116,9 +121,10 @@ class EmailService:
         Returns:
             True if email was sent successfully, False otherwise
         """
+        self._refresh_settings()
         invite_url = self._get_invite_url(token)
         if self.settings.debug:
-            logger.info(
+            logger.warning(
                 "Would've sent email to %s with invite link %s",
                 to_email,
                 invite_url,
