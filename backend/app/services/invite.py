@@ -9,6 +9,7 @@ from app.core.security import get_password_hash, create_access_token
 from app.models.invite import Invite
 from app.models.user import User
 from app.models.team import Team
+from app.services.notification import NotificationService
 
 
 class InviteService:
@@ -177,6 +178,13 @@ class InviteService:
 
         # Mark invite as accepted
         invite.accepted_at = datetime.now(timezone.utc)
+
+        notification_service = NotificationService(self.db)
+        await notification_service.notify_team_joined(
+            user_id=user.id,
+            team_id=invite.team_id,
+            team_name=invite.team.name if invite.team else "your team",
+        )
 
         await self.db.flush()
         await self.db.refresh(user)

@@ -13,6 +13,7 @@ class NotificationCreate(BaseModel):
     type: NotificationType
     title: str
     message: str
+    reference_id: uuid.UUID | None = None
 
 
 class NotificationResponse(BaseModel):
@@ -23,6 +24,7 @@ class NotificationResponse(BaseModel):
     type: NotificationType
     title: str
     message: str
+    reference_id: uuid.UUID | None = None
     read_at: datetime | None
     created_at: datetime
 

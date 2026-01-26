@@ -65,7 +65,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'You\'ll see assignment updates here',
+                        'You\'ll see assignment and team updates here',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade500,

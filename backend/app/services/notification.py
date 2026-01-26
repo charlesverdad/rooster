@@ -22,6 +22,7 @@ class NotificationService:
             type=data.type,
             title=data.title,
             message=data.message,
+            reference_id=data.reference_id,
         )
         self.db.add(notification)
         await self.db.flush()
@@ -107,5 +108,22 @@ class NotificationService:
                 type=NotificationType.CONFLICT_DETECTED,
                 title=title,
                 message=message,
+            )
+        )
+
+    async def notify_team_joined(
+        self, user_id: uuid.UUID, team_id: uuid.UUID, team_name: str
+    ) -> Notification:
+        """Create a notification when a user joins a team."""
+        title = "Team Joined"
+        message = f"You've joined {team_name}"
+
+        return await self.create_notification(
+            NotificationCreate(
+                user_id=user_id,
+                type=NotificationType.TEAM_JOINED,
+                title=title,
+                message=message,
+                reference_id=team_id,
             )
         )
