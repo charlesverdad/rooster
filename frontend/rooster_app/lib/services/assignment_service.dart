@@ -75,6 +75,36 @@ class AssignmentService {
     }
   }
 
+  /// Get event assignments for a specific team member
+  static Future<List<EventAssignment>> getTeamMemberAssignments(
+    String teamId,
+    String userId, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    var endpoint = '/teams/$teamId/members/$userId/assignments';
+
+    if (startDate != null || endDate != null) {
+      endpoint += '?';
+      if (startDate != null) {
+        endpoint += 'start_date=${startDate.toIso8601String().split('T')[0]}';
+      }
+      if (endDate != null) {
+        if (startDate != null) endpoint += '&';
+        endpoint += 'end_date=${endDate.toIso8601String().split('T')[0]}';
+      }
+    }
+
+    final response = await ApiClient.get(endpoint);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => EventAssignment.fromJson(json)).toList();
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
   /// Assign a user to an event
   static Future<EventAssignment> assignUserToEvent(
     String eventId,

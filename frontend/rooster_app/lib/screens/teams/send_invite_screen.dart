@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/team_provider.dart';
 
 class SendInviteScreen extends StatefulWidget {
   final Map<String, dynamic> member;
@@ -11,6 +13,17 @@ class SendInviteScreen extends StatefulWidget {
 
 class _SendInviteScreenState extends State<SendInviteScreen> {
   final _emailController = TextEditingController();
+  bool _isSending = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    final existingEmail = widget.member['email'] as String?;
+    if (existingEmail != null && existingEmail.isNotEmpty) {
+      _emailController.text = existingEmail;
+    }
+  }
 
   @override
   void dispose() {
@@ -20,6 +33,11 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final teamProvider = Provider.of<TeamProvider>(context);
+    final memberName = widget.member['name'] as String? ?? 'Member';
+    final memberId = widget.member['id'] as String?;
+    final isInvited = widget.member['isInvited'] as bool? ?? false;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Send Invite'),
@@ -30,7 +48,7 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Invite ${widget.member['name']}',
+              'Invite $memberName',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -38,7 +56,9 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'They\'ll receive an email with a link to create their account and see their assignments.',
+              isInvited
+                  ? 'An invite was already sent. You can resend it if needed.'
+                  : 'They\'ll receive an email with a link to create their account and see their assignments.',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey.shade600,
@@ -56,25 +76,68 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
                 prefixIcon: Icon(Icons.email),
               ),
             ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ],
             const Spacer(),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () {
-                  if (_emailController.text.trim().isNotEmpty) {
-                    // TODO: Send invite
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Invite sent to ${_emailController.text.trim()}'),
-                      ),
-                    );
-                    Navigator.of(context).pop();
-                  }
-                },
+                onPressed: _isSending
+                    ? null
+                    : () async {
+                        final email = _emailController.text.trim();
+                        if (email.isEmpty || memberId == null) {
+                          setState(() {
+                            _errorMessage = 'Please enter a valid email.';
+                          });
+                          return;
+                        }
+
+                        setState(() {
+                          _isSending = true;
+                          _errorMessage = null;
+                        });
+
+                        final success =
+                            await teamProvider.sendInvite(memberId, email);
+
+                        if (!mounted) return;
+
+                        setState(() {
+                          _isSending = false;
+                          _errorMessage = success
+                              ? null
+                              : teamProvider.error ??
+                                  'Failed to send invite. Please try again.';
+                        });
+
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Invite sent to $email'),
+                            ),
+                          );
+                          Navigator.of(context).pop();
+                        }
+                      },
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Send Invite'),
+                child: _isSending
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(isInvited ? 'Resend Invite' : 'Send Invite'),
               ),
             ),
           ],

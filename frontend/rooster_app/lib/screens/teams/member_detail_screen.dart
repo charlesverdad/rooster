@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../providers/team_provider.dart';
 import '../../models/event_assignment.dart';
+import '../../services/assignment_service.dart';
 
 class MemberDetailScreen extends StatefulWidget {
   final Map<String, dynamic> member;
@@ -17,6 +18,7 @@ class MemberDetailScreen extends StatefulWidget {
 class _MemberDetailScreenState extends State<MemberDetailScreen> {
   List<EventAssignment> _assignments = [];
   bool _isLoadingAssignments = true;
+  String? _assignmentError;
 
   @override
   void initState() {
@@ -25,10 +27,35 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Future<void> _loadAssignments() async {
-    // Note: In a future version, we could add a backend endpoint to fetch
-    // assignments for a specific user (team lead viewing member assignments).
-    // For now, assignments are only viewable by the assigned user themselves.
-    setState(() => _isLoadingAssignments = false);
+    final teamProvider = Provider.of<TeamProvider>(context, listen: false);
+    final team = teamProvider.currentTeam;
+    final memberId = widget.member['id'] as String?;
+
+    if (team == null ||
+        memberId == null ||
+        !(team.canViewResponses || team.canManageMembers || team.canManageTeam)) {
+      setState(() => _isLoadingAssignments = false);
+      return;
+    }
+
+    try {
+      final assignments =
+          await AssignmentService.getTeamMemberAssignments(team.id, memberId);
+      if (mounted) {
+        setState(() {
+          _assignments = assignments;
+          _isLoadingAssignments = false;
+          _assignmentError = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAssignments = false;
+          _assignmentError = 'Unable to load assignments.';
+        });
+      }
+    }
   }
 
   @override
@@ -221,9 +248,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Center(
                   child: Text(
-                    isPlaceholder
+                    _assignmentError ??
+                    (isPlaceholder
                         ? 'Assignments will appear once invited'
-                        : 'No upcoming assignments',
+                        : 'No upcoming assignments'),
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                 ),
