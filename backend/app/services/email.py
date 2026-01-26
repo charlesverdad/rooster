@@ -117,11 +117,13 @@ class EmailService:
             True if email was sent successfully, False otherwise
         """
         invite_url = self._get_invite_url(token)
-        if self.settings.debug:
+        if self.settings.debug or not self.is_enabled:
+            reason = "debug enabled" if self.settings.debug else "email disabled"
             logger.warning(
-                "Would've sent email to %s with invite link %s",
+                "Would've sent email to %s with invite link %s (%s)",
                 to_email,
                 invite_url,
+                reason,
             )
         subject = f"You've been invited to join {team_name} on Rooster"
 
