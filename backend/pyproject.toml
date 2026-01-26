@@ -21,6 +21,8 @@ dependencies = [
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
     "email-validator>=2.1.0",
+    # HTTP client (testing + ASGI transport)
+    "httpx>=0.26.0",
     # Utilities
     "python-dateutil>=2.8.2",
 ]
@@ -46,4 +48,3 @@ packages = ["app"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 timeout = 10
-

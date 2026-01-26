@@ -2,6 +2,7 @@
 Unit tests for the team service and API endpoints.
 """
 import pytest
+from datetime import date
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +10,7 @@ from app.core.permissions import TeamPermission
 from app.models.organisation import Organisation, OrganisationMember, OrganisationRole
 from app.models.team import Team, TeamMember, TeamRole
 from app.models.user import User
+from app.models.roster import Roster, RosterEvent, EventAssignment, RecurrencePattern
 from app.core.security import get_password_hash, create_access_token
 from app.services.team import TeamService
 
@@ -468,3 +470,136 @@ async def test_list_teams_api(test_client: AsyncClient, db_session: AsyncSession
     teams = response.json()
     assert len(teams) >= 1
     assert any(t["name"] == "Media Team" for t in teams)
+
+
+@pytest.mark.asyncio
+async def test_list_member_assignments_api(
+    test_client: AsyncClient, db_session: AsyncSession, org_with_admin
+):
+    """Test listing assignments for a specific team member with permissions."""
+    data = org_with_admin
+    org = data["org"]
+    admin = data["admin"]
+
+    team = Team(name="Media Team", organisation_id=org.id)
+    db_session.add(team)
+    await db_session.flush()
+
+    admin_membership = TeamMember(
+        user_id=admin.id,
+        team_id=team.id,
+        role=TeamRole.LEAD,
+        permissions=[TeamPermission.VIEW_RESPONSES],
+    )
+    db_session.add(admin_membership)
+
+    member = User(
+        email="member@example.com",
+        name="Member User",
+        password_hash=get_password_hash("password"),
+    )
+    db_session.add(member)
+    await db_session.flush()
+
+    member_membership = TeamMember(
+        user_id=member.id,
+        team_id=team.id,
+        role=TeamRole.MEMBER,
+        permissions=[],
+    )
+    db_session.add(member_membership)
+
+    roster = Roster(
+        name="Sunday Service",
+        team_id=team.id,
+        recurrence_pattern=RecurrencePattern.WEEKLY,
+        recurrence_day=0,
+        slots_needed=2,
+        start_date=date(2024, 1, 1),
+    )
+    db_session.add(roster)
+    await db_session.flush()
+
+    event = RosterEvent(
+        roster_id=roster.id,
+        date=date(2024, 1, 7),
+    )
+    db_session.add(event)
+    await db_session.flush()
+
+    assignment = EventAssignment(
+        event_id=event.id,
+        user_id=member.id,
+    )
+    db_session.add(assignment)
+
+    other_team = Team(name="Other Team", organisation_id=org.id)
+    db_session.add(other_team)
+    await db_session.flush()
+
+    other_roster = Roster(
+        name="Other Roster",
+        team_id=other_team.id,
+        recurrence_pattern=RecurrencePattern.WEEKLY,
+        recurrence_day=1,
+        slots_needed=1,
+        start_date=date(2024, 1, 1),
+    )
+    db_session.add(other_roster)
+    await db_session.flush()
+
+    other_event = RosterEvent(
+        roster_id=other_roster.id,
+        date=date(2024, 1, 8),
+    )
+    db_session.add(other_event)
+    await db_session.flush()
+
+    other_assignment = EventAssignment(
+        event_id=other_event.id,
+        user_id=member.id,
+    )
+    db_session.add(other_assignment)
+    await db_session.commit()
+
+    token = create_access_token(subject=str(admin.id))
+    response = await test_client.get(
+        f"/api/teams/{team.id}/members/{member.id}/assignments",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assignments = response.json()
+    assert len(assignments) == 1
+    assert assignments[0]["roster_name"] == "Sunday Service"
+
+
+@pytest.mark.asyncio
+async def test_list_member_assignments_requires_permission(
+    test_client: AsyncClient, db_session: AsyncSession, org_with_admin
+):
+    """Test listing assignments for a team member without view_responses permission."""
+    data = org_with_admin
+    org = data["org"]
+    admin = data["admin"]
+
+    team = Team(name="Media Team", organisation_id=org.id)
+    db_session.add(team)
+    await db_session.flush()
+
+    membership = TeamMember(
+        user_id=admin.id,
+        team_id=team.id,
+        role=TeamRole.MEMBER,
+        permissions=[],
+    )
+    db_session.add(membership)
+    await db_session.commit()
+
+    token = create_access_token(subject=str(admin.id))
+    response = await test_client.get(
+        f"/api/teams/{team.id}/members/{admin.id}/assignments",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403

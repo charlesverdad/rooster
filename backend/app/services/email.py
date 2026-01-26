@@ -117,6 +117,12 @@ class EmailService:
             True if email was sent successfully, False otherwise
         """
         invite_url = self._get_invite_url(token)
+        if self.settings.debug:
+            logger.info(
+                "Would've sent email to %s with invite link %s",
+                to_email,
+                invite_url,
+            )
         subject = f"You've been invited to join {team_name} on Rooster"
 
         html_content = f"""
