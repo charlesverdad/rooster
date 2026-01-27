@@ -60,6 +60,12 @@ class TeamProvider with ChangeNotifier {
   }
 
   Future<void> fetchTeamDetail(String teamId) async {
+    // Clear stale data from a previously viewed team so the loading
+    // indicator shows instead of flashing the old team's content.
+    if (_currentTeam?.id != teamId) {
+      _currentTeam = null;
+      _currentTeamMembers = [];
+    }
     _isLoading = true;
     _error = null;
     notifyListeners();

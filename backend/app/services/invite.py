@@ -7,9 +7,11 @@ from sqlalchemy.orm import selectinload
 
 from app.core.security import get_password_hash, create_access_token
 from app.models.invite import Invite
+from app.models.organisation import OrganisationMember, OrganisationRole
 from app.models.user import User
 from app.models.team import Team
 from app.services.notification import NotificationService
+from app.services.organisation import OrganisationService
 
 
 class InviteService:
@@ -178,6 +180,21 @@ class InviteService:
 
         # Mark invite as accepted
         invite.accepted_at = datetime.now(timezone.utc)
+
+        # Ensure user has org membership (placeholders may not have one)
+        org_service = OrganisationService(self.db)
+        team = invite.team
+        if team:
+            existing_org_membership = await org_service.get_membership(
+                user.id, team.organisation_id
+            )
+            if not existing_org_membership:
+                org_member = OrganisationMember(
+                    user_id=user.id,
+                    organisation_id=team.organisation_id,
+                    role=OrganisationRole.MEMBER,
+                )
+                self.db.add(org_member)
 
         notification_service = NotificationService(self.db)
         await notification_service.notify_team_joined(

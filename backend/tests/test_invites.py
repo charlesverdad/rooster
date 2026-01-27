@@ -369,3 +369,63 @@ async def test_send_invite_as_team_lead(
     assert data["user_id"] == str(placeholder.id)
     assert data["email"] == "volunteer@example.com"
     assert data["token"] is not None
+
+
+@pytest.mark.asyncio
+async def test_accept_invite_creates_org_membership(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Accepting an invite should create an org membership so the user can access team endpoints."""
+    org, team, user, invite = await _create_invite_fixtures(db_session)
+
+    # Verify placeholder has no org membership
+    from app.models.organisation import OrganisationMember
+    from sqlalchemy import select
+    result = await db_session.execute(
+        select(OrganisationMember).where(
+            OrganisationMember.user_id == user.id,
+            OrganisationMember.organisation_id == org.id,
+        )
+    )
+    assert result.scalar_one_or_none() is None
+
+    # Accept the invite
+    response = await test_client.post(
+        f"/api/invites/accept/{invite.token}",
+        json={"password": "newpassword123"},
+    )
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    token = response.json()["access_token"]
+
+    # Verify the user can now access the team detail endpoint (requires org membership)
+    team_response = await test_client.get(
+        f"/api/teams/{team.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert team_response.status_code == 200
+    assert team_response.json()["name"] == "Praise Team"
+
+
+@pytest.mark.asyncio
+async def test_accept_invite_user_can_view_team_members(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """After accepting invite, regular member should be able to view team members."""
+    org, team, user, invite = await _create_invite_fixtures(db_session)
+
+    response = await test_client.post(
+        f"/api/invites/accept/{invite.token}",
+        json={"password": "newpassword123"},
+    )
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+
+    members_response = await test_client.get(
+        f"/api/teams/{team.id}/members",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert members_response.status_code == 200
+    members = members_response.json()
+    assert len(members) >= 1
+    assert any(m["user_name"] == "Invitee User" for m in members)
