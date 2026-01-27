@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/team_member.dart';
 import '../../providers/team_provider.dart';
 import '../../providers/roster_provider.dart';
+import '../../services/team_service.dart';
 
 class AssignVolunteersSheet extends StatefulWidget {
   // Option 1: Use with teamId and callback (from roster detail)
@@ -53,6 +54,8 @@ class AssignVolunteersSheet extends StatefulWidget {
 class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  Map<String, String?> _unavailabilityReasons = {};
+  bool _loadingAvailability = false;
 
   @override
   void initState() {
@@ -61,8 +64,42 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
       if (widget.teamId != null) {
         Provider.of<TeamProvider>(context, listen: false)
             .fetchTeamDetail(widget.teamId!);
+        _fetchAvailability(widget.teamId!);
       }
     });
+  }
+
+  Future<void> _fetchAvailability(String teamId) async {
+    if (widget.eventDate == null) return;
+
+    setState(() => _loadingAvailability = true);
+
+    try {
+      final availability = await TeamService.getTeamAvailability(
+        teamId,
+        date: widget.eventDate,
+      );
+
+      final reasons = <String, String?>{};
+      for (final entry in availability) {
+        if (entry['is_available'] == false) {
+          reasons[entry['user_id'].toString()] =
+              entry['unavailability_reason'] as String?;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _unavailabilityReasons = reasons;
+          _loadingAvailability = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching availability: $e');
+      if (mounted) {
+        setState(() => _loadingAvailability = false);
+      }
+    }
   }
 
   @override
@@ -91,13 +128,23 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                 m.userName.toLowerCase().contains(_searchQuery.toLowerCase()))
             .toList();
 
-    final available = filteredMembers
-        .where((m) => !m.isPlaceholder && !m.isInvited)
-        .toList();
-    final unavailable =
-        <TeamMember>[]; // TODO: Add unavailability logic
-    final placeholders =
-        filteredMembers.where((m) => m.isPlaceholder).toList();
+    // Split members into available, unavailable, and placeholders
+    final available = <TeamMember>[];
+    final unavailable = <TeamMember>[];
+    final placeholders = <TeamMember>[];
+
+    for (final m in filteredMembers) {
+      if (m.isPlaceholder) {
+        placeholders.add(m);
+      } else if (_unavailabilityReasons.containsKey(m.userId)) {
+        unavailable.add(m);
+      } else if (!m.isInvited) {
+        available.add(m);
+      } else {
+        // Invited but not placeholder - treat as available
+        available.add(m);
+      }
+    }
 
     // Build header text
     String headerText = 'Assign Volunteer';
@@ -168,6 +215,12 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
           ),
           const Divider(height: 1),
 
+          if (_loadingAvailability)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+
           // Members list
           Expanded(
             child: ListView(
@@ -184,7 +237,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                   ),
                   const SizedBox(height: 8),
                   ...available.map((member) =>
-                      _buildMemberTile(member, true, false)),
+                      _buildMemberTile(member, true, false, null)),
                   const SizedBox(height: 16),
                 ],
                 if (placeholders.isNotEmpty) ...[
@@ -198,7 +251,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                   ),
                   const SizedBox(height: 8),
                   ...placeholders.map((member) =>
-                      _buildMemberTile(member, true, true)),
+                      _buildMemberTile(member, true, true, null)),
                   const SizedBox(height: 16),
                 ],
                 if (unavailable.isNotEmpty) ...[
@@ -211,8 +264,11 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...unavailable.map((member) =>
-                      _buildMemberTile(member, false, false)),
+                  ...unavailable.map((member) => _buildMemberTile(
+                      member,
+                      false,
+                      false,
+                      _unavailabilityReasons[member.userId])),
                 ],
               ],
             ),
@@ -223,14 +279,16 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   }
 
   Widget _buildMemberTile(
-      TeamMember member, bool isAvailable, bool isPlaceholder) {
+      TeamMember member, bool isAvailable, bool isPlaceholder, String? unavailableReason) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: isPlaceholder
               ? Colors.grey.shade400
-              : Colors.deepPurple.shade300,
+              : isAvailable
+                  ? Colors.deepPurple.shade300
+                  : Colors.grey.shade300,
           child: isPlaceholder
               ? Icon(Icons.person_outline, color: Colors.grey.shade100, size: 20)
               : Text(
@@ -243,7 +301,12 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
         ),
         title: Row(
           children: [
-            Text(member.userName),
+            Text(
+              member.userName,
+              style: TextStyle(
+                color: isAvailable ? null : Colors.grey.shade500,
+              ),
+            ),
             if (isPlaceholder) ...[
               const SizedBox(width: 8),
               Container(
@@ -263,6 +326,23 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
             ],
           ],
         ),
+        subtitle: !isAvailable && unavailableReason != null
+            ? Text(
+                unavailableReason,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red.shade400,
+                ),
+              )
+            : !isAvailable
+                ? Text(
+                    'Unavailable',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.red.shade400,
+                    ),
+                  )
+                : null,
         trailing: isAvailable ? const Icon(Icons.chevron_right) : null,
         onTap: isAvailable
             ? () async {

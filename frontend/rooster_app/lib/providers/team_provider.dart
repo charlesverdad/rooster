@@ -128,6 +128,63 @@ class TeamProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> updateTeam(String teamId, {String? name}) async {
+    try {
+      final updated = await TeamService.updateTeam(teamId, name: name);
+      _currentTeam = updated;
+
+      // Update in local list
+      final index = _teams.indexWhere((t) => t.id == teamId);
+      if (index != -1) {
+        _teams[index] = updated;
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error updating team: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateMemberPermissions(
+      String teamId, String userId, List<String> permissions) async {
+    try {
+      await TeamService.updateMemberPermissions(teamId, userId, permissions);
+
+      // Update local member
+      final index = _currentTeamMembers.indexWhere((m) => m.userId == userId);
+      if (index != -1) {
+        _currentTeamMembers[index] =
+            _currentTeamMembers[index].copyWith(permissions: permissions);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error updating permissions: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteTeam(String teamId) async {
+    try {
+      await TeamService.deleteTeam(teamId);
+      _teams.removeWhere((t) => t.id == teamId);
+      if (_currentTeam?.id == teamId) {
+        _currentTeam = null;
+        _currentTeamMembers = [];
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error deleting team: $e');
+      return false;
+    }
+  }
+
   Future<bool> removeMember(String teamId, String userId) async {
     try {
       await TeamService.removeMember(teamId, userId);

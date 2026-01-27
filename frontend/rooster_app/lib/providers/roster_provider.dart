@@ -174,6 +174,30 @@ class RosterProvider with ChangeNotifier {
     }
   }
 
+  Future<RosterEvent> fetchEvent(String eventId) async {
+    return await RosterService.getEvent(eventId);
+  }
+
+  Future<bool> cancelEvent(String eventId, bool isCancelled) async {
+    try {
+      await RosterService.updateEvent(eventId, isCancelled: isCancelled);
+
+      // Refresh events if viewing a roster
+      if (_currentRoster != null) {
+        final events = await RosterService.getRosterEvents(_currentRoster!.id);
+        _currentEvents = events;
+        _currentEvents.sort((a, b) => a.date.compareTo(b.date));
+        notifyListeners();
+      }
+
+      return true;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error cancelling event: $e');
+      return false;
+    }
+  }
+
   Future<List<EventAssignment>> getEventAssignments(String eventId) async {
     try {
       return await AssignmentService.getEventAssignments(eventId);

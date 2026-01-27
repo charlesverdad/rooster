@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/team_provider.dart';
 import '../../models/team.dart';
+import '../../utils/invite_utils.dart';
+import '../auth/accept_invite_screen.dart';
 import 'team_detail_screen.dart';
 
 class MyTeamsScreen extends StatefulWidget {
@@ -38,7 +40,30 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
           : null,
       body: teamProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
+          : teamProvider.error != null && teamProvider.teams.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline,
+                          size: 48, color: Colors.grey.shade400),
+                      const SizedBox(height: 16),
+                      Text(
+                        teamProvider.error ?? 'Failed to load teams',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton(
+                        onPressed: () {
+                          teamProvider.clearError();
+                          teamProvider.fetchMyTeams();
+                        },
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
               onRefresh: teamProvider.fetchMyTeams,
               child: ListView(
                 padding: const EdgeInsets.all(16),
@@ -49,11 +74,9 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
                     ...teams.map((team) => _buildTeamCard(context, team)),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: Browse teams
-                    },
-                    icon: const Icon(Icons.search),
-                    label: const Text('Browse All Teams'),
+                    onPressed: _showInviteLinkDialog,
+                    icon: const Icon(Icons.link),
+                    label: const Text('Have an invite link?'),
                   ),
                   const SizedBox(height: 80), // Space for FAB
                 ],
@@ -170,6 +193,73 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
         );
       }
     }
+  }
+
+  void _showInviteLinkDialog() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Join a Team'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Paste your invite link or token below',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Invite link or token',
+                hintText: 'https://rooster.app/invite/...',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.link),
+              ),
+              onSubmitted: (value) {
+                final token = extractTokenFromInviteUrl(value);
+                if (token != null) {
+                  Navigator.of(context).pop();
+                  _navigateToInvite(token);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final token = extractTokenFromInviteUrl(controller.text);
+              if (token != null) {
+                Navigator.of(context).pop();
+                _navigateToInvite(token);
+              }
+            },
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToInvite(String token) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AcceptInviteScreen(token: token),
+      ),
+    );
   }
 
   Widget _buildTeamCard(BuildContext context, Team team) {

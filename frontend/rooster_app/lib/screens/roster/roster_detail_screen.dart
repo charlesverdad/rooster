@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/roster_provider.dart';
 import '../roster/assign_volunteers_sheet.dart';
+import 'event_detail_screen.dart';
 
 class RosterDetailScreen extends StatefulWidget {
   final String rosterId;
@@ -29,10 +30,37 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
     final roster = rosterProvider.currentRoster;
     final events = rosterProvider.currentEvents;
 
-    if (rosterProvider.isLoading || roster == null) {
+    if (rosterProvider.isLoading) {
       return Scaffold(
         appBar: AppBar(title: const Text('Roster Detail')),
         body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (rosterProvider.error != null || roster == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Roster Detail')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                rosterProvider.error ?? 'Roster not found',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: () {
+                  rosterProvider.clearError();
+                  rosterProvider.fetchRosterDetail(widget.rosterId);
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -172,7 +200,15 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to event detail
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EventDetailScreen(
+                eventId: event.id,
+                teamId: teamId,
+              ),
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -234,6 +270,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                         isScrollControlled: true,
                         builder: (context) => AssignVolunteersSheet(
                           teamId: teamId,
+                          eventDate: event.date,
                           onAssign: (userId) async {
                             final rosterProvider =
                                 Provider.of<RosterProvider>(context,

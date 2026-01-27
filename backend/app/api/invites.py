@@ -104,7 +104,7 @@ async def accept_invite(
 ) -> InviteAcceptResponse:
     """Accept an invite by setting a password. No authentication required."""
     invite_service = InviteService(db)
-    success, message, user, access_token = await invite_service.accept_invite(
+    success, message, user, access_token, team_id, team_name = await invite_service.accept_invite(
         token=token,
         password=data.password,
     )
@@ -114,6 +114,8 @@ async def accept_invite(
         message=message,
         user_id=user.id if user else None,
         access_token=access_token,
+        team_id=team_id,
+        team_name=team_name,
     )
 
 

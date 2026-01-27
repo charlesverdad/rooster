@@ -150,7 +150,7 @@ class InviteService:
 
     async def accept_invite(
         self, token: str, password: str
-    ) -> tuple[bool, str, User | None, str | None]:
+    ) -> tuple[bool, str, User | None, str | None, "uuid.UUID | None", str | None]:
         """Accept an invite by setting the user's password.
 
         Args:
@@ -158,18 +158,18 @@ class InviteService:
             password: The password to set for the user
 
         Returns:
-            A tuple of (success, message, user, access_token)
+            A tuple of (success, message, user, access_token, team_id, team_name)
         """
         invite = await self.get_invite_by_token(token)
 
         if not invite:
-            return False, "Invalid invite token", None, None
+            return False, "Invalid invite token", None, None, None, None
 
         if invite.is_accepted:
-            return False, "This invite has already been accepted", None, None
+            return False, "This invite has already been accepted", None, None, None, None
 
         if invite.is_expired:
-            return False, "This invite has expired", None, None
+            return False, "This invite has expired", None, None, None, None
 
         # Convert placeholder to full user
         user = invite.user
@@ -192,7 +192,10 @@ class InviteService:
         # Create access token for immediate login
         access_token = create_access_token(subject=str(user.id))
 
-        return True, "Account created successfully", user, access_token
+        team_id = invite.team_id
+        team_name = invite.team.name if invite.team else None
+
+        return True, "Account created successfully", user, access_token, team_id, team_name
 
     async def resend_invite(self, invite_id: uuid.UUID) -> Invite | None:
         """Resend an invite by generating a new token.

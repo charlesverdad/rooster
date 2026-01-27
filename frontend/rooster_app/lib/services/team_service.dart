@@ -86,6 +86,65 @@ class TeamService {
     }
   }
 
+  /// Get team availability for a specific date
+  static Future<List<Map<String, dynamic>>> getTeamAvailability(
+    String teamId, {
+    DateTime? date,
+  }) async {
+    var endpoint = '/dashboard/teams/$teamId/availability';
+    if (date != null) {
+      endpoint += '?target_date=${date.toIso8601String().split('T')[0]}';
+    }
+
+    final response = await ApiClient.get(endpoint);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
+  /// Update a team
+  static Future<Team> updateTeam(String teamId, {String? name}) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+
+    final response = await ApiClient.patch('/teams/$teamId', body);
+
+    if (response.statusCode == 200) {
+      return Team.fromJson(jsonDecode(response.body));
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
+  /// Delete a team
+  static Future<void> deleteTeam(String teamId) async {
+    final response = await ApiClient.delete('/teams/$teamId');
+
+    if (response.statusCode != 204) {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
+  /// Update member permissions
+  static Future<void> updateMemberPermissions(
+    String teamId,
+    String userId,
+    List<String> permissions,
+  ) async {
+    final response = await ApiClient.patch(
+      '/teams/$teamId/members/$userId/permissions',
+      {'permissions': permissions},
+    );
+
+    if (response.statusCode != 200) {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
   /// Remove a member from a team
   static Future<void> removeMember(String teamId, String userId) async {
     final response = await ApiClient.delete('/teams/$teamId/members/$userId');

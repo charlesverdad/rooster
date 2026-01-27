@@ -5,11 +5,13 @@ import '../../providers/auth_provider.dart';
 import '../../providers/assignment_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/team_provider.dart';
+import '../../utils/invite_utils.dart';
 import '../../widgets/assignment_action_card.dart';
 import '../../widgets/upcoming_assignment_card.dart';
 import '../../widgets/team_lead_section.dart';
 import '../../widgets/empty_state.dart';
 import '../assignments/assignment_detail_screen.dart';
+import '../auth/accept_invite_screen.dart';
 import '../teams/team_detail_screen.dart';
 import '../teams/my_teams_screen.dart';
 
@@ -255,6 +257,12 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.add),
               label: const Text('Create your first team'),
             ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _showInviteLinkDialog,
+              icon: const Icon(Icons.link),
+              label: const Text('Have an invite link?'),
+            ),
           ],
         ),
       ),
@@ -329,6 +337,74 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+  }
+
+  void _showInviteLinkDialog() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Join a Team'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Paste your invite link or token below',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Invite link or token',
+                hintText: 'https://rooster.app/invite/...',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.link),
+              ),
+              onSubmitted: (value) {
+                final token = extractTokenFromInviteUrl(value);
+                if (token != null) {
+                  Navigator.of(context).pop();
+                  Navigator.push(
+                    this.context,
+                    MaterialPageRoute(
+                      builder: (context) => AcceptInviteScreen(token: token),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final token = extractTokenFromInviteUrl(controller.text);
+              if (token != null) {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  this.context,
+                  MaterialPageRoute(
+                    builder: (context) => AcceptInviteScreen(token: token),
+                  ),
+                );
+              }
+            },
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildNoAssignmentsState() {
