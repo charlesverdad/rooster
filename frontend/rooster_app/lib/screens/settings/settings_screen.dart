@@ -1,9 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  static const _notificationsEnabledKey = 'notifications_enabled';
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSetting();
+  }
+
+  Future<void> _loadNotificationSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _notificationsEnabled = prefs.getBool(_notificationsEnabledKey) ?? true;
+    });
+  }
+
+  Future<void> _setNotificationsEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notificationsEnabledKey, value);
+    setState(() {
+      _notificationsEnabled = value;
+    });
+
+    // PHASE 3: Replace with real push notification subscribe/unsubscribe
+    debugPrint('Notifications ${value ? 'enabled' : 'disabled'}');
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(value
+              ? 'Notifications enabled'
+              : 'Notifications disabled'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +66,7 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.person,
                     size: 32,
@@ -56,19 +100,17 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const Divider(),
-          
+
           // Notifications
           ListTile(
             leading: const Icon(Icons.notifications),
             title: const Text('Notifications'),
             trailing: Switch(
-              value: true,
-              onChanged: (value) {
-                // TODO: Toggle notifications
-              },
+              value: _notificationsEnabled,
+              onChanged: _setNotificationsEnabled,
             ),
           ),
-          
+
           // My Availability
           ListTile(
             leading: const Icon(Icons.event_busy),
@@ -78,9 +120,9 @@ class SettingsScreen extends StatelessWidget {
               Navigator.pushNamed(context, '/availability');
             },
           ),
-          
+
           const Divider(),
-          
+
           // Logout
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
@@ -95,9 +137,9 @@ class SettingsScreen extends StatelessWidget {
               }
             },
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Version
           Center(
             child: Text(

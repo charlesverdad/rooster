@@ -49,3 +49,5 @@ class InviteAcceptResponse(BaseModel):
     message: str
     user_id: Optional[uuid.UUID] = None
     access_token: Optional[str] = None
+    team_id: Optional[uuid.UUID] = None
+    team_name: Optional[str] = None

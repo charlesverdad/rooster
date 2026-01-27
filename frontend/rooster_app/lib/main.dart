@@ -18,6 +18,8 @@ import 'screens/availability/availability_screen.dart';
 import 'screens/teams/team_detail_screen.dart';
 import 'screens/teams/send_invite_screen.dart';
 import 'screens/roster/roster_detail_screen.dart';
+import 'screens/roster/event_detail_screen.dart';
+import 'screens/teams/team_settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,6 +86,21 @@ class MyApp extends StatelessWidget {
             final rosterId = settings.arguments as String;
             return MaterialPageRoute(
               builder: (context) => RosterDetailScreen(rosterId: rosterId),
+            );
+          }
+          if (settings.name == '/event-detail') {
+            final args = settings.arguments as Map<String, String>;
+            return MaterialPageRoute(
+              builder: (context) => EventDetailScreen(
+                eventId: args['eventId']!,
+                teamId: args['teamId']!,
+              ),
+            );
+          }
+          if (settings.name == '/team-settings') {
+            final teamId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => TeamSettingsScreen(teamId: teamId),
             );
           }
           // Handle invite deep links: /invite/:token

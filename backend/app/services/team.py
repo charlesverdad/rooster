@@ -87,7 +87,9 @@ class TeamService:
     ) -> TeamMember | None:
         """Get a user's membership in a team."""
         result = await self.db.execute(
-            select(TeamMember).where(
+            select(TeamMember)
+            .options(selectinload(TeamMember.user))
+            .where(
                 TeamMember.user_id == user_id,
                 TeamMember.team_id == team_id,
             )

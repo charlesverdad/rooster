@@ -409,7 +409,10 @@ class RosterService:
 
     # EventAssignment methods
     async def create_event_assignment(
-        self, event_id: uuid.UUID, user_id: uuid.UUID
+        self,
+        event_id: uuid.UUID,
+        user_id: uuid.UUID,
+        status: AssignmentStatus = AssignmentStatus.PENDING,
     ) -> EventAssignment | None:
         """Create an assignment for a roster event."""
         # Check event exists
@@ -432,7 +435,7 @@ class RosterService:
         assignment = EventAssignment(
             event_id=event_id,
             user_id=user_id,
-            status=AssignmentStatus.PENDING,
+            status=status,
         )
         self.db.add(assignment)
         await self.db.flush()

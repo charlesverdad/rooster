@@ -102,8 +102,14 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
             ),
           );
 
-          // Navigate to home
-          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+          // Navigate to team detail if we have a team_id, otherwise home
+          final teamId = result['team_id']?.toString();
+          if (teamId != null) {
+            Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+            Navigator.of(context).pushNamed('/team-detail', arguments: teamId);
+          } else {
+            Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+          }
         }
       } else {
         setState(() {

@@ -37,10 +37,39 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     final members = teamProvider.currentTeamMembers;
     final rosters = rosterProvider.rosters;
 
-    if (team == null && teamProvider.isLoading) {
+    if (teamProvider.isLoading && team == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Team')),
         body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (teamProvider.error != null && team == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Team')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              Text(
+                teamProvider.error ?? 'Failed to load team',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: () {
+                  teamProvider.clearError();
+                  Provider.of<RosterProvider>(context, listen: false)
+                      .fetchTeamRosters(widget.teamId);
+                  teamProvider.fetchTeamDetail(widget.teamId);
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -48,12 +77,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       appBar: AppBar(
         title: Text(team?.name ?? 'Team'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // TODO: Team settings
-            },
-          ),
+          if (team?.canManageTeam ?? false)
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/team-settings',
+                  arguments: widget.teamId,
+                );
+              },
+            ),
         ],
       ),
       body: RefreshIndicator(
