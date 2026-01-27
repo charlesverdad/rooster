@@ -96,35 +96,41 @@ rooster/
 
 ## Common Commands
 
+All dev commands use `just` (available in `nix-shell`). Run `just` to see all available commands.
+
 ```bash
 # Enter development environment
 nix-shell
 
-# Backend
-cd backend
-uv run uvicorn app.main:app --reload
+# First-time setup (install deps + git hooks)
+just setup
+
+# Run both backend + frontend
+just dev
+
+# Run just backend or frontend
+just backend
+just frontend
+
+# Database
+just db-migrate                        # Run migrations
+just db-migration "description"        # Create new migration
+
+# Lint & format
+just lint                              # Lint everything
+just fmt                               # Format everything
+just check                             # Run pre-commit checks
+
+# Tests
+just test                              # Run all tests
+just test-backend                      # Backend only
+just test-frontend                     # Frontend only
+just test-backend -k "test_name"       # Run specific test
 
 # Install/sync dependencies
-uv sync --project backend            # Install dependencies
-uv add <package> --project backend   # Add new dependency
+uv sync --project backend              # Install dependencies
+uv add <package> --project backend     # Add new dependency
 uv add --dev <package> --project backend  # Add dev dependency
-
-# Run migrations
-uv run alembic upgrade head
-
-# Create new migration
-uv run alembic revision --autogenerate -m "description"
-
-# Backend tests
-uv run pytest
-
-# Frontend
-cd frontend/rooster_app
-flutter run -d chrome    # Web
-flutter run              # Mobile
-
-# Flutter tests
-flutter test
 ```
 
 ## MVP Implementation Order
