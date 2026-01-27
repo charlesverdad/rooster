@@ -26,7 +26,9 @@ class User(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "users"
 
     # Email and password are nullable for placeholder users
-    email: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True, nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(
+        String(255), unique=True, index=True, nullable=True
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
@@ -35,7 +37,9 @@ class User(Base, UUIDMixin, TimestampMixin):
     invited_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    invited_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    invited_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     organisation_memberships: Mapped[list["OrganisationMember"]] = relationship(

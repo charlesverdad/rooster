@@ -154,9 +154,7 @@ class RosterService:
 
     async def get_team_rosters(self, team_id: uuid.UUID) -> list[Roster]:
         """Get all rosters for a team."""
-        result = await self.db.execute(
-            select(Roster).where(Roster.team_id == team_id)
-        )
+        result = await self.db.execute(select(Roster).where(Roster.team_id == team_id))
         return list(result.scalars().all())
 
     async def update_roster(
@@ -271,7 +269,9 @@ class RosterService:
             select(RosterEvent)
             .options(
                 selectinload(RosterEvent.roster),
-                selectinload(RosterEvent.event_assignments).selectinload(EventAssignment.user),
+                selectinload(RosterEvent.event_assignments).selectinload(
+                    EventAssignment.user
+                ),
             )
             .where(RosterEvent.id == event_id)
         )
@@ -288,7 +288,9 @@ class RosterService:
         query = (
             select(RosterEvent)
             .options(
-                selectinload(RosterEvent.event_assignments).selectinload(EventAssignment.user)
+                selectinload(RosterEvent.event_assignments).selectinload(
+                    EventAssignment.user
+                )
             )
             .where(RosterEvent.roster_id == roster_id)
         )
@@ -297,7 +299,7 @@ class RosterService:
         if end_date:
             query = query.where(RosterEvent.date <= end_date)
         if not include_cancelled:
-            query = query.where(RosterEvent.is_cancelled == False)
+            query = query.where(RosterEvent.is_cancelled.is_(False))
         query = query.order_by(RosterEvent.date)
         result = await self.db.execute(query)
         return list(result.scalars().all())
@@ -315,7 +317,9 @@ class RosterService:
             .join(Roster)
             .options(
                 selectinload(RosterEvent.roster),
-                selectinload(RosterEvent.event_assignments).selectinload(EventAssignment.user),
+                selectinload(RosterEvent.event_assignments).selectinload(
+                    EventAssignment.user
+                ),
             )
             .where(Roster.team_id == team_id)
         )
@@ -324,7 +328,7 @@ class RosterService:
         if end_date:
             query = query.where(RosterEvent.date <= end_date)
         if not include_cancelled:
-            query = query.where(RosterEvent.is_cancelled == False)
+            query = query.where(RosterEvent.is_cancelled.is_(False))
         query = query.order_by(RosterEvent.date)
         result = await self.db.execute(query)
         return list(result.scalars().all())
@@ -346,7 +350,8 @@ class RosterService:
         unfilled = []
         for event in events:
             confirmed_count = sum(
-                1 for a in event.event_assignments
+                1
+                for a in event.event_assignments
                 if a.status == AssignmentStatus.CONFIRMED
             )
             if confirmed_count < event.roster.slots_needed:
@@ -355,7 +360,10 @@ class RosterService:
         return unfilled
 
     async def update_event(
-        self, event_id: uuid.UUID, notes: str | None = None, is_cancelled: bool | None = None
+        self,
+        event_id: uuid.UUID,
+        notes: str | None = None,
+        is_cancelled: bool | None = None,
     ) -> RosterEvent | None:
         """Update a roster event."""
         event = await self.get_event(event_id)
@@ -369,7 +377,9 @@ class RosterService:
         await self.db.refresh(event)
         return event
 
-    async def generate_more_events(self, roster_id: uuid.UUID, count: int = 12) -> list[RosterEvent]:
+    async def generate_more_events(
+        self, roster_id: uuid.UUID, count: int = 12
+    ) -> list[RosterEvent]:
         """Generate more events for a roster starting after the last existing event."""
         roster = await self.get_roster(roster_id)
         if not roster:
@@ -442,7 +452,9 @@ class RosterService:
         await self.db.refresh(assignment)
         return assignment
 
-    async def get_event_assignment(self, assignment_id: uuid.UUID) -> EventAssignment | None:
+    async def get_event_assignment(
+        self, assignment_id: uuid.UUID
+    ) -> EventAssignment | None:
         """Get an event assignment by ID."""
         result = await self.db.execute(
             select(EventAssignment)
@@ -508,7 +520,8 @@ class RosterService:
 
         # Get all user IDs that are placeholders
         placeholder_user_ids = [
-            a.user_id for a in event.event_assignments
+            a.user_id
+            for a in event.event_assignments
             if a.user and a.user.is_placeholder
         ]
 
@@ -550,8 +563,7 @@ class RosterService:
             select(EventAssignment)
             .options(
                 selectinload(EventAssignment.user),
-                selectinload(EventAssignment.event)
-                .selectinload(RosterEvent.roster),
+                selectinload(EventAssignment.event).selectinload(RosterEvent.roster),
                 selectinload(EventAssignment.event)
                 .selectinload(RosterEvent.event_assignments)
                 .selectinload(EventAssignment.user),
@@ -573,10 +585,12 @@ class RosterService:
             if a.id != assignment_id and a.user:
                 if a.user.is_placeholder:
                     placeholder_user_ids.append(a.user_id)
-                co_volunteers.append({
-                    "assignment": a,
-                    "is_placeholder": a.user.is_placeholder,
-                })
+                co_volunteers.append(
+                    {
+                        "assignment": a,
+                        "is_placeholder": a.user.is_placeholder,
+                    }
+                )
 
         # Check invite status for placeholders
         invite_status = {}
@@ -643,6 +657,8 @@ class RosterService:
             "team_name": team_name,
             "co_volunteers": co_volunteers,
             "team_lead": team_lead,
-            "is_placeholder": assignment.user.is_placeholder if assignment.user else False,
+            "is_placeholder": assignment.user.is_placeholder
+            if assignment.user
+            else False,
             "is_invited": is_invited,
         }

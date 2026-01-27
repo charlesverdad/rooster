@@ -41,7 +41,9 @@ class OrganisationService:
         )
         return result.scalar_one_or_none()
 
-    async def get_user_organisations(self, user_id: uuid.UUID) -> list[tuple[Organisation, OrganisationRole]]:
+    async def get_user_organisations(
+        self, user_id: uuid.UUID
+    ) -> list[tuple[Organisation, OrganisationRole]]:
         """Get all organisations a user belongs to with their roles."""
         result = await self.db.execute(
             select(Organisation, OrganisationMember.role)

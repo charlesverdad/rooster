@@ -47,7 +47,9 @@ async def create_team(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Organisation not found",
             )
-        membership = await org_service.get_membership(current_user.id, data.organisation_id)
+        membership = await org_service.get_membership(
+            current_user.id, data.organisation_id
+        )
         if not membership:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -127,7 +129,9 @@ async def get_team(
         )
 
     # Check org membership
-    org_membership = await org_service.get_membership(current_user.id, team.organisation_id)
+    org_membership = await org_service.get_membership(
+        current_user.id, team.organisation_id
+    )
     if not org_membership:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -242,7 +246,10 @@ async def list_members(
     ]
 
 
-@router.get("/{team_id}/members/{user_id}/assignments", response_model=list[EventAssignmentResponse])
+@router.get(
+    "/{team_id}/members/{user_id}/assignments",
+    response_model=list[EventAssignmentResponse],
+)
 async def list_member_assignments(
     team_id: uuid.UUID,
     user_id: uuid.UUID,
@@ -318,7 +325,11 @@ async def list_member_assignments(
     return responses
 
 
-@router.post("/{team_id}/members", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{team_id}/members",
+    response_model=TeamMemberResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_member(
     team_id: uuid.UUID,
     data: AddTeamMemberRequest,
@@ -369,7 +380,11 @@ async def add_member(
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@router.post("/{team_id}/members/placeholder", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{team_id}/members/placeholder",
+    response_model=TeamMemberResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_placeholder_member(
     team_id: uuid.UUID,
     data: AddPlaceholderMemberRequest,
@@ -441,7 +456,9 @@ async def remove_member(
         )
 
 
-@router.patch("/{team_id}/members/{user_id}/permissions", response_model=TeamMemberResponse)
+@router.patch(
+    "/{team_id}/members/{user_id}/permissions", response_model=TeamMemberResponse
+)
 async def update_member_permissions(
     team_id: uuid.UUID,
     user_id: uuid.UUID,

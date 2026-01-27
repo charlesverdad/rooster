@@ -206,7 +206,12 @@ async def delete_roster(
 
 # Assignments
 
-@router.post("/assignments", response_model=AssignmentResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/assignments",
+    response_model=AssignmentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_assignment(
     data: AssignmentCreate,
     current_user: CurrentUser,
@@ -382,7 +387,9 @@ async def update_assignment(
                 created_at=updated.created_at,
             )
 
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No update provided")
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="No update provided"
+    )
 
 
 @router.delete("/assignments/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -426,6 +433,7 @@ async def delete_assignment(
 
 
 # Roster Events
+
 
 @router.get("/{roster_id}/events", response_model=list[RosterEventResponse])
 async def list_roster_events(
@@ -477,10 +485,9 @@ async def list_roster_events(
             roster_name=roster.name,
             team_id=roster.team_id,
             slots_needed=roster.slots_needed,
-            filled_slots=len([
-                a for a in e.event_assignments
-                if a.status.value == "confirmed"
-            ]),
+            filled_slots=len(
+                [a for a in e.event_assignments if a.status.value == "confirmed"]
+            ),
             assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
@@ -531,10 +538,9 @@ async def list_team_events(
             roster_name=e.roster.name if e.roster else None,
             team_id=team_id,
             slots_needed=e.roster.slots_needed if e.roster else None,
-            filled_slots=len([
-                a for a in e.event_assignments
-                if a.status.value == "confirmed"
-            ]),
+            filled_slots=len(
+                [a for a in e.event_assignments if a.status.value == "confirmed"]
+            ),
             assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
@@ -579,10 +585,9 @@ async def list_unfilled_events(
             roster_name=e.roster.name if e.roster else None,
             team_id=team_id,
             slots_needed=e.roster.slots_needed if e.roster else None,
-            filled_slots=len([
-                a for a in e.event_assignments
-                if a.status.value == "confirmed"
-            ]),
+            filled_slots=len(
+                [a for a in e.event_assignments if a.status.value == "confirmed"]
+            ),
             assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
@@ -633,10 +638,9 @@ async def get_roster_event(
         roster_name=roster.name,
         team_id=roster.team_id,
         slots_needed=roster.slots_needed,
-        filled_slots=len([
-            a for a in event.event_assignments
-            if a.status.value == "confirmed"
-        ]),
+        filled_slots=len(
+            [a for a in event.event_assignments if a.status.value == "confirmed"]
+        ),
         assignments=_build_assignment_summaries(event),
         created_at=event.created_at,
     )
@@ -674,9 +678,7 @@ async def update_roster_event(
             detail="Not authorized to update this event",
         )
 
-    updated = await roster_service.update_event(
-        event_id, data.notes, data.is_cancelled
-    )
+    updated = await roster_service.update_event(event_id, data.notes, data.is_cancelled)
     if not updated:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -692,10 +694,9 @@ async def update_roster_event(
         roster_name=roster.name,
         team_id=roster.team_id,
         slots_needed=roster.slots_needed,
-        filled_slots=len([
-            a for a in updated.event_assignments
-            if a.status.value == "confirmed"
-        ]),
+        filled_slots=len(
+            [a for a in updated.event_assignments if a.status.value == "confirmed"]
+        ),
         assignments=_build_assignment_summaries(updated),
         created_at=updated.created_at,
     )
@@ -753,7 +754,10 @@ async def generate_more_events(
 
 # Event Assignments
 
-@router.get("/events/{event_id}/assignments", response_model=list[EventAssignmentResponse])
+
+@router.get(
+    "/events/{event_id}/assignments", response_model=list[EventAssignmentResponse]
+)
 async def list_event_assignments(
     event_id: uuid.UUID,
     current_user: CurrentUser,
@@ -787,7 +791,9 @@ async def list_event_assignments(
             detail="Not a member of this organisation",
         )
 
-    assignment_data = await roster_service.get_event_assignment_with_invite_status(event_id)
+    assignment_data = await roster_service.get_event_assignment_with_invite_status(
+        event_id
+    )
 
     return [
         EventAssignmentResponse(
@@ -805,7 +811,11 @@ async def list_event_assignments(
     ]
 
 
-@router.post("/events/{event_id}/assignments", response_model=EventAssignmentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/events/{event_id}/assignments",
+    response_model=EventAssignmentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_event_assignment(
     event_id: uuid.UUID,
     data: EventAssignmentCreate,
@@ -852,7 +862,9 @@ async def create_event_assignment(
             detail="User is not a member of this team",
         )
 
-    initial_status = AssignmentStatus.CONFIRMED if is_self_assign else AssignmentStatus.PENDING
+    initial_status = (
+        AssignmentStatus.CONFIRMED if is_self_assign else AssignmentStatus.PENDING
+    )
     assignment = await roster_service.create_event_assignment(
         event_id, data.user_id, status=initial_status
     )
@@ -881,7 +893,10 @@ async def create_event_assignment(
     )
 
 
-@router.get("/event-assignments/{assignment_id}/detail", response_model=EventAssignmentDetailResponse)
+@router.get(
+    "/event-assignments/{assignment_id}/detail",
+    response_model=EventAssignmentDetailResponse,
+)
 async def get_event_assignment_detail(
     assignment_id: uuid.UUID,
     current_user: CurrentUser,
@@ -985,7 +1000,9 @@ async def list_my_event_assignments(
     ]
 
 
-@router.patch("/event-assignments/{assignment_id}", response_model=EventAssignmentResponse)
+@router.patch(
+    "/event-assignments/{assignment_id}", response_model=EventAssignmentResponse
+)
 async def update_event_assignment(
     assignment_id: uuid.UUID,
     data: EventAssignmentUpdate,
@@ -1050,7 +1067,9 @@ async def update_event_assignment(
     )
 
 
-@router.delete("/event-assignments/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/event-assignments/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_event_assignment(
     assignment_id: uuid.UUID,
     current_user: CurrentUser,

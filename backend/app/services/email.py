@@ -57,7 +57,9 @@ class EmailService:
         try:
             message = MIMEMultipart("alternative")
             message["Subject"] = subject
-            message["From"] = f"{self.settings.smtp_from_name} <{self.settings.smtp_from_email}>"
+            message["From"] = (
+                f"{self.settings.smtp_from_name} <{self.settings.smtp_from_email}>"
+            )
             message["To"] = to_email
 
             # Add plain text version
@@ -72,7 +74,9 @@ class EmailService:
             # Send the email
             if self.settings.smtp_use_tls:
                 context = ssl.create_default_context()
-                with smtplib.SMTP(self.settings.smtp_host, self.settings.smtp_port) as server:
+                with smtplib.SMTP(
+                    self.settings.smtp_host, self.settings.smtp_port
+                ) as server:
                     server.starttls(context=context)
                     server.login(self.settings.smtp_user, self.settings.smtp_password)
                     server.sendmail(
@@ -81,7 +85,9 @@ class EmailService:
                         message.as_string(),
                     )
             else:
-                with smtplib.SMTP(self.settings.smtp_host, self.settings.smtp_port) as server:
+                with smtplib.SMTP(
+                    self.settings.smtp_host, self.settings.smtp_port
+                ) as server:
                     server.login(self.settings.smtp_user, self.settings.smtp_password)
                     server.sendmail(
                         self.settings.smtp_from_email,

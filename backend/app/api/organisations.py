@@ -16,7 +16,9 @@ from app.services.organisation import OrganisationService
 router = APIRouter(prefix="/organisations", tags=["organisations"])
 
 
-@router.post("", response_model=OrganisationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=OrganisationResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_organisation(
     data: OrganisationCreate,
     current_user: CurrentUser,
@@ -149,7 +151,11 @@ async def list_members(
     ]
 
 
-@router.post("/{org_id}/members", response_model=OrganisationMemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{org_id}/members",
+    response_model=OrganisationMemberResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def add_member(
     org_id: uuid.UUID,
     data: AddMemberRequest,

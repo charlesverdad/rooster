@@ -5,6 +5,7 @@ Revises: d79c335d1532
 Create Date: 2026-01-21 14:30:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'a1b2c3d4e5f6'
-down_revision: Union[str, None] = 'd79c335d1532'
+revision: str = "a1b2c3d4e5f6"
+down_revision: Union[str, None] = "d79c335d1532"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -32,13 +33,8 @@ ALL_PERMISSIONS = [
 def upgrade() -> None:
     # Add permissions column with empty JSON array default
     op.add_column(
-        'team_members',
-        sa.Column(
-            'permissions',
-            sa.JSON(),
-            nullable=False,
-            server_default='[]'
-        )
+        "team_members",
+        sa.Column("permissions", sa.JSON(), nullable=False, server_default="[]"),
     )
 
     # Migrate existing data: team leads get all permissions, members get none
@@ -55,4 +51,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_column('team_members', 'permissions')
+    op.drop_column("team_members", "permissions")

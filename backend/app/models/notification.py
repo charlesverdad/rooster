@@ -30,11 +30,15 @@ class Notification(Base, UUIDMixin, TimestampMixin):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    type: Mapped[NotificationType] = mapped_column(Enum(NotificationType), nullable=False)
+    type: Mapped[NotificationType] = mapped_column(
+        Enum(NotificationType), nullable=False
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     reference_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="notifications")

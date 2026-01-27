@@ -26,6 +26,5 @@ async def test_send_invite_email_logs_in_debug(caplog):
     assert result is False
     assert (
         "Would've sent email to recipient@example.com with invite link "
-        f"{expected_link} (email disabled)"
-        in caplog.text
+        f"{expected_link} (email disabled)" in caplog.text
     )

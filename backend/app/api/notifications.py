@@ -31,7 +31,7 @@ async def mark_as_read(
 ) -> NotificationResponse:
     """Mark a notification as read. User can only mark their own."""
     service = NotificationService(db)
-    
+
     # First check if the notification belongs to the user
     notifications = await service.get_user_notifications(current_user.id)
     if not any(n.id == notification_id for n in notifications):
@@ -39,14 +39,14 @@ async def mark_as_read(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Notification not found or not authorized",
         )
-    
+
     notification = await service.mark_as_read(notification_id)
     if not notification:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Notification not found",
         )
-    
+
     return NotificationResponse.model_validate(notification)
 
 
@@ -69,7 +69,7 @@ async def delete_notification(
 ) -> None:
     """Delete a notification. User can only delete their own."""
     service = NotificationService(db)
-    
+
     # First check if the notification belongs to the user
     notifications = await service.get_user_notifications(current_user.id)
     if not any(n.id == notification_id for n in notifications):
@@ -77,5 +77,5 @@ async def delete_notification(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Notification not found or not authorized",
         )
-    
+
     await service.delete_notification(notification_id)

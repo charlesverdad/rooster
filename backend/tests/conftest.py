@@ -19,7 +19,11 @@ engine = create_async_engine(
     poolclass=StaticPool,
 )
 TestingSessionLocal = async_sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession, expire_on_commit=False
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
 )
 
 
@@ -60,7 +64,9 @@ async def test_client(setup_db) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         yield client
 
     app.dependency_overrides.clear()

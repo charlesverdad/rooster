@@ -1,7 +1,7 @@
 """
 Integration tests for roster and assignment functionality.
 """
-import uuid
+
 from datetime import date, timedelta
 
 import pytest
@@ -10,31 +10,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import TeamPermission
 from app.models.organisation import Organisation, OrganisationMember, OrganisationRole
-from app.core.security import create_access_token, get_password_hash
-from app.models.roster import Assignment, AssignmentMode, RecurrencePattern, Roster, RosterEvent
+from app.core.security import get_password_hash
+from app.models.roster import (
+    Assignment,
+    AssignmentMode,
+    RecurrencePattern,
+    Roster,
+    RosterEvent,
+)
 from app.models.team import Team, TeamMember, TeamRole
 from app.models.user import User
 
 
 @pytest.mark.asyncio
-async def test_create_roster(client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict):
+async def test_create_roster(
+    client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict
+):
     """Test creating a roster."""
     # Create org, team
     org = Organisation(name="Test Church")
     db.add(org)
     await db.flush()
-    
+
     org_member = OrganisationMember(
         user_id=test_user.id,
         organisation_id=org.id,
         role=OrganisationRole.ADMIN,
     )
     db.add(org_member)
-    
+
     team = Team(name="Media Team", organisation_id=org.id)
     db.add(team)
     await db.flush()
-    
+
     team_member = TeamMember(
         user_id=test_user.id,
         team_id=team.id,
@@ -68,24 +76,26 @@ async def test_create_roster(client: AsyncClient, db: AsyncSession, test_user: U
 
 
 @pytest.mark.asyncio
-async def test_create_assignment(client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict):
+async def test_create_assignment(
+    client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict
+):
     """Test creating an assignment."""
     # Setup
     org = Organisation(name="Test Church")
     db.add(org)
     await db.flush()
-    
+
     org_member = OrganisationMember(
         user_id=test_user.id,
         organisation_id=org.id,
         role=OrganisationRole.ADMIN,
     )
     db.add(org_member)
-    
+
     team = Team(name="Media Team", organisation_id=org.id)
     db.add(team)
     await db.flush()
-    
+
     team_member = TeamMember(
         user_id=test_user.id,
         team_id=team.id,
@@ -117,7 +127,7 @@ async def test_create_assignment(client: AsyncClient, db: AsyncSession, test_use
         },
         headers=auth_headers,
     )
-    
+
     assert response.status_code == 201
     data = response.json()
     assert data["roster_id"] == str(roster.id)
@@ -126,17 +136,19 @@ async def test_create_assignment(client: AsyncClient, db: AsyncSession, test_use
 
 
 @pytest.mark.asyncio
-async def test_list_my_assignments(client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict):
+async def test_list_my_assignments(
+    client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict
+):
     """Test listing user's assignments."""
     # Setup
     org = Organisation(name="Test Church")
     db.add(org)
     await db.flush()
-    
+
     team = Team(name="Media Team", organisation_id=org.id)
     db.add(team)
     await db.flush()
-    
+
     roster = Roster(
         name="Sunday Service",
         team_id=team.id,
@@ -163,13 +175,13 @@ async def test_list_my_assignments(client: AsyncClient, db: AsyncSession, test_u
     db.add(assignment1)
     db.add(assignment2)
     await db.commit()
-    
+
     # List assignments
     response = await client.get(
         "/api/rosters/assignments/my",
         headers=auth_headers,
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
@@ -177,7 +189,9 @@ async def test_list_my_assignments(client: AsyncClient, db: AsyncSession, test_u
 
 
 @pytest.mark.asyncio
-async def test_member_self_assign_to_event(client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict):
+async def test_member_self_assign_to_event(
+    client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict
+):
     """Test that a regular team member can self-assign to a roster event."""
     # Create a second user who is the team lead
     lead_user = User(
@@ -263,7 +277,9 @@ async def test_member_self_assign_to_event(client: AsyncClient, db: AsyncSession
 
 
 @pytest.mark.asyncio
-async def test_member_cannot_assign_other_user(client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict):
+async def test_member_cannot_assign_other_user(
+    client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict
+):
     """Test that a regular team member cannot assign another user to an event."""
     # Create another user
     other_user = User(
@@ -346,7 +362,9 @@ async def test_member_cannot_assign_other_user(client: AsyncClient, db: AsyncSes
 
 
 @pytest.mark.asyncio
-async def test_event_response_includes_assignments(client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict):
+async def test_event_response_includes_assignments(
+    client: AsyncClient, db: AsyncSession, test_user: User, auth_headers: dict
+):
     """Test that event list responses include assignment summaries."""
     # Setup org, team, roster, event
     org = Organisation(name="Test Church")
@@ -417,4 +435,6 @@ async def test_event_response_includes_assignments(client: AsyncClient, db: Asyn
     assert "assignments" in event_data
     assert len(event_data["assignments"]) == 1
     assert event_data["assignments"][0]["user_name"] == "Test User"
-    assert event_data["assignments"][0]["status"] == "confirmed"  # Self-assign is auto-confirmed
+    assert (
+        event_data["assignments"][0]["status"] == "confirmed"
+    )  # Self-assign is auto-confirmed

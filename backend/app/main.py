@@ -42,4 +42,3 @@ app.include_router(invites_router, prefix="/api")
 async def health_check() -> dict[str, str]:
     """Health check endpoint."""
     return {"status": "healthy"}
-

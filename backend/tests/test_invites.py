@@ -69,8 +69,7 @@ async def test_accept_invite_creates_team_notification(
     assert notifications.status_code == 200
     data = notifications.json()
     assert any(
-        n["type"] == "team_joined" and n["reference_id"] == str(team.id)
-        for n in data
+        n["type"] == "team_joined" and n["reference_id"] == str(team.id) for n in data
     )
 
 
@@ -335,7 +334,14 @@ async def test_send_invite_as_team_lead(
         user_id=lead_user.id,
         team_id=team.id,
         role=TeamRole.LEAD,
-        permissions=["manage_team", "manage_members", "manage_rosters", "assign_volunteers", "send_invites", "view_responses"],
+        permissions=[
+            "manage_team",
+            "manage_members",
+            "manage_rosters",
+            "assign_volunteers",
+            "send_invites",
+            "view_responses",
+        ],
     )
     db_session.add(team_member)
 
@@ -381,6 +387,7 @@ async def test_accept_invite_creates_org_membership(
     # Verify placeholder has no org membership
     from app.models.organisation import OrganisationMember
     from sqlalchemy import select
+
     result = await db_session.execute(
         select(OrganisationMember).where(
             OrganisationMember.user_id == user.id,

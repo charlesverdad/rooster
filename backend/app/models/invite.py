@@ -45,11 +45,17 @@ class Invite(Base, UUIDMixin, TimestampMixin):
 
     # Unique token for the invite link
     token: Mapped[str] = mapped_column(
-        String(64), unique=True, index=True, nullable=False, default=generate_invite_token
+        String(64),
+        unique=True,
+        index=True,
+        nullable=False,
+        default=generate_invite_token,
     )
 
     # When the invite was accepted (null if not yet accepted)
-    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     team: Mapped["Team"] = relationship("Team", back_populates="invites")
