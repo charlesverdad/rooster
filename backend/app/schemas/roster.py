@@ -61,6 +61,17 @@ class RosterResponse(BaseModel):
 
 
 # RosterEvent schemas
+class EventAssignmentSummary(BaseModel):
+    """Summary of an assignment for display in event lists."""
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    user_name: str | None = None
+    status: AssignmentStatus
+    is_placeholder: bool = False
+    is_invited: bool = False
+
+
 class RosterEventResponse(BaseModel):
     """Schema for roster event response."""
 
@@ -73,6 +84,7 @@ class RosterEventResponse(BaseModel):
     team_id: Optional[uuid.UUID] = None
     slots_needed: Optional[int] = None
     filled_slots: int = 0
+    assignments: list[EventAssignmentSummary] = []
     created_at: datetime
 
     model_config = {"from_attributes": True}

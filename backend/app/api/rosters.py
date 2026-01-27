@@ -4,6 +4,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DbSession
+from app.models.roster import AssignmentStatus
 from app.schemas.roster import (
     AssignmentCreate,
     AssignmentResponse,
@@ -12,6 +13,7 @@ from app.schemas.roster import (
     EventAssignmentCreate,
     EventAssignmentDetailResponse,
     EventAssignmentResponse,
+    EventAssignmentSummary,
     EventAssignmentUpdate,
     RosterCreate,
     RosterEventResponse,
@@ -25,6 +27,20 @@ from app.services.roster import RosterService
 from app.services.team import TeamService
 
 router = APIRouter(prefix="/rosters", tags=["rosters"])
+
+
+def _build_assignment_summaries(event) -> list[EventAssignmentSummary]:
+    """Build assignment summary list from an event's assignments."""
+    return [
+        EventAssignmentSummary(
+            id=a.id,
+            user_id=a.user_id,
+            user_name=a.user.name if a.user else None,
+            status=a.status,
+            is_placeholder=a.user.is_placeholder if a.user else False,
+        )
+        for a in event.event_assignments
+    ]
 
 
 @router.post("", response_model=RosterResponse, status_code=status.HTTP_201_CREATED)
@@ -465,6 +481,7 @@ async def list_roster_events(
                 a for a in e.event_assignments
                 if a.status.value == "confirmed"
             ]),
+            assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
         for e in events
@@ -518,6 +535,7 @@ async def list_team_events(
                 a for a in e.event_assignments
                 if a.status.value == "confirmed"
             ]),
+            assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
         for e in events
@@ -565,6 +583,7 @@ async def list_unfilled_events(
                 a for a in e.event_assignments
                 if a.status.value == "confirmed"
             ]),
+            assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
         for e in events
@@ -618,6 +637,7 @@ async def get_roster_event(
             a for a in event.event_assignments
             if a.status.value == "confirmed"
         ]),
+        assignments=_build_assignment_summaries(event),
         created_at=event.created_at,
     )
 
@@ -676,6 +696,7 @@ async def update_roster_event(
             a for a in updated.event_assignments
             if a.status.value == "confirmed"
         ]),
+        assignments=_build_assignment_summaries(updated),
         created_at=updated.created_at,
     )
 
@@ -810,21 +831,31 @@ async def create_event_assignment(
             detail="Team not found",
         )
 
-    if not await team_service.can_manage_team(current_user.id, team):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to create assignments for this event",
-        )
+    is_self_assign = data.user_id == current_user.id
+    if not is_self_assign:
+        if not await team_service.can_manage_team(current_user.id, team):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to create assignments for this event",
+            )
 
-    # Verify user is a team member
+    # Verify the assigned user is a team member
     membership = await team_service.get_team_membership(data.user_id, team.id)
     if not membership:
+        if is_self_assign:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not a member of this team",
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User is not a member of this team",
         )
 
-    assignment = await roster_service.create_event_assignment(event_id, data.user_id)
+    initial_status = AssignmentStatus.CONFIRMED if is_self_assign else AssignmentStatus.PENDING
+    assignment = await roster_service.create_event_assignment(
+        event_id, data.user_id, status=initial_status
+    )
     if not assignment:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

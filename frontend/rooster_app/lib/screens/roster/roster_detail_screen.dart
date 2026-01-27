@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../models/roster_event.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/roster_provider.dart';
+import '../../providers/team_provider.dart';
 import '../roster/assign_volunteers_sheet.dart';
 import 'event_detail_screen.dart';
 
@@ -145,7 +148,10 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
           const SizedBox(height: 12),
 
           // Events List
-          ...events.map((event) => _buildEventCard(context, event, roster.teamId)),
+          ...events.map((event) => _buildEventCard(context, event, roster.teamId,
+              canManage: Provider.of<TeamProvider>(context, listen: false).currentTeam?.canAssignVolunteers ?? false,
+              currentUserId: Provider.of<AuthProvider>(context, listen: false).user?.id,
+          )),
 
           const SizedBox(height: 16),
 
@@ -177,22 +183,39 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
     );
   }
 
-  Widget _buildEventCard(BuildContext context, event, String teamId) {
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'confirmed':
+        return Colors.green;
+      case 'declined':
+        return Colors.red;
+      default:
+        return Colors.orange; // pending
+    }
+  }
+
+  Widget _buildEventCard(BuildContext context, RosterEvent event, String teamId, {
+    bool canManage = false,
+    String? currentUserId,
+  }) {
     final dateFormat = DateFormat('EEE, MMM d, y');
     final isFilled = event.isFilled;
     final isPartial = event.isPartial;
+    final assignments = event.assignments ?? [];
+    final isAlreadyAssigned = currentUserId != null &&
+        assignments.any((a) => a.userId == currentUserId);
 
-    Color statusColor;
+    Color slotStatusColor;
     IconData statusIcon;
 
     if (isFilled) {
-      statusColor = Colors.green;
+      slotStatusColor = Colors.green;
       statusIcon = Icons.check_circle;
     } else if (isPartial) {
-      statusColor = Colors.orange;
+      slotStatusColor = Colors.orange;
       statusIcon = Icons.warning;
     } else {
-      statusColor = Colors.red;
+      slotStatusColor = Colors.red;
       statusIcon = Icons.error;
     }
 
@@ -233,12 +256,12 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                   ),
                   Row(
                     children: [
-                      Icon(statusIcon, color: statusColor, size: 20),
+                      Icon(statusIcon, color: slotStatusColor, size: 20),
                       const SizedBox(width: 4),
                       Text(
                         '${event.filledSlots}/${event.slotsNeeded}',
                         style: TextStyle(
-                          color: statusColor,
+                          color: slotStatusColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -246,50 +269,91 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                   ),
                 ],
               ),
-              if (event.assignedUserNames.isNotEmpty) ...[
+              if (assignments.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: event.assignedUserNames
-                      .map<Widget>((name) => Chip(
-                            label: Text(name),
+                  children: assignments
+                      .map<Widget>((a) => Chip(
+                            avatar: CircleAvatar(
+                              backgroundColor: _statusColor(a.status),
+                              radius: 5,
+                            ),
+                            label: Text(a.userName),
                             labelStyle: const TextStyle(fontSize: 12),
+                            backgroundColor: _statusColor(a.status).withValues(alpha: 0.1),
                           ))
                       .toList(),
                 ),
               ],
-              if (!isFilled) ...[
+              if (!isFilled && !event.isCancelled) ...[
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (context) => AssignVolunteersSheet(
-                          teamId: teamId,
-                          eventDate: event.date,
-                          onAssign: (userId) async {
-                            final rosterProvider =
-                                Provider.of<RosterProvider>(context,
-                                    listen: false);
-                            await rosterProvider.assignVolunteerToEvent(
-                              event.id,
-                              userId,
-                            );
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                            }
-                          },
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('Assign Volunteer'),
+                if (canManage)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (context) => AssignVolunteersSheet(
+                            teamId: teamId,
+                            eventDate: event.date,
+                            onAssign: (userId) async {
+                              final rosterProvider =
+                                  Provider.of<RosterProvider>(context,
+                                      listen: false);
+                              await rosterProvider.assignVolunteerToEvent(
+                                event.id,
+                                userId,
+                              );
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Assign Volunteer'),
+                    ),
+                  )
+                else if (isAlreadyAssigned)
+                  const SizedBox(
+                    width: double.infinity,
+                    child: Chip(
+                      avatar: Icon(Icons.check, size: 16, color: Colors.green),
+                      label: Text('Signed Up'),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        if (currentUserId == null) return;
+                        final rosterProvider =
+                            Provider.of<RosterProvider>(context, listen: false);
+                        final success = await rosterProvider.assignVolunteerToEvent(
+                          event.id,
+                          currentUserId,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success
+                                  ? 'You have volunteered for this event'
+                                  : 'Failed to volunteer'),
+                              backgroundColor: success ? null : Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.volunteer_activism),
+                      label: const Text('Volunteer'),
+                    ),
                   ),
-                ),
               ],
             ],
           ),

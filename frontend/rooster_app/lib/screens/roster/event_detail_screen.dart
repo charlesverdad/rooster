@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/roster_event.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/roster_provider.dart';
 import '../../providers/team_provider.dart';
 import 'assign_volunteers_sheet.dart';
@@ -60,8 +61,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final teamProvider = Provider.of<TeamProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final team = teamProvider.currentTeam;
     final canManage = team?.canAssignVolunteers ?? false;
+    final currentUserId = authProvider.user?.id;
 
     if (_isLoading) {
       return Scaffold(
@@ -255,13 +258,50 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               ...assignments
                   .map((a) => _buildAssignmentCard(context, a, canManage)),
 
-            if (canManage && !event.isCancelled && !event.isFilled) ...[
+            if (!event.isCancelled && !event.isFilled) ...[
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => _showAssignSheet(context, event),
-                icon: const Icon(Icons.person_add),
-                label: const Text('Assign Volunteer'),
-              ),
+              if (canManage)
+                OutlinedButton.icon(
+                  onPressed: () => _showAssignSheet(context, event),
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Assign Volunteer'),
+                )
+              else if (currentUserId != null &&
+                  assignments.any((a) => a.userId == currentUserId))
+                const Chip(
+                  avatar: Icon(Icons.check, size: 16, color: Colors.green),
+                  label: Text('Signed Up'),
+                )
+              else
+                FilledButton.icon(
+                  onPressed: () async {
+                    if (currentUserId == null) return;
+                    final rosterProvider =
+                        Provider.of<RosterProvider>(context, listen: false);
+                    final success = await rosterProvider.assignVolunteerToEvent(
+                      event.id,
+                      currentUserId,
+                    );
+                    if (mounted) {
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('You have volunteered for this event')),
+                        );
+                        await _loadEvent();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Failed to volunteer'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.volunteer_activism),
+                  label: const Text('Volunteer'),
+                ),
             ],
           ],
         ),
