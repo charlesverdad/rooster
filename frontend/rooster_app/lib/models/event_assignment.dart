@@ -50,8 +50,9 @@ class EventAssignment {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      eventDate:
-          json['event_date'] != null ? DateTime.parse(json['event_date']) : null,
+      eventDate: json['event_date'] != null
+          ? DateTime.parse(json['event_date'])
+          : null,
       rosterName: json['roster_name'],
       teamName: json['team_name'],
     );
@@ -200,12 +201,7 @@ class TeamLead {
   final String? email;
   final String? phone;
 
-  TeamLead({
-    required this.userId,
-    required this.name,
-    this.email,
-    this.phone,
-  });
+  TeamLead({required this.userId, required this.name, this.email, this.phone});
 
   factory TeamLead.fromJson(Map<String, dynamic> json) {
     return TeamLead(

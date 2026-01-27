@@ -39,8 +39,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     });
 
     try {
-      final rosterProvider =
-          Provider.of<RosterProvider>(context, listen: false);
+      final rosterProvider = Provider.of<RosterProvider>(
+        context,
+        listen: false,
+      );
       final event = await rosterProvider.fetchEvent(widget.eventId);
       if (mounted) {
         setState(() {
@@ -82,13 +84,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             children: [
               Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
               const SizedBox(height: 16),
-              Text(_error ?? 'Event not found',
-                  style: TextStyle(color: Colors.grey.shade600)),
-              const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: _loadEvent,
-                child: const Text('Retry'),
+              Text(
+                _error ?? 'Event not found',
+                style: TextStyle(color: Colors.grey.shade600),
               ),
+              const SizedBox(height: 16),
+              OutlinedButton(onPressed: _loadEvent, child: const Text('Retry')),
             ],
           ),
         ),
@@ -123,8 +124,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       Text(
                         event.isCancelled ? 'Restore Event' : 'Cancel Event',
                         style: TextStyle(
-                          color:
-                              event.isCancelled ? Colors.green : Colors.red,
+                          color: event.isCancelled ? Colors.green : Colors.red,
                         ),
                       ),
                     ],
@@ -148,8 +148,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.calendar_today,
-                            color: Colors.deepPurple.shade400),
+                        Icon(
+                          Icons.calendar_today,
+                          color: Colors.deepPurple.shade400,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           dateFormat.format(event.date),
@@ -164,8 +166,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     if (event.rosterName != null) ...[
                       Row(
                         children: [
-                          Icon(Icons.event_note,
-                              size: 20, color: Colors.grey.shade600),
+                          Icon(
+                            Icons.event_note,
+                            size: 20,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 12),
                           Text('Roster: ${event.rosterName}'),
                         ],
@@ -174,8 +179,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     ],
                     Row(
                       children: [
-                        Icon(Icons.people,
-                            size: 20, color: Colors.grey.shade600),
+                        Icon(
+                          Icons.people,
+                          size: 20,
+                          color: Colors.grey.shade600,
+                        ),
                         const SizedBox(width: 12),
                         _buildSlotStatus(event),
                       ],
@@ -184,7 +192,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.shade50,
                           borderRadius: BorderRadius.circular(8),
@@ -192,8 +202,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.cancel,
-                                size: 16, color: Colors.red.shade700),
+                            Icon(
+                              Icons.cancel,
+                              size: 16,
+                              color: Colors.red.shade700,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'This event has been cancelled',
@@ -211,8 +224,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.notes,
-                              size: 20, color: Colors.grey.shade600),
+                          Icon(
+                            Icons.notes,
+                            size: 20,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(child: Text(event.notes!)),
                         ],
@@ -255,8 +271,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 ),
               )
             else
-              ...assignments
-                  .map((a) => _buildAssignmentCard(context, a, canManage)),
+              ...assignments.map(
+                (a) => _buildAssignmentCard(context, a, canManage),
+              ),
 
             if (!event.isCancelled && !event.isFilled) ...[
               const SizedBox(height: 16),
@@ -276,27 +293,29 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 FilledButton.icon(
                   onPressed: () async {
                     if (currentUserId == null) return;
-                    final rosterProvider =
-                        Provider.of<RosterProvider>(context, listen: false);
+                    final rosterProvider = Provider.of<RosterProvider>(
+                      context,
+                      listen: false,
+                    );
                     final success = await rosterProvider.assignVolunteerToEvent(
                       event.id,
                       currentUserId,
                     );
-                    if (mounted) {
-                      if (success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('You have volunteered for this event')),
-                        );
-                        await _loadEvent();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Failed to volunteer'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
+                    if (!context.mounted) return;
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('You have volunteered for this event'),
+                        ),
+                      );
+                      await _loadEvent();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to volunteer'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
                     }
                   },
                   icon: const Icon(Icons.volunteer_activism),
@@ -332,16 +351,16 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }
 
   Widget _buildAssignmentCard(
-      BuildContext context, EventAssignmentSummary assignment, bool canManage) {
+    BuildContext context,
+    EventAssignmentSummary assignment,
+    bool canManage,
+  ) {
     Color statusColor;
     IconData statusIcon;
 
@@ -367,14 +386,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               ? Colors.grey.shade400
               : Colors.deepPurple.shade300,
           child: assignment.isPlaceholder
-              ? Icon(Icons.person_outline,
-                  color: Colors.grey.shade100, size: 20)
+              ? Icon(
+                  Icons.person_outline,
+                  color: Colors.grey.shade100,
+                  size: 20,
+                )
               : Text(
                   assignment.userName.isNotEmpty
                       ? assignment.userName.substring(0, 1)
                       : '?',
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
         ),
         title: Row(
@@ -383,18 +407,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             if (assignment.isPlaceholder) ...[
               const SizedBox(width: 8),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   assignment.isInvited ? 'Invited' : 'Placeholder',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ),
             ],
@@ -417,10 +437,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         ),
         trailing: canManage
             ? IconButton(
-                icon:
-                    Icon(Icons.remove_circle_outline, color: Colors.red.shade300),
-                onPressed: () =>
-                    _showRemoveConfirmation(context, assignment),
+                icon: Icon(
+                  Icons.remove_circle_outline,
+                  color: Colors.red.shade300,
+                ),
+                onPressed: () => _showRemoveConfirmation(context, assignment),
               )
             : null,
       ),
@@ -435,8 +456,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         teamId: widget.teamId,
         eventDate: event.date,
         onAssign: (userId) async {
-          final rosterProvider =
-              Provider.of<RosterProvider>(context, listen: false);
+          final rosterProvider = Provider.of<RosterProvider>(
+            context,
+            listen: false,
+          );
           await rosterProvider.assignVolunteerToEvent(event.id, userId);
           await _loadEvent();
         },
@@ -445,41 +468,42 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 
   void _showRemoveConfirmation(
-      BuildContext context, EventAssignmentSummary assignment) {
+    BuildContext context,
+    EventAssignmentSummary assignment,
+  ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Remove Assignment'),
-        content: Text(
-            'Remove ${assignment.userName} from this event?'),
+        content: Text('Remove ${assignment.userName} from this event?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () async {
-              Navigator.of(context).pop();
-              final rosterProvider =
-                  Provider.of<RosterProvider>(context, listen: false);
-              final success =
-                  await rosterProvider.removeAssignment(assignment.id);
-              if (mounted) {
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content:
-                            Text('${assignment.userName} removed')),
-                  );
-                  await _loadEvent();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Failed to remove assignment'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+              Navigator.of(dialogContext).pop();
+              final rosterProvider = Provider.of<RosterProvider>(
+                context,
+                listen: false,
+              );
+              final success = await rosterProvider.removeAssignment(
+                assignment.id,
+              );
+              if (!context.mounted) return;
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${assignment.userName} removed')),
+                );
+                await _loadEvent();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to remove assignment'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -494,41 +518,46 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     final isCancelled = event.isCancelled;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(isCancelled ? 'Restore Event' : 'Cancel Event'),
-        content: Text(isCancelled
-            ? 'Restore this event? Volunteers will need to be reassigned.'
-            : 'Cancel this event? All assigned volunteers will be notified.'),
+        content: Text(
+          isCancelled
+              ? 'Restore this event? Volunteers will need to be reassigned.'
+              : 'Cancel this event? All assigned volunteers will be notified.',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('No'),
           ),
           FilledButton(
             onPressed: () async {
-              Navigator.of(context).pop();
-              final rosterProvider =
-                  Provider.of<RosterProvider>(context, listen: false);
+              Navigator.of(dialogContext).pop();
+              final rosterProvider = Provider.of<RosterProvider>(
+                context,
+                listen: false,
+              );
               final success = await rosterProvider.cancelEvent(
-                  event.id, !isCancelled);
-              if (mounted) {
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isCancelled
-                          ? 'Event restored'
-                          : 'Event cancelled'),
+                event.id,
+                !isCancelled,
+              );
+              if (!context.mounted) return;
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isCancelled ? 'Event restored' : 'Event cancelled',
                     ),
-                  );
-                  await _loadEvent();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Failed to update event'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                  ),
+                );
+                await _loadEvent();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to update event'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             style: isCancelled

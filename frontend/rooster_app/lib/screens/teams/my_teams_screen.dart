@@ -28,9 +28,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
     final teams = teamProvider.teams;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Teams'),
-      ),
+      appBar: AppBar(title: const Text('My Teams')),
       floatingActionButton: teams.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _showCreateTeamDialog,
@@ -41,29 +39,32 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
       body: teamProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : teamProvider.error != null && teamProvider.teams.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline,
-                          size: 48, color: Colors.grey.shade400),
-                      const SizedBox(height: 16),
-                      Text(
-                        teamProvider.error ?? 'Failed to load teams',
-                        style: TextStyle(color: Colors.grey.shade600),
-                      ),
-                      const SizedBox(height: 16),
-                      OutlinedButton(
-                        onPressed: () {
-                          teamProvider.clearError();
-                          teamProvider.fetchMyTeams();
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Colors.grey.shade400,
                   ),
-                )
-              : RefreshIndicator(
+                  const SizedBox(height: 16),
+                  Text(
+                    teamProvider.error ?? 'Failed to load teams',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: () {
+                      teamProvider.clearError();
+                      teamProvider.fetchMyTeams();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
               onRefresh: teamProvider.fetchMyTeams,
               child: ListView(
                 padding: const EdgeInsets.all(16),
@@ -99,19 +100,13 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
             const SizedBox(height: 16),
             const Text(
               'No teams yet',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Create a team to start rostering volunteers',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -208,10 +203,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
           children: [
             Text(
               'Paste your invite link or token below',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -256,9 +248,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
   void _navigateToInvite(String token) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AcceptInviteScreen(token: token),
-      ),
+      MaterialPageRoute(builder: (context) => AcceptInviteScreen(token: token)),
     );
   }
 
@@ -269,11 +259,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/team-detail',
-            arguments: team.id,
-          );
+          Navigator.pushNamed(context, '/team-detail', arguments: team.id);
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -321,23 +307,26 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.calendar_today,
-                      size: 16, color: Colors.grey.shade600),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Colors.grey.shade600,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     '${team.rosterCount} rosters',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                   const Spacer(),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color:
-                          isLead ? Colors.purple.shade50 : Colors.grey.shade100,
+                      color: isLead
+                          ? Colors.purple.shade50
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(

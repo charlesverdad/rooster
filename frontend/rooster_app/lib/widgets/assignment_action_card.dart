@@ -57,10 +57,7 @@ class AssignmentActionCard extends StatelessWidget {
               // Date
               Text(
                 _formatDate(assignment.eventDate),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 16),
 
@@ -104,8 +101,9 @@ class AssignmentActionCard extends StatelessWidget {
     } else if (assignmentDate == tomorrow) {
       return 'Tomorrow';
     } else {
-      final daysUntil =
-          assignmentDate.difference(DateTime(now.year, now.month, now.day)).inDays;
+      final daysUntil = assignmentDate
+          .difference(DateTime(now.year, now.month, now.day))
+          .inDays;
       if (daysUntil < 7) {
         return 'In $daysUntil days';
       } else {
@@ -116,8 +114,18 @@ class AssignmentActionCard extends StatelessWidget {
 
   String _formatMonthDay(DateTime date) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}';
   }

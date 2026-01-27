@@ -20,8 +20,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AssignmentProvider>(context, listen: false)
-          .fetchAssignmentDetail(widget.assignmentId);
+      Provider.of<AssignmentProvider>(
+        context,
+        listen: false,
+      ).fetchAssignmentDetail(widget.assignmentId);
     });
   }
 
@@ -42,27 +44,19 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     final isDeclined = detail.isDeclined;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Assignment'),
-      ),
+      appBar: AppBar(title: const Text('Assignment')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Roster name
           Text(
             detail.rosterName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
             detail.teamName,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
 
@@ -73,7 +67,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow(Icons.calendar_today, _formatDate(detail.eventDate)),
+                  _buildInfoRow(
+                    Icons.calendar_today,
+                    _formatDate(detail.eventDate),
+                  ),
                   if (detail.location != null) ...[
                     const SizedBox(height: 12),
                     _buildInfoRow(Icons.location_on, detail.location!),
@@ -88,10 +85,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           if (detail.notes != null && detail.notes!.isNotEmpty) ...[
             const Text(
               'Notes',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Card(
@@ -99,10 +93,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   detail.notes!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                 ),
               ),
             ),
@@ -113,19 +104,16 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           if (detail.coVolunteers.isNotEmpty) ...[
             const Text(
               'Also Serving',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
-                  children: detail.coVolunteers.map((volunteer) =>
-                    _buildCoVolunteerRow(volunteer)
-                  ).toList(),
+                  children: detail.coVolunteers
+                      .map((volunteer) => _buildCoVolunteerRow(volunteer))
+                      .toList(),
                 ),
               ),
             ),
@@ -136,10 +124,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           if (detail.teamLead != null) ...[
             const Text(
               'Team Lead',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Card(
@@ -153,7 +138,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                         detail.teamLead!.name.isNotEmpty
                             ? detail.teamLead!.name.substring(0, 1)
                             : '?',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -178,9 +166,11 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                         ],
                       ),
                     ),
-                    if (detail.teamLead!.email != null || detail.teamLead!.phone != null)
+                    if (detail.teamLead!.email != null ||
+                        detail.teamLead!.phone != null)
                       FilledButton.tonal(
-                        onPressed: () => _showContactSheet(context, detail.teamLead!),
+                        onPressed: () =>
+                            _showContactSheet(context, detail.teamLead!),
                         child: const Text('Contact'),
                       ),
                   ],
@@ -341,12 +331,24 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: isPlaceholder ? Colors.grey.shade400 : Colors.deepPurple.shade200,
+            backgroundColor: isPlaceholder
+                ? Colors.grey.shade400
+                : Colors.deepPurple.shade200,
             child: isPlaceholder
-                ? Icon(Icons.person_outline, color: Colors.grey.shade100, size: 18)
+                ? Icon(
+                    Icons.person_outline,
+                    color: Colors.grey.shade100,
+                    size: 18,
+                  )
                 : Text(
-                    volunteer.name.isNotEmpty ? volunteer.name.substring(0, 1) : '?',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    volunteer.name.isNotEmpty
+                        ? volunteer.name.substring(0, 1)
+                        : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
           ),
           const SizedBox(width: 12),
@@ -363,10 +365,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 ),
                 Text(
                   statusText,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: statusColor,
-                  ),
+                  style: TextStyle(fontSize: 13, color: statusColor),
                 ),
               ],
             ),
@@ -389,24 +388,44 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
       children: [
         Icon(icon, size: 20, color: Colors.grey.shade600),
         const SizedBox(width: 12),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 16),
-        ),
+        Text(text, style: const TextStyle(fontSize: 16)),
       ],
     );
   }
 
   String _formatDate(DateTime date) {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'];
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    const days = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
 
     return '${days[date.weekday % 7]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   Future<void> _handleAccept(BuildContext context, String assignmentId) async {
-    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
+    final assignmentProvider = Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    );
     final success = await assignmentProvider.confirmAssignment(assignmentId);
 
     if (success && context.mounted) {
@@ -430,7 +449,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     );
 
     if (confirmed == true && context.mounted) {
-      final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
+      final assignmentProvider = Provider.of<AssignmentProvider>(
+        context,
+        listen: false,
+      );
       final success = await assignmentProvider.declineAssignment(assignmentId);
 
       if (success && context.mounted) {
@@ -467,8 +489,14 @@ class ContactTeamLeadSheet extends StatelessWidget {
                 radius: 24,
                 backgroundColor: Colors.deepPurple.shade300,
                 child: Text(
-                  teamLead.name.isNotEmpty ? teamLead.name.substring(0, 1) : '?',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  teamLead.name.isNotEmpty
+                      ? teamLead.name.substring(0, 1)
+                      : '?',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -484,10 +512,7 @@ class ContactTeamLeadSheet extends StatelessWidget {
                   ),
                   Text(
                     'Team Lead',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -555,7 +580,8 @@ class DeclineConfirmationSheet extends StatefulWidget {
   const DeclineConfirmationSheet({super.key});
 
   @override
-  State<DeclineConfirmationSheet> createState() => _DeclineConfirmationSheetState();
+  State<DeclineConfirmationSheet> createState() =>
+      _DeclineConfirmationSheetState();
 }
 
 class _DeclineConfirmationSheetState extends State<DeclineConfirmationSheet> {
@@ -576,26 +602,17 @@ class _DeclineConfirmationSheetState extends State<DeclineConfirmationSheet> {
         children: [
           const Text(
             'Decline this assignment?',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
             'Your team lead will be notified.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
           const Text(
             'Reason (optional)',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           RadioListTile<String>(
@@ -641,9 +658,7 @@ class _DeclineConfirmationSheetState extends State<DeclineConfirmationSheet> {
               Expanded(
                 child: FilledButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.red,
-                  ),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
                   child: const Text('Confirm Decline'),
                 ),
               ),

@@ -33,9 +33,11 @@ class AssignmentService {
 
   /// Get detailed assignment info including co-volunteers and team lead
   static Future<EventAssignmentDetail> getAssignmentDetail(
-      String assignmentId) async {
-    final response =
-        await ApiClient.get('/rosters/event-assignments/$assignmentId/detail');
+    String assignmentId,
+  ) async {
+    final response = await ApiClient.get(
+      '/rosters/event-assignments/$assignmentId/detail',
+    );
 
     if (response.statusCode == 200) {
       return EventAssignmentDetail.fromJson(jsonDecode(response.body));
@@ -63,9 +65,11 @@ class AssignmentService {
 
   /// Get all assignments for a specific event
   static Future<List<EventAssignment>> getEventAssignments(
-      String eventId) async {
-    final response =
-        await ApiClient.get('/rosters/events/$eventId/assignments');
+    String eventId,
+  ) async {
+    final response = await ApiClient.get(
+      '/rosters/events/$eventId/assignments',
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -124,8 +128,9 @@ class AssignmentService {
 
   /// Remove an assignment
   static Future<void> deleteAssignment(String assignmentId) async {
-    final response =
-        await ApiClient.delete('/rosters/event-assignments/$assignmentId');
+    final response = await ApiClient.delete(
+      '/rosters/event-assignments/$assignmentId',
+    );
 
     if (response.statusCode != 204) {
       throw ApiException(response.statusCode, response.body);

@@ -39,9 +39,7 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
     final isInvited = widget.member['isInvited'] as bool? ?? false;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Send Invite'),
-      ),
+      appBar: AppBar(title: const Text('Send Invite')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -49,20 +47,14 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
           children: [
             Text(
               'Invite $memberName',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               isInvited
                   ? 'An invite was already sent. You can resend it if needed.'
                   : 'They\'ll receive an email with a link to create their account and see their assignments.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 32),
             TextField(
@@ -78,10 +70,7 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
             ],
             const Spacer(),
             SizedBox(
@@ -103,24 +92,24 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
                           _errorMessage = null;
                         });
 
-                        final success =
-                            await teamProvider.sendInvite(memberId, email);
+                        final success = await teamProvider.sendInvite(
+                          memberId,
+                          email,
+                        );
 
-                        if (!mounted) return;
+                        if (!context.mounted) return;
 
                         setState(() {
                           _isSending = false;
                           _errorMessage = success
                               ? null
                               : teamProvider.error ??
-                                  'Failed to send invite. Please try again.';
+                                    'Failed to send invite. Please try again.';
                         });
 
                         if (success) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Invite sent to $email'),
-                            ),
+                            SnackBar(content: Text('Invite sent to $email')),
                           );
                           Navigator.of(context).pop();
                         }

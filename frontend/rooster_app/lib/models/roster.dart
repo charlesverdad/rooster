@@ -59,8 +59,9 @@ class Roster {
       location: json['location'],
       notes: json['notes'],
       startDate: DateTime.parse(json['start_date']),
-      endDate:
-          json['end_date'] != null ? DateTime.parse(json['end_date']) : null,
+      endDate: json['end_date'] != null
+          ? DateTime.parse(json['end_date'])
+          : null,
       endAfterOccurrences: json['end_after_occurrences'],
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),

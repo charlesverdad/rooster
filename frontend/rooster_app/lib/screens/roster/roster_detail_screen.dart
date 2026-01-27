@@ -22,8 +22,10 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<RosterProvider>(context, listen: false)
-          .fetchRosterDetail(widget.rosterId);
+      Provider.of<RosterProvider>(
+        context,
+        listen: false,
+      ).fetchRosterDetail(widget.rosterId);
     });
   }
 
@@ -148,10 +150,23 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
           const SizedBox(height: 12),
 
           // Events List
-          ...events.map((event) => _buildEventCard(context, event, roster.teamId,
-              canManage: Provider.of<TeamProvider>(context, listen: false).currentTeam?.canAssignVolunteers ?? false,
-              currentUserId: Provider.of<AuthProvider>(context, listen: false).user?.id,
-          )),
+          ...events.map(
+            (event) => _buildEventCard(
+              context,
+              event,
+              roster.teamId,
+              canManage:
+                  Provider.of<TeamProvider>(
+                    context,
+                    listen: false,
+                  ).currentTeam?.canAssignVolunteers ??
+                  false,
+              currentUserId: Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              ).user?.id,
+            ),
+          ),
 
           const SizedBox(height: 16),
 
@@ -194,7 +209,10 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
     }
   }
 
-  Widget _buildEventCard(BuildContext context, RosterEvent event, String teamId, {
+  Widget _buildEventCard(
+    BuildContext context,
+    RosterEvent event,
+    String teamId, {
     bool canManage = false,
     String? currentUserId,
   }) {
@@ -202,7 +220,8 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
     final isFilled = event.isFilled;
     final isPartial = event.isPartial;
     final assignments = event.assignments ?? [];
-    final isAlreadyAssigned = currentUserId != null &&
+    final isAlreadyAssigned =
+        currentUserId != null &&
         assignments.any((a) => a.userId == currentUserId);
 
     Color slotStatusColor;
@@ -226,10 +245,8 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => EventDetailScreen(
-                eventId: event.id,
-                teamId: teamId,
-              ),
+              builder: (context) =>
+                  EventDetailScreen(eventId: event.id, teamId: teamId),
             ),
           );
         },
@@ -275,15 +292,19 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: assignments
-                      .map<Widget>((a) => Chip(
-                            avatar: CircleAvatar(
-                              backgroundColor: _statusColor(a.status),
-                              radius: 5,
-                            ),
-                            label: Text(a.userName),
-                            labelStyle: const TextStyle(fontSize: 12),
-                            backgroundColor: _statusColor(a.status).withValues(alpha: 0.1),
-                          ))
+                      .map<Widget>(
+                        (a) => Chip(
+                          avatar: CircleAvatar(
+                            backgroundColor: _statusColor(a.status),
+                            radius: 5,
+                          ),
+                          label: Text(a.userName),
+                          labelStyle: const TextStyle(fontSize: 12),
+                          backgroundColor: _statusColor(
+                            a.status,
+                          ).withValues(alpha: 0.1),
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -302,8 +323,10 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                             eventDate: event.date,
                             onAssign: (userId) async {
                               final rosterProvider =
-                                  Provider.of<RosterProvider>(context,
-                                      listen: false);
+                                  Provider.of<RosterProvider>(
+                                    context,
+                                    listen: false,
+                                  );
                               await rosterProvider.assignVolunteerToEvent(
                                 event.id,
                                 userId,
@@ -333,18 +356,20 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                     child: FilledButton.icon(
                       onPressed: () async {
                         if (currentUserId == null) return;
-                        final rosterProvider =
-                            Provider.of<RosterProvider>(context, listen: false);
-                        final success = await rosterProvider.assignVolunteerToEvent(
-                          event.id,
-                          currentUserId,
+                        final rosterProvider = Provider.of<RosterProvider>(
+                          context,
+                          listen: false,
                         );
+                        final success = await rosterProvider
+                            .assignVolunteerToEvent(event.id, currentUserId);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(success
-                                  ? 'You have volunteered for this event'
-                                  : 'Failed to volunteer'),
+                              content: Text(
+                                success
+                                    ? 'You have volunteered for this event'
+                                    : 'Failed to volunteer',
+                              ),
                               backgroundColor: success ? null : Colors.red,
                             ),
                           );
@@ -384,7 +409,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
       'Wednesday',
       'Thursday',
       'Friday',
-      'Saturday'
+      'Saturday',
     ];
     return days[day % 7];
   }
@@ -443,8 +468,10 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
             ),
             FilledButton(
               onPressed: () async {
-                final rosterProvider =
-                    Provider.of<RosterProvider>(context, listen: false);
+                final rosterProvider = Provider.of<RosterProvider>(
+                  context,
+                  listen: false,
+                );
                 final success = await rosterProvider.updateRoster(
                   name: nameController.text.trim(),
                   slotsNeeded: slotsNeeded,
@@ -460,7 +487,8 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                            'Failed to update: ${rosterProvider.error ?? "Unknown error"}'),
+                          'Failed to update: ${rosterProvider.error ?? "Unknown error"}',
+                        ),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -490,8 +518,10 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
           ),
           FilledButton(
             onPressed: () async {
-              final rosterProvider =
-                  Provider.of<RosterProvider>(context, listen: false);
+              final rosterProvider = Provider.of<RosterProvider>(
+                context,
+                listen: false,
+              );
               final success = await rosterProvider.deleteRoster();
 
               if (context.mounted) {
@@ -505,7 +535,8 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'Failed to delete: ${rosterProvider.error ?? "Unknown error"}'),
+                        'Failed to delete: ${rosterProvider.error ?? "Unknown error"}',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );

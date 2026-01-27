@@ -74,10 +74,10 @@ class TeamService {
     String userId, {
     String role = 'member',
   }) async {
-    final response = await ApiClient.post(
-      '/teams/$teamId/members',
-      {'user_id': userId, 'role': role},
-    );
+    final response = await ApiClient.post('/teams/$teamId/members', {
+      'user_id': userId,
+      'role': role,
+    });
 
     if (response.statusCode == 201) {
       return TeamMember.fromJson(jsonDecode(response.body));

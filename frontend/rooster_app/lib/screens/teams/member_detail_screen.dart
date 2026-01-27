@@ -33,14 +33,18 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
     if (team == null ||
         memberId == null ||
-        !(team.canViewResponses || team.canManageMembers || team.canManageTeam)) {
+        !(team.canViewResponses ||
+            team.canManageMembers ||
+            team.canManageTeam)) {
       setState(() => _isLoadingAssignments = false);
       return;
     }
 
     try {
-      final assignments =
-          await AssignmentService.getTeamMemberAssignments(team.id, memberId);
+      final assignments = await AssignmentService.getTeamMemberAssignments(
+        team.id,
+        memberId,
+      );
       if (mounted) {
         setState(() {
           _assignments = assignments;
@@ -72,9 +76,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     final teamName = team?.name ?? 'Team';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(name),
-      ),
+      appBar: AppBar(title: Text(name)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -88,8 +90,11 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                       ? Colors.grey.shade400
                       : Colors.deepPurple.shade300,
                   child: isPlaceholder
-                      ? Icon(Icons.person_outline,
-                          color: Colors.grey.shade100, size: 40)
+                      ? Icon(
+                          Icons.person_outline,
+                          color: Colors.grey.shade100,
+                          size: 40,
+                        )
                       : Text(
                           name.isNotEmpty ? name.substring(0, 1) : '?',
                           style: const TextStyle(
@@ -110,8 +115,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 const SizedBox(height: 8),
                 if (isLead)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.purple.shade50,
                       borderRadius: BorderRadius.circular(16),
@@ -127,8 +134,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   ),
                 if (isPlaceholder && !isInvited)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(16),
@@ -136,8 +145,11 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.circle_outlined,
-                            size: 14, color: Colors.grey.shade600),
+                        Icon(
+                          Icons.circle_outlined,
+                          size: 14,
+                          color: Colors.grey.shade600,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Not invited yet',
@@ -151,8 +163,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   ),
                 if (isInvited)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(16),
@@ -160,8 +174,11 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.mail_outline,
-                            size: 14, color: Colors.blue.shade600),
+                        Icon(
+                          Icons.mail_outline,
+                          size: 14,
+                          color: Colors.blue.shade600,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Invite sent',
@@ -182,10 +199,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           if (!isPlaceholder && email != null) ...[
             const Text(
               'Contact',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             Card(
@@ -208,10 +222,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           // Teams section
           const Text(
             'Teams',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Card(
@@ -229,10 +240,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           // Upcoming Assignments section
           const Text(
             'Upcoming Assignments',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           if (_isLoadingAssignments)
@@ -249,9 +257,9 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 child: Center(
                   child: Text(
                     _assignmentError ??
-                    (isPlaceholder
-                        ? 'Assignments will appear once invited'
-                        : 'No upcoming assignments'),
+                        (isPlaceholder
+                            ? 'Assignments will appear once invited'
+                            : 'No upcoming assignments'),
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
                 ),
@@ -276,13 +284,18 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           if (isPlaceholder && !isInvited)
             FilledButton.icon(
               onPressed: () {
-                Navigator.pushNamed(context, '/send-invite',
-                    arguments: widget.member);
+                Navigator.pushNamed(
+                  context,
+                  '/send-invite',
+                  arguments: widget.member,
+                );
               },
               icon: const Icon(Icons.email),
-              label: Text(_assignments.isEmpty
-                  ? 'Send Invite'
-                  : 'Send Invite (${_assignments.length} assignments pending)'),
+              label: Text(
+                _assignments.isEmpty
+                    ? 'Send Invite'
+                    : 'Send Invite (${_assignments.length} assignments pending)',
+              ),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

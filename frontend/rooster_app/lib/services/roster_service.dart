@@ -112,7 +112,8 @@ class RosterService {
     DateTime? endDate,
     bool includeCancelled = false,
   }) async {
-    var endpoint = '/rosters/$rosterId/events?include_cancelled=$includeCancelled';
+    var endpoint =
+        '/rosters/$rosterId/events?include_cancelled=$includeCancelled';
 
     if (startDate != null) {
       endpoint += '&start_date=${startDate.toIso8601String().split('T')[0]}';
@@ -192,8 +193,10 @@ class RosterService {
     String rosterId, {
     int count = 12,
   }) async {
-    final response =
-        await ApiClient.post('/rosters/$rosterId/events/generate?count=$count', {});
+    final response = await ApiClient.post(
+      '/rosters/$rosterId/events/generate?count=$count',
+      {},
+    );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);

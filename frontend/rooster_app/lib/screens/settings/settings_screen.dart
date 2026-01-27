@@ -40,9 +40,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(value
-              ? 'Notifications enabled'
-              : 'Notifications disabled'),
+          content: Text(
+            value ? 'Notifications enabled' : 'Notifications disabled',
+          ),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -54,9 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
           // Profile Section
@@ -66,7 +64,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).primaryColor.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.person,
                     size: 32,
@@ -126,10 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Logout
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red),
-            ),
+            title: const Text('Logout', style: TextStyle(color: Colors.red)),
             onTap: () async {
               await authProvider.logout();
               if (context.mounted) {
@@ -144,10 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Center(
             child: Text(
               'Version 1.0.0',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
           ),
           const SizedBox(height: 32),

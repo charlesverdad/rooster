@@ -33,10 +33,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    final assignmentProvider =
-        Provider.of<AssignmentProvider>(context, listen: false);
-    final notificationProvider =
-        Provider.of<NotificationProvider>(context, listen: false);
+    final assignmentProvider = Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    );
+    final notificationProvider = Provider.of<NotificationProvider>(
+      context,
+      listen: false,
+    );
     final teamProvider = Provider.of<TeamProvider>(context, listen: false);
     await Future.wait([
       assignmentProvider.fetchMyAssignments(),
@@ -57,9 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final upcomingAssignments = assignmentProvider.upcomingAssignments;
     final unreadCount = notificationProvider.unreadCount;
     final hasTeams = teamProvider.teams.isNotEmpty;
-    final hasNoContent = pendingAssignments.isEmpty &&
-                         upcomingAssignments.isEmpty &&
-                         !hasTeams;
+    final hasNoContent =
+        pendingAssignments.isEmpty && upcomingAssignments.isEmpty && !hasTeams;
 
     return Scaffold(
       appBar: AppBar(
@@ -157,7 +160,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red.shade100,
                             borderRadius: BorderRadius.circular(12),
@@ -174,29 +179,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...pendingAssignments.map((assignment) =>
-                        AssignmentActionCard(
-                          assignment: assignment,
-                          onAccept: () => _handleAccept(assignment),
-                          onDecline: () => _handleDecline(assignment),
-                          onTap: () => _navigateToDetail(assignment),
-                        )),
+                    ...pendingAssignments.map(
+                      (assignment) => AssignmentActionCard(
+                        assignment: assignment,
+                        onAccept: () => _handleAccept(assignment),
+                        onDecline: () => _handleDecline(assignment),
+                        onTap: () => _navigateToDetail(assignment),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
 
                   // Upcoming Assignments Section
                   const Text(
                     'Upcoming',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 12),
 
                   if (hasNoContent)
                     _buildCreateFirstTeamState()
-                  else if (upcomingAssignments.isEmpty && pendingAssignments.isEmpty)
+                  else if (upcomingAssignments.isEmpty &&
+                      pendingAssignments.isEmpty)
                     _buildNoAssignmentsState()
                   else if (upcomingAssignments.isEmpty)
                     const EmptyState(
@@ -207,10 +211,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   else
                     ...upcomingAssignments
                         .take(5)
-                        .map((assignment) => UpcomingAssignmentCard(
-                              assignment: assignment,
-                              onTap: () => _navigateToDetail(assignment),
-                            )),
+                        .map(
+                          (assignment) => UpcomingAssignmentCard(
+                            assignment: assignment,
+                            onTap: () => _navigateToDetail(assignment),
+                          ),
+                        ),
 
                   // Team Lead Section (if applicable)
                   if (isTeamLead) ...[
@@ -237,19 +243,13 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             const Text(
               'Welcome to Rooster!',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Create your first team to start rostering volunteers',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -352,10 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               'Paste your invite link or token below',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -413,11 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            Icon(
-              Icons.calendar_today,
-              size: 64,
-              color: Colors.grey.shade300,
-            ),
+            Icon(Icons.calendar_today, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
               'No assignments yet',
@@ -431,10 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               'When you\'re assigned to serve, you\'ll see it here',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
             ),
           ],
         ),
@@ -446,14 +436,17 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AssignmentDetailScreen(assignmentId: assignment.id),
+        builder: (context) =>
+            AssignmentDetailScreen(assignmentId: assignment.id),
       ),
     );
   }
 
   Future<void> _handleAccept(EventAssignment assignment) async {
-    final assignmentProvider =
-        Provider.of<AssignmentProvider>(context, listen: false);
+    final assignmentProvider = Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    );
     final success = await assignmentProvider.confirmAssignment(assignment.id);
 
     if (success && mounted) {
@@ -474,8 +467,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final assignmentProvider =
-          Provider.of<AssignmentProvider>(context, listen: false);
+      final assignmentProvider = Provider.of<AssignmentProvider>(
+        context,
+        listen: false,
+      );
       final success = await assignmentProvider.declineAssignment(assignment.id);
 
       if (success && mounted) {
@@ -516,26 +511,17 @@ class _DeclineConfirmationSheetState extends State<_DeclineConfirmationSheet> {
         children: [
           const Text(
             'Decline this assignment?',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
             'Your team lead will be notified.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
           const Text(
             'Reason (optional)',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           RadioListTile<String>(
@@ -569,9 +555,7 @@ class _DeclineConfirmationSheetState extends State<_DeclineConfirmationSheet> {
               Expanded(
                 child: FilledButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.red,
-                  ),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
                   child: const Text('Confirm Decline'),
                 ),
               ),

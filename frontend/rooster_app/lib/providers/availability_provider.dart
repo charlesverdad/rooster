@@ -21,10 +21,12 @@ class AvailabilityProvider with ChangeNotifier {
 
     try {
       final response = await ApiClient.get('/availability/me');
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        _unavailabilities = data.map((json) => Unavailability.fromJson(json)).toList();
+        _unavailabilities = data
+            .map((json) => Unavailability.fromJson(json))
+            .toList();
         _unavailabilities.sort((a, b) => a.date.compareTo(b.date));
       } else {
         _error = 'Failed to load unavailabilities';
@@ -40,7 +42,7 @@ class AvailabilityProvider with ChangeNotifier {
   Future<void> fetchConflicts() async {
     try {
       final response = await ApiClient.get('/availability/conflicts');
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         _conflicts = data.map((json) => Conflict.fromJson(json)).toList();

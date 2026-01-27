@@ -119,8 +119,9 @@ class RosterProvider with ChangeNotifier {
     if (_currentRoster == null) return;
 
     try {
-      final newEvents =
-          await RosterService.generateMoreEvents(_currentRoster!.id);
+      final newEvents = await RosterService.generateMoreEvents(
+        _currentRoster!.id,
+      );
 
       // Add new events to current list
       _currentEvents.addAll(newEvents);

@@ -29,16 +29,13 @@ class AuthProvider with ChangeNotifier {
 
     try {
       // OAuth2 expects form data, not JSON
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/auth/login'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: {
-          'username': email,
-          'password': password,
-        },
-      ).timeout(ApiConfig.timeout);
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/auth/login'),
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: {'username': email, 'password': password},
+          )
+          .timeout(ApiConfig.timeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -104,7 +101,6 @@ class AuthProvider with ChangeNotifier {
       debugPrint('Error fetching user: $e');
     }
   }
-
 
   Future<void> logout() async {
     await ApiClient.clearToken();

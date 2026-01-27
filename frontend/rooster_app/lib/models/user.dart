@@ -22,9 +22,7 @@ class User {
       id: json['id'],
       email: json['email'],
       name: json['name'],
-      roles: json['roles'] != null
-          ? List<String>.from(json['roles'])
-          : null,
+      roles: json['roles'] != null ? List<String>.from(json['roles']) : null,
       isPlaceholder: json['is_placeholder'] ?? false,
     );
   }
