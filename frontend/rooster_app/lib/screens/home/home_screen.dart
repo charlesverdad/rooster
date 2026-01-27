@@ -11,6 +11,7 @@ import '../../widgets/team_lead_section.dart';
 import '../../widgets/empty_state.dart';
 import '../assignments/assignment_detail_screen.dart';
 import '../teams/team_detail_screen.dart';
+import '../teams/my_teams_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -120,6 +121,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyTeamsScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.group_outlined, size: 18),
+                        label: const Text('My Teams'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
 

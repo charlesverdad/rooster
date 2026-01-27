@@ -1,55 +1,47 @@
 # Rooster - Prioritized TODO List
 
-**Last Updated:** January 2026
-**Status:** MVP ~85% complete
+**Last Updated:** January 2026  
+**Status:** MVP feature set implemented; polish + operational gaps remain
 
 ---
 
 ## Summary
 
-The core backend and frontend are functional. Users can register, create teams, add members, create rosters, assign volunteers, and accept/decline assignments. The main gaps are the invite acceptance flow and notifications infrastructure.
+Core backend and frontend flows are implemented end-to-end: authentication, teams, rosters, assignments, invites (including accept flow), availability, and notifications. The remaining work is mostly polish and operational readiness: wiring a few UI screens to existing APIs, adding unavailability intelligence, and standing up push notifications.
 
 ---
 
-## Priority 1: Critical MVP Features (Must Have)
+## Priority 1: UX Wiring Gaps (Must Have)
 
-### 1.1 Accept Invite Screen (Frontend)
-**Status:** Not implemented
-**Backend:** ✅ Ready (`POST /invites/accept/{token}`, `GET /invites/validate/{token}`)
-**Effort:** Medium
+### 1.1 Send Invite Screen (Frontend)
+**Status:** UI exists, not wired to API
+**Effort:** Low
 
-Create `lib/screens/auth/accept_invite_screen.dart`:
-- [ ] Parse invite token from URL/deep link
-- [ ] Call `GET /invites/validate/{token}` to get team name and invitee info
-- [ ] Display: "You've been invited to join [Team Name]"
-- [ ] Show pre-filled email (readonly) from invite
-- [ ] Password field for account creation
-- [ ] Call `POST /invites/accept/{token}` with password
-- [ ] On success: Store access token, navigate to Home
-- [ ] Handle invalid/expired token errors
+- [ ] Call `TeamProvider.sendInvite()` from `SendInviteScreen`
+- [ ] Show loading + error states
+- [ ] Update member status to invited on success
+- [ ] Support resend flow (optional button for already-invited members)
 
-### 1.2 Deep Link Handling
+### 1.2 Member Detail Assignments (Team Lead View)
 **Status:** Not implemented
 **Effort:** Medium
 
-- [ ] Configure URL scheme `rooster://invite/:token` for mobile
-- [ ] Configure web URL handling for `/invite/:token`
-- [ ] Add route in `main.dart` to handle invite deep links
-- [ ] Test on web, iOS, and Android
+- [ ] Add backend endpoint: `GET /teams/:id/members/:userId/assignments`
+- [ ] Return upcoming assignments with status
+- [ ] Wire `MemberDetailScreen` to fetch and display list
+- [ ] Show count in invite CTA when placeholders have assignments
 
-### 1.3 Email Sending for Invites
-**Status:** Not implemented (TODOs in backend code)
+### 1.3 Quick Assign Unavailability
+**Status:** Partial (UI sections exist)
 **Effort:** Medium
 
-- [ ] Choose email provider (SendGrid, AWS SES, or similar)
-- [ ] Create email templates for invite
-- [ ] Implement `send_invite_email()` in `backend/app/services/invite.py`
-- [ ] Include invite link with token in email
-- [ ] Add environment variables for email configuration
+- [ ] Use `/availability/conflicts` for unavailable members
+- [ ] Show reason in UI (unavailable vs already assigned)
+- [ ] Prevent assignment for unavailable members
 
 ---
 
-## Priority 2: Important MVP Features (Should Have)
+## Priority 2: Notifications Infrastructure (Should Have)
 
 ### 2.1 Push Notifications (FCM)
 **Status:** Not implemented
@@ -58,91 +50,57 @@ Create `lib/screens/auth/accept_invite_screen.dart`:
 Backend:
 - [ ] Add FCM admin SDK dependency
 - [ ] Create `backend/app/services/push_notification.py`
-- [ ] Store FCM tokens per user/device
-- [ ] Send push on: new assignment, reminder (1 day before), assignment declined
+- [ ] Store device tokens per user
+- [ ] Send pushes for new assignment, reminder, decline
 
 Frontend:
 - [ ] Add `firebase_messaging` package
-- [ ] Request notification permissions
-- [ ] Register FCM token with backend on login
+- [ ] Register FCM token on login
 - [ ] Handle foreground/background notifications
+- [ ] Settings toggle for notifications
 
-### 2.2 Assignment Detail Enhancements
-**Status:** Partially done
-**Effort:** Low
+### 2.2 Email Deliverability
+**Status:** Implemented but requires configuration
+**Effort:** Medium
 
-- [ ] Show co-volunteer status indicators:
-  - ✅ = Accepted
-  - ⏳ = Pending (registered user)
-  - ○ = Placeholder (not invited)
-  - ✉️ = Invited (awaiting response)
-- [ ] Add "Contact Team Lead" button with actions (email, phone)
-- [ ] Show location/notes from roster data (if available)
-
-### 2.3 Create Roster Improvements
-**Status:** Basic form done
-**Effort:** Low
-
-- [ ] Add time selection for events
-- [ ] Add location field
-- [ ] Add notes/description field
+- [ ] Configure SMTP settings in environment
+- [ ] Validate email templates for branding
+- [ ] Add rate limiting / monitoring
 
 ---
 
-## Priority 3: Polish & Edge Cases (Nice to Have)
+## Priority 3: Polish & Admin UX (Nice to Have)
 
-### 3.1 Error Handling Improvements
-**Status:** Basic try-catch exists
-**Effort:** Medium
-
-- [ ] Handle 401 (unauthorized) - redirect to login, clear stored token
-- [ ] Handle 403 (forbidden) - show permission denied message
-- [ ] Handle 404 (not found) - show not found screen/message
-- [ ] Handle network errors - show offline state with retry button
-- [ ] Disable buttons during form submissions to prevent double-taps
-
-### 3.2 Roster Detail Enhancements
-**Status:** Basic list done
-**Effort:** Medium
-
-- [ ] Show roster info card (recurrence, day, slots needed)
-- [ ] Visual slot status indicators (green=filled, orange=partial, red=empty)
-- [ ] "Generate more dates" button for ongoing rosters
-- [ ] Edit roster (name, slots needed)
-- [ ] Delete roster with confirmation
-
-### 3.3 Quick Assign Improvements
-**Status:** Basic assignment works
+### 3.1 Team Settings
+**Status:** Not implemented
 **Effort:** Low
 
-- [ ] Search/filter members in assign sheet
-- [ ] Show "Unavailable" section with reasons
-- [ ] Toast variants based on user type:
-  - Registered: "Emma assigned. Notification sent."
-  - Placeholder: "Tom assigned. Invite them to notify."
+- [ ] Add team settings screen (rename team, manage roles)
+- [ ] Move placeholder TODO out of team detail
 
-### 3.4 Member Detail Improvements
-**Status:** Basic view done
+### 3.2 Browse Teams
+**Status:** Not implemented
 **Effort:** Low
 
-- [ ] Show upcoming assignments for the member
-- [ ] Show assignment count in invite prompt ("John has 2 upcoming assignments")
-- [ ] Fetch real team data instead of hardcoded "Media Team"
+- [ ] Add browse teams list (if supported by backend)
+- [ ] Hook My Teams “Browse All Teams” button
 
----
+### 3.3 Roster Event Detail
+**Status:** Not implemented
+**Effort:** Medium
 
-## Priority 4: Deferred (Post-MVP)
+- [ ] Add event detail screen
+- [ ] Show assignment list + slot-level actions
+- [ ] Link from roster detail event cards
 
-These are explicitly out of scope for MVP per PRD.md:
+### 3.4 Error Handling Improvements
+**Status:** Partial
+**Effort:** Medium
 
-- [ ] Google OAuth login
-- [ ] Auto-rotate assignment suggestions
-- [ ] Swap requests between members
-- [ ] Calendar view
-- [ ] Analytics/reporting
-- [ ] Multiple organizations
-- [ ] Offline support with data caching
-- [ ] Weekly email digest
+- [ ] 401 redirect to login (already in ApiClient)
+- [ ] 403/404 error views
+- [ ] Offline states with retry
+- [ ] Disable buttons during form submissions
 
 ---
 
@@ -157,28 +115,28 @@ These are explicitly out of scope for MVP per PRD.md:
 - [x] Event assignments (create, update status)
 - [x] Availability/unavailability tracking
 - [x] In-app notifications
+- [x] Invite validation + acceptance
+- [x] Email service for invites + assignment notifications
 - [x] Granular team permissions
 - [x] Comprehensive unit tests for all services
 
 ### Frontend
 - [x] Login and Register screens
-- [x] Home screen with adaptive layout (member vs team lead)
-- [x] "Needs Attention" section for team leads with unfilled slots
-- [x] Assignment detail with accept/decline
-- [x] Change response after confirming
-- [x] My Teams screen with create team
+- [x] Home screen with team lead "Needs Attention" section
+- [x] Assignment detail with accept/decline + co-volunteer status
+- [x] Contact team lead flow
+- [x] My Teams list + create team dialog
 - [x] Team Detail with members and rosters
 - [x] Add Member (placeholder) flow
-- [x] Send Invite flow
-- [x] Member Detail with placeholder indicators
-- [x] Create Roster with recurrence options
-- [x] Roster Detail with event list
-- [x] Assign Volunteers sheet
+- [x] Member Detail with placeholder status
+- [x] Create Roster with recurrence, time, location, notes
+- [x] Roster Detail with event list + assign actions
+- [x] Assign Volunteers sheet with search + placeholder labels
 - [x] Availability screen (mark unavailable dates)
-- [x] Notifications screen with navigation
+- [x] Notifications screen with navigation + swipe to delete
+- [x] Accept Invite screen + deep link routing
 - [x] Settings screen with logout
-- [x] Pull-to-refresh on all list screens
-- [x] Full API integration (no mock data)
+- [x] Pull-to-refresh on list screens
 
 ---
 
@@ -187,32 +145,25 @@ These are explicitly out of scope for MVP per PRD.md:
 Key files for upcoming work:
 
 ```
-# Accept Invite Screen (to create)
-frontend/rooster_app/lib/screens/auth/accept_invite_screen.dart
+# Send invite wiring
+frontend/rooster_app/lib/screens/teams/send_invite_screen.dart
+frontend/rooster_app/lib/providers/team_provider.dart
 
-# Deep link configuration
-frontend/rooster_app/lib/main.dart
+# Member assignment endpoint (backend)
+backend/app/api/assignments.py
 
-# Email sending (to implement)
-backend/app/services/invite.py:74  # TODO comment
-backend/app/services/invite.py:155 # TODO comment
+# Quick assign availability
+frontend/rooster_app/lib/screens/roster/assign_volunteers_sheet.dart
+backend/app/api/availability.py
 
-# Push notifications (to create)
-backend/app/services/push_notification.py
-
-# Assignment detail enhancements
-frontend/rooster_app/lib/screens/assignments/assignment_detail_screen.dart
-
-# Invite service (frontend - has acceptInvite method ready)
-frontend/rooster_app/lib/services/invite_service.dart
+# Push notifications
+backend/app/services/push_notification.py (new)
 ```
 
 ---
 
 ## Notes
 
-- Backend invite endpoints are fully functional and tested
-- Frontend `InviteService` already has `validateToken()` and `acceptInvite()` methods
-- The accept invite screen is the last critical piece for the full invite flow
-- Push notifications require Firebase project setup
-- Email requires third-party service account
+- Invite email delivery is implemented but requires SMTP config to enable.
+- Push notifications are still missing despite being in the MVP scope.
+- Remaining gaps are mostly UX wiring and operational readiness.

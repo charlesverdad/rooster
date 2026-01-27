@@ -38,10 +38,13 @@ class AppNotification {
   }
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
+    final rawType = json['type'] ?? 'info';
+    final normalizedType = _normalizeType(rawType);
+
     return AppNotification(
       id: json['id'].toString(),
       userId: json['user_id'].toString(),
-      type: json['type'] ?? 'info',
+      type: normalizedType,
       title: json['title'] ?? '',
       message: json['message'] ?? '',
       readAt: json['read_at'] != null ? DateTime.parse(json['read_at']) : null,
@@ -50,6 +53,21 @@ class AppNotification {
           : DateTime.now(),
       referenceId: json['reference_id']?.toString(),
     );
+  }
+
+  static String _normalizeType(String type) {
+    switch (type) {
+      case 'assignment_created':
+        return 'assignment';
+      case 'assignment_reminder':
+        return 'reminder';
+      case 'conflict_detected':
+        return 'response';
+      case 'team_joined':
+        return 'team';
+      default:
+        return type;
+    }
   }
 
   AppNotification copyWith({

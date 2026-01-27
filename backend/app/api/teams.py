@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -14,7 +15,9 @@ from app.schemas.team import (
     TeamWithRole,
     UpdateMemberPermissionsRequest,
 )
+from app.schemas.roster import EventAssignmentResponse
 from app.services.organisation import OrganisationService
+from app.services.roster import RosterService
 from app.services.team import TeamService
 
 router = APIRouter(prefix="/teams", tags=["teams"])
@@ -237,6 +240,82 @@ async def list_members(
         )
         for m in members
     ]
+
+
+@router.get("/{team_id}/members/{user_id}/assignments", response_model=list[EventAssignmentResponse])
+async def list_member_assignments(
+    team_id: uuid.UUID,
+    user_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> list[EventAssignmentResponse]:
+    """List event assignments for a specific team member. Requires view_responses permission."""
+    team_service = TeamService(db)
+    org_service = OrganisationService(db)
+    roster_service = RosterService(db)
+
+    team = await team_service.get_team(team_id)
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found",
+        )
+
+    # Check org membership
+    membership = await org_service.get_membership(current_user.id, team.organisation_id)
+    if not membership:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organisation",
+        )
+
+    await team_service.require_permission(
+        current_user.id, team_id, TeamPermission.VIEW_RESPONSES
+    )
+
+    member = await team_service.get_team_membership(user_id, team_id)
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found",
+        )
+
+    assignments = await roster_service.get_user_event_assignments(
+        user_id, start_date, end_date
+    )
+
+    responses: list[EventAssignmentResponse] = []
+    for assignment in assignments:
+        event = assignment.event
+        roster = event.roster if event else None
+        if not roster or roster.team_id != team_id:
+            continue
+
+        user = assignment.user
+        is_invited = False
+        if user and user.is_placeholder:
+            is_invited = await team_service.has_active_invite(user.id, team_id)
+
+        responses.append(
+            EventAssignmentResponse(
+                id=assignment.id,
+                event_id=assignment.event_id,
+                user_id=assignment.user_id,
+                status=assignment.status,
+                user_name=user.name if user else None,
+                user_email=user.email if user else None,
+                is_placeholder=user.is_placeholder if user else False,
+                is_invited=is_invited,
+                created_at=assignment.created_at,
+                event_date=event.date if event else None,
+                roster_name=roster.name if roster else None,
+                team_name=team.name,
+            )
+        )
+
+    return responses
 
 
 @router.post("/{team_id}/members", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
