@@ -166,10 +166,7 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  color: warmSandText,
-                ),
+                const Icon(Icons.warning_amber_rounded, color: warmSandText),
                 const SizedBox(width: 8),
                 const Text(
                   'Needs Attention',

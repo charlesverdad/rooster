@@ -171,7 +171,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         onDecline: () => _handleDecline(assignment),
                         onTap: () => _navigateToDetail(assignment),
                         onTeamTap: assignment.teamId != null
-                            ? () => context.push('/teams/${assignment.teamId}').then((_) => _loadData())
+                            ? () => context
+                                  .push('/teams/${assignment.teamId}')
+                                  .then((_) => _loadData())
                             : null,
                       ),
                     ),
@@ -204,9 +206,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             assignment: assignment,
                             onTap: () => _navigateToDetail(assignment),
                             onTeamTap: assignment.teamId != null
-                                ? () => context.push(
-                                    '/teams/${assignment.teamId}',
-                                  ).then((_) => _loadData())
+                                ? () => context
+                                      .push('/teams/${assignment.teamId}')
+                                      .then((_) => _loadData())
                                 : null,
                           ),
                         ),
