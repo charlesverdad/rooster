@@ -149,15 +149,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.red.shade100,
+                            color: const Color(0xFFFCE4EC),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             '${pendingAssignments.length}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.red.shade700,
+                              color: Color(0xFFBF4060),
                             ),
                           ),
                         ),
