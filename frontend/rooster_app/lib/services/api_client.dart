@@ -13,8 +13,8 @@ class ApiException implements Exception {
   final String? detail;
 
   ApiException(this.statusCode, String body)
-      : message = _parseMessage(statusCode, body),
-        detail = _parseDetail(body);
+    : message = _parseMessage(statusCode, body),
+      detail = _parseDetail(body);
 
   static String _parseMessage(int statusCode, String body) {
     switch (statusCode) {
@@ -113,16 +113,16 @@ class ApiClient {
   }
 
   static Map<String, String> _getHeaders() {
-    final headers = {
-      'Content-Type': 'application/json',
-    };
+    final headers = {'Content-Type': 'application/json'};
     if (_token != null) {
       headers['Authorization'] = 'Bearer $_token';
     }
     return headers;
   }
 
-  static Future<http.Response> _handleResponse(Future<http.Response> request) async {
+  static Future<http.Response> _handleResponse(
+    Future<http.Response> request,
+  ) async {
     try {
       final response = await request;
 
@@ -135,7 +135,10 @@ class ApiClient {
       return response;
     } on SocketException catch (e) {
       debugPrint('Network error: $e');
-      throw NetworkException('Unable to connect. Please check your internet connection.', e);
+      throw NetworkException(
+        'Unable to connect. Please check your internet connection.',
+        e,
+      );
     } on TimeoutException catch (e) {
       debugPrint('Timeout error: $e');
       throw NetworkException('Request timed out. Please try again.', e);
@@ -152,25 +155,27 @@ class ApiClient {
     );
   }
 
-  static Future<http.Response> post(String endpoint, Map<String, dynamic> body) async {
+  static Future<http.Response> post(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
     return await _handleResponse(
-      http.post(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode(body),
-      ).timeout(ApiConfig.timeout),
+      http
+          .post(url, headers: _getHeaders(), body: jsonEncode(body))
+          .timeout(ApiConfig.timeout),
     );
   }
 
-  static Future<http.Response> patch(String endpoint, Map<String, dynamic> body) async {
+  static Future<http.Response> patch(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
     return await _handleResponse(
-      http.patch(
-        url,
-        headers: _getHeaders(),
-        body: jsonEncode(body),
-      ).timeout(ApiConfig.timeout),
+      http
+          .patch(url, headers: _getHeaders(), body: jsonEncode(body))
+          .timeout(ApiConfig.timeout),
     );
   }
 

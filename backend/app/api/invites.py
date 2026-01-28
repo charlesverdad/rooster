@@ -17,7 +17,11 @@ from app.services.email import get_email_service
 router = APIRouter(prefix="/invites", tags=["invites"])
 
 
-@router.post("/team/{team_id}/user/{user_id}", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/team/{team_id}/user/{user_id}",
+    response_model=InviteResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def send_invite(
     team_id: uuid.UUID,
     user_id: uuid.UUID,
@@ -53,6 +57,7 @@ async def send_invite(
     # Check if user is a placeholder
     from sqlalchemy import select
     from app.models.user import User
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -104,7 +109,14 @@ async def accept_invite(
 ) -> InviteAcceptResponse:
     """Accept an invite by setting a password. No authentication required."""
     invite_service = InviteService(db)
-    success, message, user, access_token, team_id, team_name = await invite_service.accept_invite(
+    (
+        success,
+        message,
+        user,
+        access_token,
+        team_id,
+        team_name,
+    ) = await invite_service.accept_invite(
         token=token,
         password=data.password,
     )
@@ -132,6 +144,7 @@ async def resend_invite(
     # Get the invite first to check permissions
     from sqlalchemy import select
     from app.models.invite import Invite
+
     result = await db.execute(select(Invite).where(Invite.id == invite_id))
     invite = result.scalar_one_or_none()
 
@@ -163,6 +176,7 @@ async def resend_invite(
 
     # Get user info for the email
     from app.models.user import User
+
     result = await db.execute(select(User).where(User.id == invite.user_id))
     user = result.scalar_one_or_none()
 
@@ -206,6 +220,7 @@ async def list_team_invites(
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
     from app.models.invite import Invite
+
     result = await db.execute(
         select(Invite)
         .options(selectinload(Invite.team), selectinload(Invite.user))

@@ -9,7 +9,6 @@ from app.core.security import get_password_hash, create_access_token
 from app.models.invite import Invite
 from app.models.organisation import OrganisationMember, OrganisationRole
 from app.models.user import User
-from app.models.team import Team
 from app.services.notification import NotificationService
 from app.services.organisation import OrganisationService
 
@@ -168,7 +167,14 @@ class InviteService:
             return False, "Invalid invite token", None, None, None, None
 
         if invite.is_accepted:
-            return False, "This invite has already been accepted", None, None, None, None
+            return (
+                False,
+                "This invite has already been accepted",
+                None,
+                None,
+                None,
+                None,
+            )
 
         if invite.is_expired:
             return False, "This invite has expired", None, None, None, None
@@ -212,7 +218,14 @@ class InviteService:
         team_id = invite.team_id
         team_name = invite.team.name if invite.team else None
 
-        return True, "Account created successfully", user, access_token, team_id, team_name
+        return (
+            True,
+            "Account created successfully",
+            user,
+            access_token,
+            team_id,
+            team_name,
+        )
 
     async def resend_invite(self, invite_id: uuid.UUID) -> Invite | None:
         """Resend an invite by generating a new token.
@@ -223,9 +236,7 @@ class InviteService:
         Returns:
             The updated invite with new token, or None if not found
         """
-        result = await self.db.execute(
-            select(Invite).where(Invite.id == invite_id)
-        )
+        result = await self.db.execute(select(Invite).where(Invite.id == invite_id))
         invite = result.scalar_one_or_none()
 
         if not invite or invite.is_accepted:
@@ -233,6 +244,7 @@ class InviteService:
 
         # Generate new token
         from app.models.invite import generate_invite_token
+
         invite.token = generate_invite_token()
         invite.created_at = datetime.now(timezone.utc)
 

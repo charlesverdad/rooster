@@ -49,7 +49,9 @@ class DashboardService:
                 date=a.date,
                 status=a.status,
                 roster_name=a.roster.name if a.roster else "Unknown",
-                team_name=a.roster.team.name if a.roster and a.roster.team else "Unknown",
+                team_name=a.roster.team.name
+                if a.roster and a.roster.team
+                else "Unknown",
                 organisation_name=(
                     a.roster.team.organisation.name
                     if a.roster and a.roster.team and a.roster.team.organisation
@@ -91,7 +93,9 @@ class DashboardService:
                     date=a.date,
                     status=a.status,
                     roster_name=a.roster.name if a.roster else "Unknown",
-                    team_name=a.roster.team.name if a.roster and a.roster.team else "Unknown",
+                    team_name=a.roster.team.name
+                    if a.roster and a.roster.team
+                    else "Unknown",
                     organisation_name=(
                         a.roster.team.organisation.name
                         if a.roster and a.roster.team and a.roster.team.organisation

@@ -80,6 +80,11 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
       _error = null;
     });
 
+    // Capture context-dependent objects before async gaps
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     try {
       final result = await InviteService.acceptInvite(
         widget.token,
@@ -89,27 +94,23 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
       if (result['success'] == true && result['access_token'] != null) {
         // Save the token and fetch user
         await ApiClient.saveToken(result['access_token']);
+        await authProvider.fetchCurrentUser();
 
-        if (mounted) {
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-          await authProvider.fetchCurrentUser();
+        // Show success message
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Welcome to ${_teamName ?? 'the team'}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-          // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Welcome to ${_teamName ?? 'the team'}!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          // Navigate to team detail if we have a team_id, otherwise home
-          final teamId = result['team_id']?.toString();
-          if (teamId != null) {
-            Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-            Navigator.of(context).pushNamed('/team-detail', arguments: teamId);
-          } else {
-            Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-          }
+        // Navigate to team detail if we have a team_id, otherwise home
+        final teamId = result['team_id']?.toString();
+        if (teamId != null) {
+          navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+          navigator.pushNamed('/team-detail', arguments: teamId);
+        } else {
+          navigator.pushNamedAndRemoveUntil('/home', (route) => false);
         }
       } else {
         setState(() {
@@ -235,7 +236,9 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                                 : Icons.visibility_off_outlined,
                           ),
                           onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
                           },
                         ),
                       ),
@@ -266,7 +269,10 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                                 : Icons.visibility_off_outlined,
                           ),
                           onPressed: () {
-                            setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                            setState(
+                              () => _obscureConfirmPassword =
+                                  !_obscureConfirmPassword,
+                            );
                           },
                         ),
                       ),
@@ -289,7 +295,10 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline, color: Colors.red.shade700),
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.red.shade700,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
@@ -347,17 +356,21 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
 
     if (_isExpired) {
       title = 'Invite Expired';
-      message = 'This invite link has expired. Please ask your team lead to send a new invite.';
+      message =
+          'This invite link has expired. Please ask your team lead to send a new invite.';
       icon = Icons.timer_off;
       color = Colors.orange;
     } else if (_alreadyAccepted) {
       title = 'Already Accepted';
-      message = 'This invite has already been accepted. You can login to your account.';
+      message =
+          'This invite has already been accepted. You can login to your account.';
       icon = Icons.check_circle;
       color = Colors.green;
     } else {
       title = 'Invalid Invite';
-      message = _error ?? 'This invite link is not valid. Please check the link or contact your team lead.';
+      message =
+          _error ??
+          'This invite link is not valid. Please check the link or contact your team lead.';
       icon = Icons.error_outline;
       color = Colors.red;
     }
@@ -383,10 +396,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 32),
                 if (_alreadyAccepted)

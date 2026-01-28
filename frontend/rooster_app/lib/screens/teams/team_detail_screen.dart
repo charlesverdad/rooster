@@ -22,10 +22,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<RosterProvider>(context, listen: false)
-          .fetchTeamRosters(widget.teamId);
-      Provider.of<TeamProvider>(context, listen: false)
-          .fetchTeamDetail(widget.teamId);
+      Provider.of<RosterProvider>(
+        context,
+        listen: false,
+      ).fetchTeamRosters(widget.teamId);
+      Provider.of<TeamProvider>(
+        context,
+        listen: false,
+      ).fetchTeamDetail(widget.teamId);
     });
   }
 
@@ -61,8 +65,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               OutlinedButton(
                 onPressed: () {
                   teamProvider.clearError();
-                  Provider.of<RosterProvider>(context, listen: false)
-                      .fetchTeamRosters(widget.teamId);
+                  Provider.of<RosterProvider>(
+                    context,
+                    listen: false,
+                  ).fetchTeamRosters(widget.teamId);
                   teamProvider.fetchTeamDetail(widget.teamId);
                 },
                 child: const Text('Retry'),
@@ -93,10 +99,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       body: RefreshIndicator(
         onRefresh: () async {
           await Future.wait([
-            Provider.of<RosterProvider>(context, listen: false)
-                .fetchTeamRosters(widget.teamId),
-            Provider.of<TeamProvider>(context, listen: false)
-                .fetchTeamDetail(widget.teamId),
+            Provider.of<RosterProvider>(
+              context,
+              listen: false,
+            ).fetchTeamRosters(widget.teamId),
+            Provider.of<TeamProvider>(
+              context,
+              listen: false,
+            ).fetchTeamDetail(widget.teamId),
           ]);
         },
         child: ListView(
@@ -152,10 +162,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               children: [
                 const Text(
                   'Rosters',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
                 if (team?.canManageRosters ?? false)
                   TextButton(
@@ -182,8 +189,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   padding: const EdgeInsets.all(32),
                   child: Column(
                     children: [
-                      Icon(Icons.calendar_today,
-                          size: 48, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 48,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'No rosters yet',
@@ -210,10 +220,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               children: [
                 const Text(
                   'Members',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
                 if (team?.canManageMembers ?? false)
                   TextButton(
@@ -224,11 +231,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                         builder: (context) => const AddMemberSheet(),
                       );
                       if (name != null && context.mounted) {
-                        final success =
-                            await teamProvider.addMember(widget.teamId, name);
+                        final success = await teamProvider.addMember(
+                          widget.teamId,
+                          name,
+                        );
                         if (success && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Added $name as placeholder')),
+                            SnackBar(
+                              content: Text('Added $name as placeholder'),
+                            ),
                           );
                         }
                       }
@@ -250,11 +261,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/roster-detail',
-            arguments: roster.id,
-          );
+          Navigator.pushNamed(context, '/roster-detail', arguments: roster.id);
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -266,10 +273,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  Icons.calendar_today,
-                  color: Colors.blue.shade700,
-                ),
+                child: Icon(Icons.calendar_today, color: Colors.blue.shade700),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -363,10 +367,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                           const SizedBox(width: 8),
                           Text(
                             statusIcon,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: statusColor,
-                            ),
+                            style: TextStyle(fontSize: 14, color: statusColor),
                           ),
                         ],
                       ],
@@ -386,12 +387,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               if (isPlaceholder && !isInvited && canSendInvites)
                 OutlinedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/send-invite',
-                        arguments: member.toMap());
+                    Navigator.pushNamed(
+                      context,
+                      '/send-invite',
+                      arguments: member.toMap(),
+                    );
                   },
                   style: OutlinedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   child: const Text('Invite'),
                 ),

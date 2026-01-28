@@ -33,8 +33,7 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
       }
 
       // Get unfilled events for teams where user is lead
-      final leadTeams =
-          teamProvider.teams.where((t) => t.isTeamLead).toList();
+      final leadTeams = teamProvider.teams.where((t) => t.isTeamLead).toList();
 
       final allUnfilledEvents = <RosterEvent>[];
 
@@ -54,7 +53,8 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
       allUnfilledEvents.sort((a, b) => a.date.compareTo(b.date));
       final filtered = allUnfilledEvents
           .where(
-              (e) => e.date.isAfter(now) && e.date.isBefore(fourWeeksFromNow))
+            (e) => e.date.isAfter(now) && e.date.isBefore(fourWeeksFromNow),
+          )
           .toList();
 
       if (mounted) {
@@ -85,17 +85,15 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
           children: [
             const Text(
               'Team Lead',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             TextButton(
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const MyTeamsScreen()),
+                    builder: (context) => const MyTeamsScreen(),
+                  ),
                 );
               },
               child: const Text('View Teams'),
@@ -146,10 +144,7 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
             const SizedBox(height: 8),
             Text(
               'All upcoming rosters are fully assigned',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -158,7 +153,9 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
   }
 
   Widget _buildNeedsAttentionCard(
-      BuildContext context, List<RosterEvent> unfilledEvents) {
+    BuildContext context,
+    List<RosterEvent> unfilledEvents,
+  ) {
     return Card(
       color: Colors.orange.shade50,
       child: Padding(
@@ -168,7 +165,10 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
           children: [
             Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange.shade700,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Needs Attention',
@@ -180,8 +180,10 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
                 ),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.shade200,
                     borderRadius: BorderRadius.circular(12),
@@ -240,10 +242,7 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
                 ),
                 Text(
                   '${_formatDate(event.date)} • $slotsRemaining slot${slotsRemaining == 1 ? '' : 's'} needed',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -288,8 +287,18 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
     }
 
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}';
   }

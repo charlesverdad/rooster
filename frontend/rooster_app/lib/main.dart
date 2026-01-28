@@ -36,7 +36,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Set up unauthorized callback to redirect to login
     ApiClient.setOnUnauthorized(() {
-      navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+      navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        '/login',
+        (route) => false,
+      );
     });
 
     return MultiProvider(
@@ -183,11 +186,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Consumer<AuthProvider>(

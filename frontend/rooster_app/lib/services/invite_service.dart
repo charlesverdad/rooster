@@ -116,10 +116,9 @@ class InviteService {
     String token,
     String password,
   ) async {
-    final response = await ApiClient.post(
-      '/invites/accept/$token',
-      {'password': password},
-    );
+    final response = await ApiClient.post('/invites/accept/$token', {
+      'password': password,
+    });
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);

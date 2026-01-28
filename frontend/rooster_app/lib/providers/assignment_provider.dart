@@ -11,7 +11,8 @@ class AssignmentProvider with ChangeNotifier {
   String? _error;
 
   List<EventAssignment> get assignments => _assignments;
-  EventAssignmentDetail? get currentAssignmentDetail => _currentAssignmentDetail;
+  EventAssignmentDetail? get currentAssignmentDetail =>
+      _currentAssignmentDetail;
   bool get isLoading => _isLoading;
   bool get isLoadingDetail => _isLoadingDetail;
   String? get error => _error;
@@ -52,8 +53,9 @@ class AssignmentProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _currentAssignmentDetail =
-          await AssignmentService.getAssignmentDetail(assignmentId);
+      _currentAssignmentDetail = await AssignmentService.getAssignmentDetail(
+        assignmentId,
+      );
     } catch (e) {
       _error = _getErrorMessage(e);
       debugPrint('Error fetching assignment detail: $e');
@@ -64,10 +66,14 @@ class AssignmentProvider with ChangeNotifier {
   }
 
   Future<bool> updateAssignmentStatus(
-      String assignmentId, String status) async {
+    String assignmentId,
+    String status,
+  ) async {
     try {
-      final updated =
-          await AssignmentService.updateAssignmentStatus(assignmentId, status);
+      final updated = await AssignmentService.updateAssignmentStatus(
+        assignmentId,
+        status,
+      );
 
       // Update local state
       final index = _assignments.indexWhere((a) => a.id == assignmentId);

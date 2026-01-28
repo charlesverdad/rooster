@@ -12,6 +12,7 @@ from app.core.security import get_password_hash
 # Registration Tests
 # =============================================================================
 
+
 async def test_register_user(test_client: AsyncClient):
     """Test successful user registration."""
     response = await test_client.post(
@@ -32,7 +33,11 @@ async def test_register_existing_user(test_client: AsyncClient):
     )
     response = await test_client.post(
         "/api/auth/register",
-        json={"email": "test@example.com", "name": "Another User", "password": "password"},
+        json={
+            "email": "test@example.com",
+            "name": "Another User",
+            "password": "password",
+        },
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -103,6 +108,7 @@ async def test_get_current_user_not_authenticated(test_client: AsyncClient):
 # Input Validation Tests
 # =============================================================================
 
+
 async def test_register_invalid_email(test_client: AsyncClient):
     """Test registration with an invalid email format."""
     response = await test_client.post(
@@ -157,6 +163,7 @@ async def test_register_empty_name(test_client: AsyncClient):
 # Token Validation Tests
 # =============================================================================
 
+
 async def test_get_current_user_invalid_token(test_client: AsyncClient):
     """Test accessing protected endpoint with an invalid token."""
     response = await test_client.get(
@@ -187,6 +194,7 @@ async def test_get_current_user_empty_token(test_client: AsyncClient):
 # =============================================================================
 # Auth Service Unit Tests
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_auth_service_create_user(db_session: AsyncSession):
@@ -252,12 +260,16 @@ async def test_auth_service_authenticate_user(db_session: AsyncSession):
     service = AuthService(db_session)
 
     # Correct password
-    authenticated = await service.authenticate_user("auth@example.com", "correctpassword")
+    authenticated = await service.authenticate_user(
+        "auth@example.com", "correctpassword"
+    )
     assert authenticated is not None
     assert authenticated.email == "auth@example.com"
 
     # Wrong password
-    not_authenticated = await service.authenticate_user("auth@example.com", "wrongpassword")
+    not_authenticated = await service.authenticate_user(
+        "auth@example.com", "wrongpassword"
+    )
     assert not_authenticated is None
 
 
@@ -293,6 +305,7 @@ async def test_auth_service_create_token(db_session: AsyncSession):
 # =============================================================================
 # Full User Flow Tests
 # =============================================================================
+
 
 async def test_full_signup_login_access_flow(test_client: AsyncClient):
     """Test complete user flow: signup -> login -> access protected resource."""

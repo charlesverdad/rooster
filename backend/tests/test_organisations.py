@@ -1,6 +1,7 @@
 """
 Unit tests for the organisation service and API endpoints.
 """
+
 import uuid
 
 import pytest
@@ -110,7 +111,9 @@ async def test_update_organisation(db_session: AsyncSession):
     from app.schemas.organisation import OrganisationUpdate
 
     service = OrganisationService(db_session)
-    updated = await service.update_organisation(org.id, OrganisationUpdate(name="New Name"))
+    updated = await service.update_organisation(
+        org.id, OrganisationUpdate(name="New Name")
+    )
 
     assert updated is not None
     assert updated.name == "New Name"
@@ -238,7 +241,9 @@ async def test_add_member_user_not_found(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_remove_member_from_organisation(db_session: AsyncSession, test_user_for_org):
+async def test_remove_member_from_organisation(
+    db_session: AsyncSession, test_user_for_org
+):
     """Test removing a member from an organisation."""
     user = test_user_for_org
 
@@ -316,7 +321,9 @@ async def test_get_members(db_session: AsyncSession, test_user_for_org):
 
 
 @pytest.mark.asyncio
-async def test_create_organisation_api(test_client: AsyncClient, db_session: AsyncSession, test_user_for_org):
+async def test_create_organisation_api(
+    test_client: AsyncClient, db_session: AsyncSession, test_user_for_org
+):
     """Test creating an organisation via API endpoint."""
     user = test_user_for_org
 
@@ -333,7 +340,9 @@ async def test_create_organisation_api(test_client: AsyncClient, db_session: Asy
 
 
 @pytest.mark.asyncio
-async def test_list_organisations_api(test_client: AsyncClient, db_session: AsyncSession, test_user_for_org):
+async def test_list_organisations_api(
+    test_client: AsyncClient, db_session: AsyncSession, test_user_for_org
+):
     """Test listing organisations via API endpoint."""
     user = test_user_for_org
 
@@ -362,7 +371,9 @@ async def test_list_organisations_api(test_client: AsyncClient, db_session: Asyn
 
 
 @pytest.mark.asyncio
-async def test_get_organisation_api(test_client: AsyncClient, db_session: AsyncSession, test_user_for_org):
+async def test_get_organisation_api(
+    test_client: AsyncClient, db_session: AsyncSession, test_user_for_org
+):
     """Test getting a specific organisation via API endpoint."""
     user = test_user_for_org
 
@@ -390,7 +401,9 @@ async def test_get_organisation_api(test_client: AsyncClient, db_session: AsyncS
 
 
 @pytest.mark.asyncio
-async def test_update_organisation_api(test_client: AsyncClient, db_session: AsyncSession, test_user_for_org):
+async def test_update_organisation_api(
+    test_client: AsyncClient, db_session: AsyncSession, test_user_for_org
+):
     """Test updating an organisation via API endpoint."""
     user = test_user_for_org
 

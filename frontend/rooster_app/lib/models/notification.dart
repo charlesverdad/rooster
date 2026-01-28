@@ -32,7 +32,20 @@ class AppNotification {
     } else if (difference.inDays < 7) {
       return '${difference.inDays} days ago';
     } else {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       return '${months[createdAt.month - 1]} ${createdAt.day}';
     }
   }

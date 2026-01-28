@@ -46,7 +46,8 @@ class TeamMember {
   bool get canManageMembers => hasPermission(TeamPermission.manageMembers);
   bool get canSendInvites => hasPermission(TeamPermission.sendInvites);
   bool get canManageRosters => hasPermission(TeamPermission.manageRosters);
-  bool get canAssignVolunteers => hasPermission(TeamPermission.assignVolunteers);
+  bool get canAssignVolunteers =>
+      hasPermission(TeamPermission.assignVolunteers);
   bool get canViewResponses => hasPermission(TeamPermission.viewResponses);
 
   // Legacy role checks (for backward compatibility)

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -e
+
+echo "Running pre-commit checks..."
+
+# Backend: ruff lint + format check (only if backend files changed)
+if git diff --cached --name-only | grep -q '^backend/'; then
+    echo "Checking backend (ruff)..."
+    cd backend
+    uv run ruff check .
+    uv run ruff format --check .
+    cd ..
+fi
+
+# Frontend: flutter analyze + dart format (only if frontend files changed)
+if git diff --cached --name-only | grep -q '^frontend/'; then
+    echo "Checking frontend (flutter analyze + dart format)..."
+    cd frontend/rooster_app
+    flutter analyze
+    dart format --set-exit-if-changed .
+    cd ../..
+fi
+
+echo "Pre-commit checks passed."

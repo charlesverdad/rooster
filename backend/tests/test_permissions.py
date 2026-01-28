@@ -1,7 +1,6 @@
 """
 Unit tests for the permissions system.
 """
-from datetime import date
 
 import pytest
 from httpx import AsyncClient
@@ -51,7 +50,9 @@ async def setup_team_with_members(db_session: AsyncSession):
         org_member = OrganisationMember(
             user_id=user.id,
             organisation_id=org.id,
-            role=OrganisationRole.ADMIN if user == admin_user else OrganisationRole.MEMBER,
+            role=OrganisationRole.ADMIN
+            if user == admin_user
+            else OrganisationRole.MEMBER,
         )
         db_session.add(org_member)
 
@@ -78,7 +79,9 @@ async def setup_team_with_members(db_session: AsyncSession):
         role=TeamRole.MEMBER,
         permissions=[],  # No permissions
     )
-    db_session.add_all([admin_membership, roster_manager_membership, regular_membership])
+    db_session.add_all(
+        [admin_membership, roster_manager_membership, regular_membership]
+    )
     await db_session.commit()
 
     return {
@@ -149,7 +152,10 @@ async def test_update_member_permissions(
     response = await test_client.patch(
         f"/api/teams/{team.id}/members/{regular_member.id}/permissions",
         json={
-            "permissions": [TeamPermission.MANAGE_ROSTERS, TeamPermission.VIEW_RESPONSES],
+            "permissions": [
+                TeamPermission.MANAGE_ROSTERS,
+                TeamPermission.VIEW_RESPONSES,
+            ],
         },
         headers={"Authorization": f"Bearer {token}"},
     )

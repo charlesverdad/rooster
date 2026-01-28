@@ -17,8 +17,10 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TeamProvider>(context, listen: false)
-          .fetchTeamDetail(widget.teamId);
+      Provider.of<TeamProvider>(
+        context,
+        listen: false,
+      ).fetchTeamDetail(widget.teamId);
     });
   }
 
@@ -36,19 +38,14 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Team Settings'),
-      ),
+      appBar: AppBar(title: const Text('Team Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Team Name
           const Text(
             'Team Name',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Card(
@@ -64,18 +61,12 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
           if (team?.canManageTeam ?? false) ...[
             const Text(
               'Member Permissions',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(
               'Manage what each member can do',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 12),
             ...members
@@ -104,7 +95,8 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
                   style: TextStyle(color: Colors.red.shade700),
                 ),
                 subtitle: const Text(
-                    'Permanently delete this team and all its data'),
+                  'Permanently delete this team and all its data',
+                ),
                 onTap: () => _showDeleteConfirmation(context, team?.name ?? ''),
               ),
             ),
@@ -124,11 +116,12 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
               : Colors.deepPurple.shade300,
           radius: 18,
           child: Text(
-            member.userName.isNotEmpty
-                ? member.userName.substring(0, 1)
-                : '?',
+            member.userName.isNotEmpty ? member.userName.substring(0, 1) : '?',
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ),
         title: Text(member.userName),
@@ -183,12 +176,13 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
 
     return SwitchListTile(
       title: Text(label, style: const TextStyle(fontSize: 14)),
-      subtitle: Text(description,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+      subtitle: Text(
+        description,
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+      ),
       value: hasPermission,
       onChanged: (value) async {
-        final teamProvider =
-            Provider.of<TeamProvider>(context, listen: false);
+        final teamProvider = Provider.of<TeamProvider>(context, listen: false);
         final newPermissions = List<String>.from(member.permissions);
         if (value) {
           newPermissions.add(permission);
@@ -209,7 +203,7 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Edit Team Name'),
         content: TextField(
           controller: controller,
@@ -222,7 +216,7 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
@@ -230,20 +224,24 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
               final name = controller.text.trim();
               if (name.isEmpty) return;
 
-              Navigator.of(context).pop();
-              final teamProvider =
-                  Provider.of<TeamProvider>(context, listen: false);
-              final success =
-                  await teamProvider.updateTeam(widget.teamId, name: name);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                        success ? 'Team name updated' : 'Failed to update'),
-                    backgroundColor: success ? null : Colors.red,
+              Navigator.of(dialogContext).pop();
+              final teamProvider = Provider.of<TeamProvider>(
+                context,
+                listen: false,
+              );
+              final success = await teamProvider.updateTeam(
+                widget.teamId,
+                name: name,
+              );
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    success ? 'Team name updated' : 'Failed to update',
                   ),
-                );
-              }
+                  backgroundColor: success ? null : Colors.red,
+                ),
+              );
             },
             child: const Text('Save'),
           ),
@@ -255,38 +253,40 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
   void _showDeleteConfirmation(BuildContext context, String teamName) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Team'),
         content: Text(
           'Are you sure you want to delete "$teamName"? This will remove all members, rosters, events, and assignments. This cannot be undone.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () async {
-              Navigator.of(context).pop();
-              final teamProvider =
-                  Provider.of<TeamProvider>(context, listen: false);
+              Navigator.of(dialogContext).pop();
+              final teamProvider = Provider.of<TeamProvider>(
+                context,
+                listen: false,
+              );
               final success = await teamProvider.deleteTeam(widget.teamId);
-              if (mounted) {
-                if (success) {
-                  // Pop back to teams list
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Team deleted')),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          'Failed to delete: ${teamProvider.error ?? "Unknown error"}'),
-                      backgroundColor: Colors.red,
+              if (!context.mounted) return;
+              if (success) {
+                // Pop back to teams list
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Team deleted')));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to delete: ${teamProvider.error ?? "Unknown error"}',
                     ),
-                  );
-                }
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red),

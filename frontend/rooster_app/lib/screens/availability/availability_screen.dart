@@ -16,17 +16,26 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AssignmentProvider>(context, listen: false).fetchMyAssignments();
+      Provider.of<AssignmentProvider>(
+        context,
+        listen: false,
+      ).fetchMyAssignments();
     });
   }
 
   Future<void> _refresh() async {
-    await Provider.of<AssignmentProvider>(context, listen: false).fetchMyAssignments();
+    await Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    ).fetchMyAssignments();
   }
 
   Future<void> _updateStatus(String assignmentId, String newStatus) async {
     final provider = Provider.of<AssignmentProvider>(context, listen: false);
-    final success = await provider.updateAssignmentStatus(assignmentId, newStatus);
+    final success = await provider.updateAssignmentStatus(
+      assignmentId,
+      newStatus,
+    );
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -36,7 +45,9 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                 ? 'Assignment accepted'
                 : 'Assignment declined',
           ),
-          backgroundColor: newStatus == 'confirmed' ? Colors.green : Colors.orange,
+          backgroundColor: newStatus == 'confirmed'
+              ? Colors.green
+              : Colors.orange,
         ),
       );
     }
@@ -52,9 +63,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
     final declined = provider.assignments.where((a) => a.isDeclined).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Assignments'),
-      ),
+      appBar: AppBar(title: const Text('My Assignments')),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: provider.isLoading
@@ -70,11 +79,13 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                       Colors.orange,
                     ),
                     const SizedBox(height: 8),
-                    ...pending.map((assignment) => _buildAssignmentCard(
-                          context,
-                          assignment,
-                          showActions: true,
-                        )),
+                    ...pending.map(
+                      (assignment) => _buildAssignmentCard(
+                        context,
+                        assignment,
+                        showActions: true,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                   if (confirmed.isNotEmpty) ...[
@@ -85,11 +96,13 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                       Colors.green,
                     ),
                     const SizedBox(height: 8),
-                    ...confirmed.map((assignment) => _buildAssignmentCard(
-                          context,
-                          assignment,
-                          showActions: false,
-                        )),
+                    ...confirmed.map(
+                      (assignment) => _buildAssignmentCard(
+                        context,
+                        assignment,
+                        showActions: false,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                   if (declined.isNotEmpty) ...[
@@ -100,11 +113,13 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                       Colors.grey,
                     ),
                     const SizedBox(height: 8),
-                    ...declined.map((assignment) => _buildAssignmentCard(
-                          context,
-                          assignment,
-                          showActions: false,
-                        )),
+                    ...declined.map(
+                      (assignment) => _buildAssignmentCard(
+                        context,
+                        assignment,
+                        showActions: false,
+                      ),
+                    ),
                   ],
                   if (provider.assignments.isEmpty)
                     const Center(
@@ -112,11 +127,18 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                         padding: EdgeInsets.all(32),
                         child: Column(
                           children: [
-                            Icon(Icons.event_available, size: 64, color: Colors.grey),
+                            Icon(
+                              Icons.event_available,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
                             SizedBox(height: 16),
                             Text(
                               'No assignments yet',
-                              style: TextStyle(color: Colors.grey, fontSize: 16),
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                              ),
                             ),
                           ],
                         ),
@@ -147,9 +169,9 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
         const SizedBox(width: 12),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(width: 8),
         Container(
@@ -160,10 +182,7 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
           ),
           child: Text(
             '$count',
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
           ),
         ),
       ],
@@ -177,8 +196,8 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
   }) {
     final dateFormat = DateFormat('EEEE, MMMM d, y');
     final eventDate = assignment.eventDate;
-    final isToday = eventDate != null &&
-        DateTime.now().difference(eventDate).inDays == 0;
+    final isToday =
+        eventDate != null && DateTime.now().difference(eventDate).inDays == 0;
     final isPast = eventDate != null && eventDate.isBefore(DateTime.now());
 
     return Card(
@@ -243,7 +262,8 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _updateStatus(assignment.id, 'confirmed'),
+                      onPressed: () =>
+                          _updateStatus(assignment.id, 'confirmed'),
                       icon: const Icon(Icons.check),
                       label: const Text('Accept'),
                       style: ElevatedButton.styleFrom(

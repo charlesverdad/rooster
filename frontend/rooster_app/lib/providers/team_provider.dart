@@ -155,15 +155,19 @@ class TeamProvider with ChangeNotifier {
   }
 
   Future<bool> updateMemberPermissions(
-      String teamId, String userId, List<String> permissions) async {
+    String teamId,
+    String userId,
+    List<String> permissions,
+  ) async {
     try {
       await TeamService.updateMemberPermissions(teamId, userId, permissions);
 
       // Update local member
       final index = _currentTeamMembers.indexWhere((m) => m.userId == userId);
       if (index != -1) {
-        _currentTeamMembers[index] =
-            _currentTeamMembers[index].copyWith(permissions: permissions);
+        _currentTeamMembers[index] = _currentTeamMembers[index].copyWith(
+          permissions: permissions,
+        );
         notifyListeners();
       }
       return true;

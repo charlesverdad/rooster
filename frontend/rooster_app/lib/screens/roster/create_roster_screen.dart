@@ -36,9 +36,7 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('New Roster'),
-      ),
+      appBar: AppBar(title: const Text('New Roster')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -227,9 +225,7 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
             },
             icon: const Icon(Icons.access_time),
             label: Text(
-              _eventTime != null
-                  ? _eventTime!.format(context)
-                  : 'Select time',
+              _eventTime != null ? _eventTime!.format(context) : 'Select time',
             ),
           ),
           if (_eventTime != null)
@@ -279,7 +275,9 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
             const SizedBox(height: 12),
             RadioListTile<String>(
               title: const Text('Never'),
-              subtitle: const Text('Continues indefinitely (generates 7 events at a time)'),
+              subtitle: const Text(
+                'Continues indefinitely (generates 7 events at a time)',
+              ),
               value: 'never',
               groupValue: _endType,
               onChanged: (value) {
@@ -301,7 +299,9 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                   onPressed: () async {
                     final date = await showDatePicker(
                       context: context,
-                      initialDate: _endDate ?? DateTime.now().add(const Duration(days: 90)),
+                      initialDate:
+                          _endDate ??
+                          DateTime.now().add(const Duration(days: 90)),
                       firstDate: _startDate ?? DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 730)),
                     );
@@ -342,7 +342,9 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
-                        controller: TextEditingController(text: '$_occurrences'),
+                        controller: TextEditingController(
+                          text: '$_occurrences',
+                        ),
                         onChanged: (value) {
                           final num = int.tryParse(value);
                           if (num != null && num > 0) {
@@ -382,7 +384,9 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
 
                 if (_recurrence == 'once' && _endDate == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select a date for one-time event')),
+                    const SnackBar(
+                      content: Text('Please select a date for one-time event'),
+                    ),
                   );
                   return;
                 }
@@ -398,7 +402,10 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                       : 'Time: $timeStr';
                 }
 
-                final rosterProvider = Provider.of<RosterProvider>(context, listen: false);
+                final rosterProvider = Provider.of<RosterProvider>(
+                  context,
+                  listen: false,
+                );
                 final success = await rosterProvider.createRoster(
                   teamId: widget.teamId ?? '1',
                   name: _nameController.text.trim(),
@@ -411,13 +418,17 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                       : null,
                   notes: notes,
                   endDate: _endDate,
-                  endAfterOccurrences: _endType == 'after_occurrences' ? _occurrences : null,
+                  endAfterOccurrences: _endType == 'after_occurrences'
+                      ? _occurrences
+                      : null,
                 );
 
                 if (success && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('✅ Roster "${_nameController.text.trim()}" created'),
+                      content: Text(
+                        '✅ Roster "${_nameController.text.trim()}" created',
+                      ),
                     ),
                   );
                   Navigator.of(context).pop();
@@ -442,7 +453,9 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade200,
+          color: isSelected
+              ? Theme.of(context).primaryColor
+              : Colors.grey.shade200,
           shape: BoxShape.circle,
         ),
         child: Center(

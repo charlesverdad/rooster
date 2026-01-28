@@ -40,7 +40,8 @@ class Team {
   bool get canManageMembers => hasPermission(TeamPermission.manageMembers);
   bool get canSendInvites => hasPermission(TeamPermission.sendInvites);
   bool get canManageRosters => hasPermission(TeamPermission.manageRosters);
-  bool get canAssignVolunteers => hasPermission(TeamPermission.assignVolunteers);
+  bool get canAssignVolunteers =>
+      hasPermission(TeamPermission.assignVolunteers);
   bool get canViewResponses => hasPermission(TeamPermission.viewResponses);
 
   // Legacy role checks (for backward compatibility)
@@ -64,8 +65,9 @@ class Team {
       responseRate: json['response_rate']?.toDouble(),
       coverageRate: json['coverage_rate']?.toDouble(),
       activeMembers: json['active_members'],
-      nextRoster:
-          json['next_roster'] != null ? DateTime.parse(json['next_roster']) : null,
+      nextRoster: json['next_roster'] != null
+          ? DateTime.parse(json['next_roster'])
+          : null,
       unfilledSlots: json['unfilled_slots'],
     );
   }

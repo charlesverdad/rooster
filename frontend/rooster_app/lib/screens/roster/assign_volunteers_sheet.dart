@@ -27,25 +27,20 @@ class AssignVolunteersSheet extends StatefulWidget {
   // Named constructor for roster detail usage
   const AssignVolunteersSheet.forRoster({
     super.key,
-    required String teamId,
-    required Function(String userId) onAssign,
-  })  : teamId = teamId,
-        onAssign = onAssign,
-        eventId = null,
-        eventDate = null,
-        rosterName = null;
+    required this.teamId,
+    required this.onAssign,
+  }) : eventId = null,
+       eventDate = null,
+       rosterName = null;
 
   // Named constructor for home screen usage
   const AssignVolunteersSheet.forEvent({
     super.key,
-    required String eventId,
-    required DateTime eventDate,
-    required String rosterName,
-  })  : eventId = eventId,
-        eventDate = eventDate,
-        rosterName = rosterName,
-        teamId = null,
-        onAssign = null;
+    required this.eventId,
+    required this.eventDate,
+    required this.rosterName,
+  }) : teamId = null,
+       onAssign = null;
 
   @override
   State<AssignVolunteersSheet> createState() => _AssignVolunteersSheetState();
@@ -62,8 +57,10 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.teamId != null) {
-        Provider.of<TeamProvider>(context, listen: false)
-            .fetchTeamDetail(widget.teamId!);
+        Provider.of<TeamProvider>(
+          context,
+          listen: false,
+        ).fetchTeamDetail(widget.teamId!);
         _fetchAvailability(widget.teamId!);
       }
     });
@@ -110,8 +107,18 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
 
   String _formatDate(DateTime date) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}';
   }
@@ -124,9 +131,12 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
     final filteredMembers = _searchQuery.isEmpty
         ? members
         : members
-            .where((m) =>
-                m.userName.toLowerCase().contains(_searchQuery.toLowerCase()))
-            .toList();
+              .where(
+                (m) => m.userName.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ),
+              )
+              .toList();
 
     // Split members into available, unavailable, and placeholders
     final available = <TeamMember>[];
@@ -236,8 +246,9 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...available.map((member) =>
-                      _buildMemberTile(member, true, false, null)),
+                  ...available.map(
+                    (member) => _buildMemberTile(member, true, false, null),
+                  ),
                   const SizedBox(height: 16),
                 ],
                 if (placeholders.isNotEmpty) ...[
@@ -250,8 +261,9 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...placeholders.map((member) =>
-                      _buildMemberTile(member, true, true, null)),
+                  ...placeholders.map(
+                    (member) => _buildMemberTile(member, true, true, null),
+                  ),
                   const SizedBox(height: 16),
                 ],
                 if (unavailable.isNotEmpty) ...[
@@ -264,11 +276,14 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...unavailable.map((member) => _buildMemberTile(
+                  ...unavailable.map(
+                    (member) => _buildMemberTile(
                       member,
                       false,
                       false,
-                      _unavailabilityReasons[member.userId])),
+                      _unavailabilityReasons[member.userId],
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -279,7 +294,11 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   }
 
   Widget _buildMemberTile(
-      TeamMember member, bool isAvailable, bool isPlaceholder, String? unavailableReason) {
+    TeamMember member,
+    bool isAvailable,
+    bool isPlaceholder,
+    String? unavailableReason,
+  ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -287,16 +306,22 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
           backgroundColor: isPlaceholder
               ? Colors.grey.shade400
               : isAvailable
-                  ? Colors.deepPurple.shade300
-                  : Colors.grey.shade300,
+              ? Colors.deepPurple.shade300
+              : Colors.grey.shade300,
           child: isPlaceholder
-              ? Icon(Icons.person_outline, color: Colors.grey.shade100, size: 20)
+              ? Icon(
+                  Icons.person_outline,
+                  color: Colors.grey.shade100,
+                  size: 20,
+                )
               : Text(
                   member.userName.isNotEmpty
                       ? member.userName.substring(0, 1)
                       : '?',
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
         ),
         title: Row(
@@ -317,10 +342,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                 ),
                 child: Text(
                   member.isInvited ? 'Invited' : 'Not invited',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ),
             ],
@@ -329,20 +351,14 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
         subtitle: !isAvailable && unavailableReason != null
             ? Text(
                 unavailableReason,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.red.shade400,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.red.shade400),
               )
             : !isAvailable
-                ? Text(
-                    'Unavailable',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.red.shade400,
-                    ),
-                  )
-                : null,
+            ? Text(
+                'Unavailable',
+                style: TextStyle(fontSize: 12, color: Colors.red.shade400),
+              )
+            : null,
         trailing: isAvailable ? const Icon(Icons.chevron_right) : null,
         onTap: isAvailable
             ? () async {
@@ -371,10 +387,14 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
 
     // Otherwise use eventId (home screen flow)
     if (widget.eventId != null) {
-      final rosterProvider =
-          Provider.of<RosterProvider>(context, listen: false);
+      final rosterProvider = Provider.of<RosterProvider>(
+        context,
+        listen: false,
+      );
       final success = await rosterProvider.assignVolunteerToEvent(
-          widget.eventId!, memberId);
+        widget.eventId!,
+        memberId,
+      );
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -394,8 +414,8 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
         ? '$memberName assigned. Invite them to notify.'
         : '$memberName assigned. Notification sent.';
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }

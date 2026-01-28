@@ -1,6 +1,7 @@
 """
 Unit tests for the team service and API endpoints.
 """
+
 import pytest
 from datetime import date
 from httpx import AsyncClient
@@ -154,7 +155,6 @@ async def test_add_member_to_team(db_session: AsyncSession, org_with_admin):
     """Test adding a member to a team."""
     data = org_with_admin
     org = data["org"]
-    admin = data["admin"]
 
     team = Team(name="Media Team", organisation_id=org.id)
     db_session.add(team)
@@ -258,8 +258,14 @@ async def test_check_permission(db_session: AsyncSession, org_with_admin):
 
     service = TeamService(db_session)
 
-    assert await service.check_permission(admin.id, team.id, TeamPermission.MANAGE_ROSTERS) is True
-    assert await service.check_permission(admin.id, team.id, TeamPermission.MANAGE_TEAM) is False
+    assert (
+        await service.check_permission(admin.id, team.id, TeamPermission.MANAGE_ROSTERS)
+        is True
+    )
+    assert (
+        await service.check_permission(admin.id, team.id, TeamPermission.MANAGE_TEAM)
+        is False
+    )
 
 
 @pytest.mark.asyncio
@@ -410,16 +416,22 @@ async def test_count_members_with_permission(db_session: AsyncSession, org_with_
     service = TeamService(db_session)
 
     # Both should have view_responses (admin has all)
-    count = await service.count_members_with_permission(team.id, TeamPermission.VIEW_RESPONSES)
+    count = await service.count_members_with_permission(
+        team.id, TeamPermission.VIEW_RESPONSES
+    )
     assert count == 2
 
     # Only admin should have manage_team
-    count = await service.count_members_with_permission(team.id, TeamPermission.MANAGE_TEAM)
+    count = await service.count_members_with_permission(
+        team.id, TeamPermission.MANAGE_TEAM
+    )
     assert count == 1
 
 
 @pytest.mark.asyncio
-async def test_create_team_api(test_client: AsyncClient, db_session: AsyncSession, org_with_admin):
+async def test_create_team_api(
+    test_client: AsyncClient, db_session: AsyncSession, org_with_admin
+):
     """Test creating a team via API endpoint."""
     data = org_with_admin
     org = data["org"]
@@ -441,7 +453,9 @@ async def test_create_team_api(test_client: AsyncClient, db_session: AsyncSessio
 
 
 @pytest.mark.asyncio
-async def test_list_teams_api(test_client: AsyncClient, db_session: AsyncSession, org_with_admin):
+async def test_list_teams_api(
+    test_client: AsyncClient, db_session: AsyncSession, org_with_admin
+):
     """Test listing teams via API endpoint."""
     data = org_with_admin
     org = data["org"]

@@ -14,7 +14,9 @@ from app.services.availability import AvailabilityService
 router = APIRouter(prefix="/availability", tags=["availability"])
 
 
-@router.post("", response_model=UnavailabilityResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=UnavailabilityResponse, status_code=status.HTTP_201_CREATED
+)
 async def mark_unavailable(
     data: UnavailabilityCreate,
     current_user: CurrentUser,
@@ -49,7 +51,7 @@ async def delete_unavailability(
 ) -> None:
     """Delete an unavailability record. User can only delete their own."""
     service = AvailabilityService(db)
-    
+
     # First check if the unavailability exists and belongs to the user
     unavailabilities = await service.get_user_unavailabilities(current_user.id)
     if not any(u.id == unavailability_id for u in unavailabilities):
@@ -57,7 +59,7 @@ async def delete_unavailability(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Unavailability not found or not authorized",
         )
-    
+
     await service.delete_unavailability(unavailability_id)
 
 
@@ -69,14 +71,16 @@ async def check_conflicts(
     """Check for conflicts between assignments and unavailabilities."""
     service = AvailabilityService(db)
     conflicts = await service.check_user_conflicts(current_user.id)
-    
+
     return [
         ConflictResponse(
             assignment_id=assignment.id,
             unavailability_id=unavailability.id,
             date=assignment.date,
             roster_name=assignment.roster.name if assignment.roster else "Unknown",
-            team_name=assignment.roster.team.name if assignment.roster and assignment.roster.team else "Unknown",
+            team_name=assignment.roster.team.name
+            if assignment.roster and assignment.roster.team
+            else "Unknown",
             reason=unavailability.reason,
         )
         for assignment, unavailability in conflicts
