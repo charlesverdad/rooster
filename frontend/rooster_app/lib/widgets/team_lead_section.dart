@@ -225,21 +225,25 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.rosterName ?? 'Roster',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+            child: InkWell(
+              onTap: () => context.push('/rosters/${event.rosterId}'),
+              borderRadius: BorderRadius.circular(4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.rosterName ?? 'Roster',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                Text(
-                  '${_formatDate(event.date)} • $slotsRemaining slot${slotsRemaining == 1 ? '' : 's'} needed',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                ),
-              ],
+                  Text(
+                    '${_formatDate(event.date)} • $slotsRemaining slot${slotsRemaining == 1 ? '' : 's'} needed',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
             ),
           ),
           TextButton.icon(
