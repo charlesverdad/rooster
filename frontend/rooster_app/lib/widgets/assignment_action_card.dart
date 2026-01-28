@@ -32,13 +32,13 @@ class AssignmentActionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade100,
+                  color: Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   'PENDING RESPONSE',
                   style: TextStyle(
-                    color: Colors.red.shade900,
+                    color: Colors.grey.shade700,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
