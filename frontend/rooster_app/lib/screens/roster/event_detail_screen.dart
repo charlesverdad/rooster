@@ -9,13 +9,8 @@ import 'assign_volunteers_sheet.dart';
 
 class EventDetailScreen extends StatefulWidget {
   final String eventId;
-  final String teamId;
 
-  const EventDetailScreen({
-    super.key,
-    required this.eventId,
-    required this.teamId,
-  });
+  const EventDetailScreen({super.key, required this.eventId});
 
   @override
   State<EventDetailScreen> createState() => _EventDetailScreenState();
@@ -31,6 +26,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     super.initState();
     _loadEvent();
   }
+
+  String? get _teamId => _event?.teamId;
 
   Future<void> _loadEvent() async {
     setState(() {
@@ -49,6 +46,17 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           _event = event;
           _isLoading = false;
         });
+        // Ensure team data is loaded for permissions
+        final eventTeamId = event.teamId;
+        if (eventTeamId != null) {
+          final teamProvider = Provider.of<TeamProvider>(
+            context,
+            listen: false,
+          );
+          if (teamProvider.currentTeam?.id != eventTeamId) {
+            teamProvider.fetchTeamDetail(eventTeamId);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -453,7 +461,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       context: context,
       isScrollControlled: true,
       builder: (context) => AssignVolunteersSheet(
-        teamId: widget.teamId,
+        teamId: _teamId ?? '',
         eventDate: event.date,
         onAssign: (userId) async {
           final rosterProvider = Provider.of<RosterProvider>(
@@ -461,10 +469,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             listen: false,
           );
           await rosterProvider.assignVolunteerToEvent(event.id, userId);
-          await _loadEvent();
         },
       ),
-    );
+    ).then((_) => _loadEvent());
   }
 
   void _showRemoveConfirmation(

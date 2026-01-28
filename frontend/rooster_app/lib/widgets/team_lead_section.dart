@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/roster_event.dart';
 import '../providers/team_provider.dart';
 import '../services/roster_service.dart';
-import '../screens/teams/my_teams_screen.dart';
 import '../screens/roster/assign_volunteers_sheet.dart';
 
 class TeamLeadSection extends StatefulWidget {
@@ -89,12 +89,7 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MyTeamsScreen(),
-                  ),
-                );
+                context.push('/teams');
               },
               child: const Text('View Teams'),
             ),
@@ -265,12 +260,14 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => AssignVolunteersSheet.forEvent(
+      builder: (context) => AssignVolunteersSheet(
+        teamId: event.teamId,
         eventId: event.id,
         eventDate: event.date,
         rosterName: event.rosterName ?? 'Roster',
+        onAssign: null,
       ),
-    );
+    ).then((_) => _loadUnfilledEvents());
   }
 
   String _formatDate(DateTime date) {

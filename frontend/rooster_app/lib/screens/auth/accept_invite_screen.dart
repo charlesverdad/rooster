@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_client.dart';
@@ -83,7 +84,6 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
     // Capture context-dependent objects before async gaps
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
 
     try {
       final result = await InviteService.acceptInvite(
@@ -104,13 +104,13 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
           ),
         );
 
+        if (!mounted) return;
+
         // Navigate to team detail if we have a team_id, otherwise home
         final teamId = result['team_id']?.toString();
+        context.go('/');
         if (teamId != null) {
-          navigator.pushNamedAndRemoveUntil('/home', (route) => false);
-          navigator.pushNamed('/team-detail', arguments: teamId);
-        } else {
-          navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+          context.push('/teams/$teamId');
         }
       } else {
         setState(() {
@@ -334,7 +334,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                     // Login link
                     TextButton(
                       onPressed: () {
-                        Navigator.of(context).pushReplacementNamed('/login');
+                        context.go('/login');
                       },
                       child: const Text('Already have an account? Login'),
                     ),
@@ -402,14 +402,14 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                 if (_alreadyAccepted)
                   FilledButton(
                     onPressed: () {
-                      Navigator.of(context).pushReplacementNamed('/login');
+                      context.go('/login');
                     },
                     child: const Text('Go to Login'),
                   )
                 else
                   OutlinedButton(
                     onPressed: () {
-                      Navigator.of(context).pushReplacementNamed('/login');
+                      context.go('/login');
                     },
                     child: const Text('Go to Login'),
                   ),

@@ -56,6 +56,9 @@ dependencies:
   # Deep linking for invite URLs
   app_links: ^6.3.3
 
+  # URL-based routing
+  go_router: ^14.0.0
+
 
 dev_dependencies:
   flutter_test:

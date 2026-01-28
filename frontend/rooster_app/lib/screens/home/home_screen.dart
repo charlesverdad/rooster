@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/event_assignment.dart';
 import '../../providers/auth_provider.dart';
@@ -10,10 +11,6 @@ import '../../widgets/assignment_action_card.dart';
 import '../../widgets/upcoming_assignment_card.dart';
 import '../../widgets/team_lead_section.dart';
 import '../../widgets/empty_state.dart';
-import '../assignments/assignment_detail_screen.dart';
-import '../auth/accept_invite_screen.dart';
-import '../teams/team_detail_screen.dart';
-import '../teams/my_teams_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +20,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _refreshKey = 0;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
       notificationProvider.fetchNotifications(),
       teamProvider.fetchMyTeams(),
     ]);
+    if (mounted) {
+      setState(() => _refreshKey++);
+    }
   }
 
   @override
@@ -74,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
                 onPressed: () {
-                  Navigator.pushNamed(context, '/notifications');
+                  context.push('/notifications').then((_) => _loadData());
                 },
               ),
               if (unreadCount > 0)
@@ -107,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              Navigator.pushNamed(context, '/settings');
+              context.push('/settings');
             },
           ),
         ],
@@ -132,12 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       OutlinedButton.icon(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MyTeamsScreen(),
-                            ),
-                          );
+                          context.push('/teams').then((_) => _loadData());
                         },
                         icon: const Icon(Icons.group_outlined, size: 18),
                         label: const Text('My Teams'),
@@ -221,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Team Lead Section (if applicable)
                   if (isTeamLead) ...[
                     const SizedBox(height: 32),
-                    const TeamLeadSection(),
+                    TeamLeadSection(key: ValueKey(_refreshKey)),
                   ],
                 ],
               ),
@@ -322,12 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         // Navigate to the new team's detail page
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TeamDetailScreen(teamId: team.id),
-          ),
-        );
+        context.push('/teams/${team.id}').then((_) => _loadData());
       } else if (teamProvider.error != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -368,12 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 final token = extractTokenFromInviteUrl(value);
                 if (token != null) {
                   Navigator.of(context).pop();
-                  Navigator.push(
-                    this.context,
-                    MaterialPageRoute(
-                      builder: (context) => AcceptInviteScreen(token: token),
-                    ),
-                  );
+                  this.context.push('/invite/$token');
                 }
               },
             ),
@@ -389,12 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
               final token = extractTokenFromInviteUrl(controller.text);
               if (token != null) {
                 Navigator.of(context).pop();
-                Navigator.push(
-                  this.context,
-                  MaterialPageRoute(
-                    builder: (context) => AcceptInviteScreen(token: token),
-                  ),
-                );
+                this.context.push('/invite/$token');
               }
             },
             child: const Text('Join'),
@@ -433,13 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToDetail(EventAssignment assignment) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            AssignmentDetailScreen(assignmentId: assignment.id),
-      ),
-    );
+    context.push('/assignments/${assignment.id}').then((_) => _loadData());
   }
 
   Future<void> _handleAccept(EventAssignment assignment) async {

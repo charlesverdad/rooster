@@ -8,10 +8,12 @@ import '../services/api_client.dart';
 class AuthProvider with ChangeNotifier {
   User? _user;
   bool _isLoading = false;
+  bool _isInitialized = false;
   String? _error;
 
   User? get user => _user;
   bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
   String? get error => _error;
   bool get isAuthenticated => _user != null;
 
@@ -20,6 +22,8 @@ class AuthProvider with ChangeNotifier {
     if (ApiClient.hasToken) {
       await fetchCurrentUser();
     }
+    _isInitialized = true;
+    notifyListeners();
   }
 
   Future<bool> login(String email, String password) async {

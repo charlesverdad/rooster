@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'add_member_sheet.dart';
-import 'member_detail_screen.dart';
-import '../roster/create_roster_screen.dart';
 import '../../providers/roster_provider.dart';
 import '../../providers/team_provider.dart';
 import '../../models/team.dart';
@@ -21,16 +20,18 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<RosterProvider>(
-        context,
-        listen: false,
-      ).fetchTeamRosters(widget.teamId);
-      Provider.of<TeamProvider>(
-        context,
-        listen: false,
-      ).fetchTeamDetail(widget.teamId);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshTeamData());
+  }
+
+  void _refreshTeamData() {
+    Provider.of<RosterProvider>(
+      context,
+      listen: false,
+    ).fetchTeamRosters(widget.teamId);
+    Provider.of<TeamProvider>(
+      context,
+      listen: false,
+    ).fetchTeamDetail(widget.teamId);
   }
 
   @override
@@ -87,11 +88,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             IconButton(
               icon: const Icon(Icons.settings),
               onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/team-settings',
-                  arguments: widget.teamId,
-                );
+                context
+                    .push('/teams/${widget.teamId}/settings')
+                    .then((_) => _refreshTeamData());
               },
             ),
         ],
@@ -167,13 +166,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                 if (team?.canManageRosters ?? false)
                   TextButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              CreateRosterScreen(teamId: widget.teamId),
-                        ),
-                      );
+                      context
+                          .push('/teams/${widget.teamId}/rosters/new')
+                          .then((_) => _refreshTeamData());
                     },
                     child: const Text('+ Create Roster'),
                   ),
@@ -261,7 +256,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/roster-detail', arguments: roster.id);
+          context.push('/rosters/${roster.id}').then((_) => _refreshTeamData());
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -326,12 +321,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MemberDetailScreen(member: member.toMap()),
-            ),
-          );
+          context
+              .push('/teams/${widget.teamId}/members/${member.userId}')
+              .then((_) => _refreshTeamData());
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -387,11 +379,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               if (isPlaceholder && !isInvited && canSendInvites)
                 OutlinedButton(
                   onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/send-invite',
-                      arguments: member.toMap(),
-                    );
+                    context
+                        .push('/teams/${widget.teamId}/invite/${member.userId}')
+                        .then((_) => _refreshTeamData());
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
