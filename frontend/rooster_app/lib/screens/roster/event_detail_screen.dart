@@ -389,7 +389,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         leading: CircleAvatar(
           backgroundColor: assignment.isPlaceholder
               ? Colors.grey.shade400
-              : Colors.grey.shade900,
+              : Colors.grey.shade600,
           child: assignment.isPlaceholder
               ? Icon(
                   Icons.person_outline,

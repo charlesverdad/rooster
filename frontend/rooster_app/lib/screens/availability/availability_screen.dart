@@ -261,12 +261,12 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: FilledButton.icon(
                       onPressed: () =>
                           _updateStatus(assignment.id, 'confirmed'),
                       icon: const Icon(Icons.check),
                       label: const Text('Accept'),
-                      style: ElevatedButton.styleFrom(
+                      style: FilledButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                       ),

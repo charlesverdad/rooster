@@ -270,7 +270,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.grey.shade900,
+                    backgroundColor: Colors.grey.shade600,
                     child: Text(
                       team.name.isNotEmpty ? team.name.substring(0, 1) : '?',
                       style: const TextStyle(

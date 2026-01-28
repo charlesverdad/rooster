@@ -115,8 +115,11 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
   }
 
   Widget _buildAllFilledCard() {
+    const softSageBg = Color(0xFFE8F5E8);
+    const softSageText = Color(0xFF4A7C59);
+
     return Card(
-      color: Colors.green.shade50,
+      color: softSageBg,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -124,14 +127,14 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
           children: [
             Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green.shade700),
+                const Icon(Icons.check_circle, color: softSageText),
                 const SizedBox(width: 8),
-                Text(
+                const Text(
                   'All Set',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.green.shade900,
+                    color: softSageText,
                   ),
                 ),
               ],
@@ -151,8 +154,11 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
     BuildContext context,
     List<RosterEvent> unfilledEvents,
   ) {
+    const warmSandBg = Color(0xFFFFF3E0);
+    const warmSandText = Color(0xFFBF8040);
+
     return Card(
-      color: Colors.orange.shade50,
+      color: warmSandBg,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -160,17 +166,14 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.orange.shade700,
-                ),
+                const Icon(Icons.warning_amber_rounded, color: warmSandText),
                 const SizedBox(width: 8),
-                Text(
+                const Text(
                   'Needs Attention',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.orange.shade900,
+                    color: warmSandText,
                   ),
                 ),
                 const Spacer(),
@@ -180,15 +183,15 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade200,
+                    color: warmSandText.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${unfilledEvents.length} unfilled',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.orange.shade900,
+                      color: warmSandText,
                     ),
                   ),
                 ),
@@ -204,9 +207,9 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   '+ ${unfilledEvents.length - 3} more unfilled slots',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.orange.shade700,
+                    color: Color(0xFFBF8040),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -225,21 +228,25 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.rosterName ?? 'Roster',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+            child: InkWell(
+              onTap: () => context.push('/events/${event.id}'),
+              borderRadius: BorderRadius.circular(4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.rosterName ?? 'Roster',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                Text(
-                  '${_formatDate(event.date)} • $slotsRemaining slot${slotsRemaining == 1 ? '' : 's'} needed',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                ),
-              ],
+                  Text(
+                    '${_formatDate(event.date)} • $slotsRemaining slot${slotsRemaining == 1 ? '' : 's'} needed',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
             ),
           ),
           TextButton.icon(

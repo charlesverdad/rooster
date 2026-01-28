@@ -2,9 +2,12 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.permissions import TeamPermission
+from app.models.team import TeamMember
+from app.models.roster import Roster
 from app.schemas.team import (
     AddPlaceholderMemberRequest,
     AddTeamMemberRequest,
@@ -76,6 +79,30 @@ async def list_my_teams(
     """List all teams the current user belongs to."""
     service = TeamService(db)
     teams = await service.get_user_teams(current_user.id, organisation_id)
+
+    # Gather team IDs for batch count queries
+    team_ids = [team.id for team, _, _ in teams]
+
+    # Query member counts per team
+    member_counts: dict[uuid.UUID, int] = {}
+    if team_ids:
+        member_count_result = await db.execute(
+            select(TeamMember.team_id, func.count())
+            .where(TeamMember.team_id.in_(team_ids))
+            .group_by(TeamMember.team_id)
+        )
+        member_counts = dict(member_count_result.all())
+
+    # Query roster counts per team
+    roster_counts: dict[uuid.UUID, int] = {}
+    if team_ids:
+        roster_count_result = await db.execute(
+            select(Roster.team_id, func.count())
+            .where(Roster.team_id.in_(team_ids))
+            .group_by(Roster.team_id)
+        )
+        roster_counts = dict(roster_count_result.all())
+
     return [
         TeamWithRole(
             id=team.id,
@@ -83,6 +110,8 @@ async def list_my_teams(
             organisation_id=team.organisation_id,
             role=role,
             permissions=permissions or [],
+            member_count=member_counts.get(team.id, 0),
+            roster_count=roster_counts.get(team.id, 0),
             created_at=team.created_at,
         )
         for team, role, permissions in teams
@@ -141,12 +170,25 @@ async def get_team(
     # Get user's team membership for role and permissions
     team_membership = await team_service.get_team_membership(current_user.id, team_id)
 
+    # Query member and roster counts
+    member_count_result = await db.execute(
+        select(func.count()).where(TeamMember.team_id == team_id)
+    )
+    member_count = member_count_result.scalar() or 0
+
+    roster_count_result = await db.execute(
+        select(func.count()).where(Roster.team_id == team_id)
+    )
+    roster_count = roster_count_result.scalar() or 0
+
     return TeamWithRole(
         id=team.id,
         name=team.name,
         organisation_id=team.organisation_id,
         role=team_membership.role if team_membership else None,
         permissions=team_membership.permissions if team_membership else [],
+        member_count=member_count,
+        roster_count=roster_count,
         created_at=team.created_at,
     )
 

@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              context.push('/settings');
+              context.push('/settings').then((_) => _loadData());
             },
           ),
         ],
@@ -149,15 +149,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.red.shade100,
+                            color: const Color(0xFFFCE4EC),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             '${pendingAssignments.length}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.red.shade700,
+                              color: Color(0xFFBF4060),
                             ),
                           ),
                         ),
@@ -171,7 +171,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         onDecline: () => _handleDecline(assignment),
                         onTap: () => _navigateToDetail(assignment),
                         onTeamTap: assignment.teamId != null
-                            ? () => context.push('/teams/${assignment.teamId}')
+                            ? () => context
+                                  .push('/teams/${assignment.teamId}')
+                                  .then((_) => _loadData())
                             : null,
                       ),
                     ),
@@ -204,9 +206,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             assignment: assignment,
                             onTap: () => _navigateToDetail(assignment),
                             onTeamTap: assignment.teamId != null
-                                ? () => context.push(
-                                    '/teams/${assignment.teamId}',
-                                  )
+                                ? () => context
+                                      .push('/teams/${assignment.teamId}')
+                                      .then((_) => _loadData())
                                 : null,
                           ),
                         ),

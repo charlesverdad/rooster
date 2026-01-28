@@ -115,10 +115,10 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
             const SizedBox(height: 24),
           ],
 
-          // Date selector (only show if one-time)
+          // Event date selector (only show if one-time)
           if (_recurrence == 'once') ...[
             const Text(
-              'Date',
+              'Event Date',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
@@ -131,7 +131,10 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                   lastDate: DateTime.now().add(const Duration(days: 365)),
                 );
                 if (date != null) {
-                  setState(() => _endDate = date);
+                  setState(() {
+                    _startDate = date;
+                    _endDate = date;
+                  });
                 }
               },
               icon: const Icon(Icons.calendar_today),
@@ -180,32 +183,34 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Start date
-          const Text(
-            'Start date',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: _startDate ?? DateTime.now(),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-              );
-              if (date != null) {
-                setState(() => _startDate = date);
-              }
-            },
-            icon: const Icon(Icons.calendar_today),
-            label: Text(
-              _startDate != null
-                  ? DateFormat('EEE, MMM d, y').format(_startDate!)
-                  : 'Select start date',
+          // Start date (only show if recurring)
+          if (_recurrence != 'once') ...[
+            const Text(
+              'Start date',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: _startDate ?? DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (date != null) {
+                  setState(() => _startDate = date);
+                }
+              },
+              icon: const Icon(Icons.calendar_today),
+              label: Text(
+                _startDate != null
+                    ? DateFormat('EEE, MMM d, y').format(_startDate!)
+                    : 'Select start date',
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
 
           // Time
           const Text(
@@ -375,18 +380,18 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                   return;
                 }
 
-                if (_startDate == null) {
+                if (_recurrence == 'once' && _startDate == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select a start date')),
+                    const SnackBar(
+                      content: Text('Please select an event date'),
+                    ),
                   );
                   return;
                 }
 
-                if (_recurrence == 'once' && _endDate == null) {
+                if (_recurrence != 'once' && _startDate == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please select a date for one-time event'),
-                    ),
+                    const SnackBar(content: Text('Please select a start date')),
                   );
                   return;
                 }

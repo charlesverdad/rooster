@@ -23,7 +23,7 @@ class UpcomingAssignmentCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green.shade600, size: 24),
+              Icon(Icons.check_circle, color: const Color(0xFF558B2F), size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

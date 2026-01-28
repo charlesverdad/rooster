@@ -13,7 +13,7 @@ class RosterCreate(BaseModel):
     name: str
     team_id: uuid.UUID
     recurrence_pattern: RecurrencePattern = RecurrencePattern.WEEKLY
-    recurrence_day: int  # 0=Monday, 6=Sunday
+    recurrence_day: int  # Frontend sends 0=Sunday, 6=Saturday; converted to Python weekday in service layer
     slots_needed: int = 1
     assignment_mode: AssignmentMode = AssignmentMode.MANUAL
     location: Optional[str] = None
