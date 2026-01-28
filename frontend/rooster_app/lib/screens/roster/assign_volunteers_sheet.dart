@@ -51,6 +51,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
   String _searchQuery = '';
   Map<String, String?> _unavailabilityReasons = {};
   bool _loadingAvailability = false;
+  bool _creatingPlaceholder = false;
 
   @override
   void initState() {
@@ -285,6 +286,9 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ),
                   ),
                 ],
+                // Show "Create placeholder" option when search has no results
+                if (_searchQuery.isNotEmpty && filteredMembers.isEmpty)
+                  _buildCreatePlaceholderTile(_searchQuery.trim()),
               ],
             ),
           ),
@@ -368,6 +372,66 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
         enabled: isAvailable,
       ),
     );
+  }
+
+  Widget _buildCreatePlaceholderTile(String name) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: const Icon(Icons.person_add, color: Colors.white, size: 20),
+        ),
+        title: Text('Create "$name"'),
+        subtitle: const Text(
+          'Add as placeholder and assign',
+          style: TextStyle(fontSize: 12),
+        ),
+        trailing: _creatingPlaceholder
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.add),
+        onTap: _creatingPlaceholder ? null : () => _handleCreateAndAssign(name),
+      ),
+    );
+  }
+
+  Future<void> _handleCreateAndAssign(String name) async {
+    if (widget.teamId == null) return;
+
+    setState(() => _creatingPlaceholder = true);
+
+    try {
+      final teamProvider = Provider.of<TeamProvider>(context, listen: false);
+      final success = await teamProvider.addMember(widget.teamId!, name);
+
+      if (!mounted) return;
+
+      if (!success) {
+        setState(() => _creatingPlaceholder = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create placeholder')),
+        );
+        return;
+      }
+
+      // The newly added member is the last one in the list
+      final newMember = teamProvider.currentTeamMembers.last;
+
+      // Assign the new placeholder to the event
+      await _handleAssign(newMember);
+    } catch (e) {
+      debugPrint('Error creating placeholder: $e');
+      if (mounted) {
+        setState(() => _creatingPlaceholder = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create placeholder')),
+        );
+      }
+    }
   }
 
   Future<void> _handleAssign(TeamMember member) async {
