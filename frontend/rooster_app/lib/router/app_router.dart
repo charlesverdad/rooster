@@ -19,6 +19,8 @@ import '../screens/roster/create_roster_screen.dart';
 import '../screens/assignments/assignment_detail_screen.dart';
 
 GoRouter createRouter(AuthProvider authProvider) {
+  GoRouter.optionURLReflectsImperativeAPIs = true;
+
   return GoRouter(
     refreshListenable: authProvider,
     initialLocation: '/',
