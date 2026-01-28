@@ -132,7 +132,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   radius: 48,
                   backgroundColor: isPlaceholder
                       ? Colors.grey.shade400
-                      : Colors.grey.shade900,
+                      : Colors.grey.shade600,
                   child: isPlaceholder
                       ? Icon(
                           Icons.person_outline,
@@ -272,7 +272,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           Card(
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: Colors.grey.shade900,
+                backgroundColor: Colors.grey.shade600,
                 child: const Icon(Icons.group, color: Colors.white),
               ),
               title: Text(teamName),

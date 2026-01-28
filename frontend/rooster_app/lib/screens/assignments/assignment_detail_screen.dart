@@ -144,7 +144,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: Colors.grey.shade900,
+                      backgroundColor: Colors.grey.shade600,
                       child: Text(
                         detail.teamLead!.name.isNotEmpty
                             ? detail.teamLead!.name.substring(0, 1)
@@ -344,7 +344,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             radius: 18,
             backgroundColor: isPlaceholder
                 ? Colors.grey.shade400
-                : Colors.grey.shade900,
+                : Colors.grey.shade600,
             child: isPlaceholder
                 ? Icon(
                     Icons.person_outline,
@@ -498,7 +498,7 @@ class ContactTeamLeadSheet extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: Colors.grey.shade900,
+                backgroundColor: Colors.grey.shade600,
                 child: Text(
                   teamLead.name.isNotEmpty
                       ? teamLead.name.substring(0, 1)

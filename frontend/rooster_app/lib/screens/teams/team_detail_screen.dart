@@ -116,7 +116,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: Colors.grey.shade900,
+                  backgroundColor: Colors.grey.shade600,
                   child: Text(
                     team?.name.isNotEmpty == true
                         ? team!.name.substring(0, 1)
@@ -330,7 +330,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: Colors.grey.shade900,
+                backgroundColor: Colors.grey.shade600,
                 child: Text(
                   member.userName.isNotEmpty
                       ? member.userName.substring(0, 1)
