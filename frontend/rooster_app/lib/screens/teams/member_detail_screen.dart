@@ -132,7 +132,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   radius: 48,
                   backgroundColor: isPlaceholder
                       ? Colors.grey.shade400
-                      : Colors.deepPurple.shade300,
+                      : Colors.grey.shade900,
                   child: isPlaceholder
                       ? Icon(
                           Icons.person_outline,
@@ -164,15 +164,15 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.purple.shade50,
+                      color: Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      'Team Lead',
+                      'Admin',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.purple.shade700,
+                        color: Colors.grey.shade700,
                       ),
                     ),
                   ),
@@ -272,11 +272,11 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           Card(
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: Colors.deepPurple.shade100,
-                child: Icon(Icons.group, color: Colors.deepPurple.shade700),
+                backgroundColor: Colors.grey.shade900,
+                child: const Icon(Icons.group, color: Colors.white),
               ),
               title: Text(teamName),
-              subtitle: Text(isLead ? 'Team Lead' : 'Member'),
+              subtitle: Text(isLead ? 'Admin' : 'Member'),
             ),
           ),
           const SizedBox(height: 24),

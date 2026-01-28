@@ -327,9 +327,6 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                                 event.id,
                                 userId,
                               );
-                              if (context.mounted) {
-                                Navigator.of(context).pop();
-                              }
                             },
                           ),
                         ).then((_) => _refreshRoster());

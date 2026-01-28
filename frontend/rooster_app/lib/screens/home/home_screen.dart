@@ -81,26 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               if (unreadCount > 0)
                 Positioned(
-                  right: 6,
-                  top: 6,
+                  right: 8,
+                  top: 8,
                   child: Container(
-                    padding: const EdgeInsets.all(4),
+                    width: 8,
+                    height: 8,
                     decoration: const BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Text(
-                      unreadCount > 9 ? '9+' : unreadCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -182,6 +170,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         onAccept: () => _handleAccept(assignment),
                         onDecline: () => _handleDecline(assignment),
                         onTap: () => _navigateToDetail(assignment),
+                        onTeamTap: assignment.teamId != null
+                            ? () => context.push('/teams/${assignment.teamId}')
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -212,6 +203,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           (assignment) => UpcomingAssignmentCard(
                             assignment: assignment,
                             onTap: () => _navigateToDetail(assignment),
+                            onTeamTap: assignment.teamId != null
+                                ? () => context.push(
+                                    '/teams/${assignment.teamId}',
+                                  )
+                                : null,
                           ),
                         ),
 
@@ -491,7 +487,7 @@ class _DeclineConfirmationSheetState extends State<_DeclineConfirmationSheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Your team lead will be notified.',
+            'Your admin will be notified.',
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),

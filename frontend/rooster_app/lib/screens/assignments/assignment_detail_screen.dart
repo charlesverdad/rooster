@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/event_assignment.dart';
@@ -54,9 +55,19 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          Text(
-            detail.teamName,
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+          GestureDetector(
+            onTap: () => context.push('/teams/${detail.teamId}'),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  detail.teamName,
+                  style: const TextStyle(fontSize: 16, color: Colors.blue),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right, size: 18, color: Colors.blue),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -123,7 +134,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
           // Team Lead
           if (detail.teamLead != null) ...[
             const Text(
-              'Team Lead',
+              'Admin',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
@@ -133,14 +144,14 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: Colors.deepPurple.shade300,
+                      backgroundColor: Colors.grey.shade900,
                       child: Text(
                         detail.teamLead!.name.isNotEmpty
                             ? detail.teamLead!.name.substring(0, 1)
                             : '?',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -157,7 +168,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
                             ),
                           ),
                           Text(
-                            'Team Lead',
+                            'Admin',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey.shade600,
@@ -333,7 +344,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             radius: 18,
             backgroundColor: isPlaceholder
                 ? Colors.grey.shade400
-                : Colors.deepPurple.shade200,
+                : Colors.grey.shade900,
             child: isPlaceholder
                 ? Icon(
                     Icons.person_outline,
@@ -487,14 +498,14 @@ class ContactTeamLeadSheet extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: Colors.deepPurple.shade300,
+                backgroundColor: Colors.grey.shade900,
                 child: Text(
                   teamLead.name.isNotEmpty
                       ? teamLead.name.substring(0, 1)
                       : '?',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: 18,
                   ),
                 ),
@@ -511,7 +522,7 @@ class ContactTeamLeadSheet extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Team Lead',
+                    'Admin',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                 ],
@@ -554,8 +565,8 @@ class ContactTeamLeadSheet extends StatelessWidget {
             ),
             ListTile(
               leading: CircleAvatar(
-                backgroundColor: Colors.purple.shade100,
-                child: Icon(Icons.message, color: Colors.purple.shade700),
+                backgroundColor: Colors.grey.shade100,
+                child: Icon(Icons.message, color: Colors.grey.shade700),
               ),
               title: const Text('Send Message'),
               subtitle: Text(teamLead.phone!),
@@ -606,7 +617,7 @@ class _DeclineConfirmationSheetState extends State<DeclineConfirmationSheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Your team lead will be notified.',
+            'Your admin will be notified.',
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),

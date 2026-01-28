@@ -478,7 +478,9 @@ class RosterService:
             .join(RosterEvent)
             .options(
                 selectinload(EventAssignment.user),
-                selectinload(EventAssignment.event).selectinload(RosterEvent.roster),
+                selectinload(EventAssignment.event)
+                .selectinload(RosterEvent.roster)
+                .selectinload(Roster.team),
             )
             .where(EventAssignment.user_id == user_id)
         )

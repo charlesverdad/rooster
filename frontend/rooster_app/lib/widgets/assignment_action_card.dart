@@ -6,6 +6,7 @@ class AssignmentActionCard extends StatelessWidget {
   final VoidCallback onAccept;
   final VoidCallback onDecline;
   final VoidCallback? onTap;
+  final VoidCallback? onTeamTap;
 
   const AssignmentActionCard({
     super.key,
@@ -13,6 +14,7 @@ class AssignmentActionCard extends StatelessWidget {
     required this.onAccept,
     required this.onDecline,
     this.onTap,
+    this.onTeamTap,
   });
 
   @override
@@ -52,6 +54,22 @@ class AssignmentActionCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              if (assignment.teamName != null &&
+                  assignment.teamName!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                GestureDetector(
+                  onTap: onTeamTap,
+                  child: Text(
+                    assignment.teamName!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: onTeamTap != null
+                          ? Colors.blue
+                          : Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 4),
 
               // Date

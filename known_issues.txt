@@ -1,0 +1,11 @@
+- Bug: In My Teams view (/teams), the number of members in the team card is not updated. It is different from the one in the /teams/<id>
+- UI: the default black avatars are too contrasty for my liking
+- UI: there are still some pink buttons (i.e. login button, Create team, the modal backgrounds) that don't follow the Instragram-like aesthetic
+- In the My teams view (/teams), I saw the back button disappear once. Could be a fluke.
+- Bug: When going back to the home page, the `admin` view is not updated. The same for upcoming assignments. It doesn't need to be instant, but I expect it to update without having to manually slide down to refresh.
+- In Creating a roster, the `one-time` option doesn't work and contains confusing `Date` and `Start Date`.
+- In generating weekly rosters, even though the day is set to Sunday, it generates Mondays. It is always one day after the intended date.
+- UI: the pending / invited / Needs attention / highlight bubbles still use generic traffic light color scheme. Figure out a better one aligned witht he intended aesthetic.
+- Bug: In the Admin section in the homepage, I expect each roster is linked to the actual event page.
+- feat: When searching for names to assign, if the name is not in the results, add the ability to create a placeholder right there from the search bar.
+

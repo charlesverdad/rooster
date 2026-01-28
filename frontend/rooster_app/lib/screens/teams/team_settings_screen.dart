@@ -114,7 +114,7 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
         leading: CircleAvatar(
           backgroundColor: member.isPlaceholder
               ? Colors.grey.shade400
-              : Colors.deepPurple.shade300,
+              : Colors.grey.shade900,
           radius: 18,
           child: Text(
             member.userName.isNotEmpty ? member.userName.substring(0, 1) : '?',

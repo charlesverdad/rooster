@@ -357,7 +357,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
     if (_isExpired) {
       title = 'Invite Expired';
       message =
-          'This invite link has expired. Please ask your team lead to send a new invite.';
+          'This invite link has expired. Please ask your admin to send a new invite.';
       icon = Icons.timer_off;
       color = Colors.orange;
     } else if (_alreadyAccepted) {
@@ -370,7 +370,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
       title = 'Invalid Invite';
       message =
           _error ??
-          'This invite link is not valid. Please check the link or contact your team lead.';
+          'This invite link is not valid. Please check the link or contact your admin.';
       icon = Icons.error_outline;
       color = Colors.red;
     }

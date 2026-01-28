@@ -994,7 +994,10 @@ async def list_my_event_assignments(
             created_at=a.created_at,
             event_date=a.event.date if a.event else None,
             roster_name=a.event.roster.name if a.event and a.event.roster else None,
-            team_name=None,  # Would need another join to get team name
+            team_name=a.event.roster.team.name
+            if a.event and a.event.roster and a.event.roster.team
+            else None,
+            team_id=a.event.roster.team_id if a.event and a.event.roster else None,
         )
         for a in assignments
     ]

@@ -306,7 +306,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
           backgroundColor: isPlaceholder
               ? Colors.grey.shade400
               : isAvailable
-              ? Colors.deepPurple.shade300
+              ? Colors.grey.shade900
               : Colors.grey.shade300,
           child: isPlaceholder
               ? Icon(
