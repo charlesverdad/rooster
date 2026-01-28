@@ -112,9 +112,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                       const SizedBox(height: 24),
-                      ElevatedButton(
+                      FilledButton(
                         onPressed: authProvider.isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
+                        style: FilledButton.styleFrom(
                           padding: const EdgeInsets.all(16),
                         ),
                         child: authProvider.isLoading
