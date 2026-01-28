@@ -121,11 +121,21 @@ class RosterService:
 
     async def create_roster(self, data: RosterCreate) -> Roster:
         """Create a new roster and generate initial events."""
+        # Convert frontend day convention (0=Sunday) to Python weekday (0=Monday)
+        # for weekly/biweekly recurrence patterns, and store converted value in DB
+        # so that downstream code (e.g. generate_more_events) works correctly.
+        python_recurrence_day = data.recurrence_day
+        if data.recurrence_pattern in (
+            RecurrencePattern.WEEKLY,
+            RecurrencePattern.BIWEEKLY,
+        ):
+            python_recurrence_day = frontend_day_to_python_weekday(data.recurrence_day)
+
         roster = Roster(
             name=data.name,
             team_id=data.team_id,
             recurrence_pattern=data.recurrence_pattern,
-            recurrence_day=data.recurrence_day,
+            recurrence_day=python_recurrence_day,
             slots_needed=data.slots_needed,
             assignment_mode=data.assignment_mode,
             location=data.location,
@@ -137,16 +147,7 @@ class RosterService:
         self.db.add(roster)
         await self.db.flush()
 
-        # Generate events
-        # Convert frontend day convention (0=Sunday) to Python weekday (0=Monday)
-        # for weekly/biweekly recurrence patterns
-        python_recurrence_day = data.recurrence_day
-        if data.recurrence_pattern in (
-            RecurrencePattern.WEEKLY,
-            RecurrencePattern.BIWEEKLY,
-        ):
-            python_recurrence_day = frontend_day_to_python_weekday(data.recurrence_day)
-
+        # Generate events using the already-converted recurrence day
         event_dates = calculate_event_dates(
             start_date=data.start_date,
             recurrence_pattern=data.recurrence_pattern,

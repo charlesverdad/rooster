@@ -229,7 +229,7 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
         children: [
           Expanded(
             child: InkWell(
-              onTap: () => context.push('/rosters/${event.rosterId}'),
+              onTap: () => context.push('/events/${event.id}'),
               borderRadius: BorderRadius.circular(4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
