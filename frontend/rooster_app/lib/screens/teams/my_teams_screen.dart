@@ -270,12 +270,12 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.deepPurple.shade100,
+                    backgroundColor: Colors.grey.shade900,
                     child: Text(
                       team.name.isNotEmpty ? team.name.substring(0, 1) : '?',
-                      style: TextStyle(
-                        color: Colors.deepPurple.shade700,
-                        fontWeight: FontWeight.bold,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -326,18 +326,16 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isLead
-                          ? Colors.purple.shade50
+                          ? Colors.grey.shade200
                           : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      isLead ? 'Lead' : 'Member',
+                      isLead ? 'Admin' : 'Member',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: isLead
-                            ? Colors.purple.shade700
-                            : Colors.grey.shade700,
+                        color: Colors.grey.shade700,
                       ),
                     ),
                   ),

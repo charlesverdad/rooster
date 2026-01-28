@@ -14,6 +14,7 @@ class EventAssignment {
   final DateTime? eventDate;
   final String? rosterName;
   final String? teamName;
+  final String? teamId;
 
   EventAssignment({
     required this.id,
@@ -28,6 +29,7 @@ class EventAssignment {
     this.eventDate,
     this.rosterName,
     this.teamName,
+    this.teamId,
   });
 
   bool get isPending => status == 'pending';
@@ -55,6 +57,7 @@ class EventAssignment {
           : null,
       rosterName: json['roster_name'],
       teamName: json['team_name'],
+      teamId: json['team_id']?.toString(),
     );
   }
 

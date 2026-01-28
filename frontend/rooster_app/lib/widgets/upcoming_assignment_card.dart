@@ -4,11 +4,13 @@ import '../models/event_assignment.dart';
 class UpcomingAssignmentCard extends StatelessWidget {
   final EventAssignment assignment;
   final VoidCallback? onTap;
+  final VoidCallback? onTeamTap;
 
   const UpcomingAssignmentCard({
     super.key,
     required this.assignment,
     this.onTap,
+    this.onTeamTap,
   });
 
   @override
@@ -34,6 +36,22 @@ class UpcomingAssignmentCard extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    if (assignment.teamName != null &&
+                        assignment.teamName!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      GestureDetector(
+                        onTap: onTeamTap,
+                        child: Text(
+                          assignment.teamName!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: onTeamTap != null
+                                ? Colors.blue
+                                : Colors.grey.shade500,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Text(
                       _formatDate(assignment.eventDate),

@@ -84,7 +84,7 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Team Lead',
+              'Admin',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             TextButton(

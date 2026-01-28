@@ -156,10 +156,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.calendar_today,
-                          color: Colors.deepPurple.shade400,
-                        ),
+                        Icon(Icons.calendar_today, color: Colors.grey.shade800),
                         const SizedBox(width: 12),
                         Text(
                           dateFormat.format(event.date),
@@ -392,7 +389,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         leading: CircleAvatar(
           backgroundColor: assignment.isPlaceholder
               ? Colors.grey.shade400
-              : Colors.deepPurple.shade300,
+              : Colors.grey.shade900,
           child: assignment.isPlaceholder
               ? Icon(
                   Icons.person_outline,

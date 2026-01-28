@@ -121,6 +121,7 @@ class EventAssignmentResponse(BaseModel):
     event_date: Optional[date] = None
     roster_name: Optional[str] = None
     team_name: Optional[str] = None
+    team_id: Optional[uuid.UUID] = None
 
     model_config = {"from_attributes": True}
 

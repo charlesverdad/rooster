@@ -144,7 +144,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case 'team':
         icon = Icons.group;
-        iconColor = Colors.purple;
+        iconColor = Colors.grey;
         break;
       default:
         icon = Icons.info;

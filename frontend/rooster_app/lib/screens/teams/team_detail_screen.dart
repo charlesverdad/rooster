@@ -116,15 +116,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: Colors.deepPurple.shade100,
+                  backgroundColor: Colors.grey.shade900,
                   child: Text(
                     team?.name.isNotEmpty == true
                         ? team!.name.substring(0, 1)
                         : '?',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
-                      color: Colors.deepPurple.shade700,
-                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -330,14 +330,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: Colors.grey.shade300,
+                backgroundColor: Colors.grey.shade900,
                 child: Text(
                   member.userName.isNotEmpty
                       ? member.userName.substring(0, 1)
                       : '?',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -366,10 +366,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                     ),
                     if (isLead)
                       Text(
-                        'Team Lead',
+                        'Admin',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.purple.shade600,
+                          color: Colors.grey.shade700,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
