@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              context.push('/settings');
+              context.push('/settings').then((_) => _loadData());
             },
           ),
         ],
@@ -171,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onDecline: () => _handleDecline(assignment),
                         onTap: () => _navigateToDetail(assignment),
                         onTeamTap: assignment.teamId != null
-                            ? () => context.push('/teams/${assignment.teamId}')
+                            ? () => context.push('/teams/${assignment.teamId}').then((_) => _loadData())
                             : null,
                       ),
                     ),
@@ -206,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTeamTap: assignment.teamId != null
                                 ? () => context.push(
                                     '/teams/${assignment.teamId}',
-                                  )
+                                  ).then((_) => _loadData())
                                 : null,
                           ),
                         ),
