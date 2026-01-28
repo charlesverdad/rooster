@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/team_member.dart';
 import '../../providers/team_provider.dart';
@@ -273,8 +274,8 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
               final success = await teamProvider.deleteTeam(widget.teamId);
               if (!context.mounted) return;
               if (success) {
-                // Pop back to teams list
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                // Go back to home
+                context.go('/');
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(const SnackBar(content: Text('Team deleted')));

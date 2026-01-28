@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
@@ -117,7 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('My Availability'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              Navigator.pushNamed(context, '/availability');
+              context.push('/availability');
             },
           ),
 
@@ -129,9 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Logout', style: TextStyle(color: Colors.red)),
             onTap: () async {
               await authProvider.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/login');
-              }
+              // GoRouter redirect handles navigation to /login
             },
           ),
 

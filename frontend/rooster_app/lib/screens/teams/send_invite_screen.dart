@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/team_member.dart';
 import '../../providers/team_provider.dart';
 
 class SendInviteScreen extends StatefulWidget {
-  final Map<String, dynamic> member;
+  final String teamId;
+  final String memberId;
 
-  const SendInviteScreen({super.key, required this.member});
+  const SendInviteScreen({
+    super.key,
+    required this.teamId,
+    required this.memberId,
+  });
 
   @override
   State<SendInviteScreen> createState() => _SendInviteScreenState();
@@ -19,9 +25,32 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
   @override
   void initState() {
     super.initState();
-    final existingEmail = widget.member['email'] as String?;
-    if (existingEmail != null && existingEmail.isNotEmpty) {
-      _emailController.text = existingEmail;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureTeamLoaded();
+    });
+  }
+
+  Future<void> _ensureTeamLoaded() async {
+    final teamProvider = Provider.of<TeamProvider>(context, listen: false);
+    if (teamProvider.currentTeam?.id != widget.teamId) {
+      await teamProvider.fetchTeamDetail(widget.teamId);
+    }
+    // Pre-fill email if member has one
+    final member = _findMember(teamProvider);
+    if (member != null &&
+        member.userEmail != null &&
+        member.userEmail!.isNotEmpty) {
+      _emailController.text = member.userEmail!;
+    }
+  }
+
+  TeamMember? _findMember(TeamProvider teamProvider) {
+    try {
+      return teamProvider.currentTeamMembers.firstWhere(
+        (m) => m.userId == widget.memberId,
+      );
+    } catch (_) {
+      return null;
     }
   }
 
@@ -34,9 +63,16 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
   @override
   Widget build(BuildContext context) {
     final teamProvider = Provider.of<TeamProvider>(context);
-    final memberName = widget.member['name'] as String? ?? 'Member';
-    final memberId = widget.member['id'] as String?;
-    final isInvited = widget.member['isInvited'] as bool? ?? false;
+    final member = _findMember(teamProvider);
+    final memberName = member?.userName ?? 'Member';
+    final isInvited = member?.isInvited ?? false;
+
+    if (teamProvider.isLoading && member == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Send Invite')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Send Invite')),
@@ -80,7 +116,7 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
                     ? null
                     : () async {
                         final email = _emailController.text.trim();
-                        if (email.isEmpty || memberId == null) {
+                        if (email.isEmpty) {
                           setState(() {
                             _errorMessage = 'Please enter a valid email.';
                           });
@@ -93,7 +129,7 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
                         });
 
                         final success = await teamProvider.sendInvite(
-                          memberId,
+                          widget.memberId,
                           email,
                         );
 

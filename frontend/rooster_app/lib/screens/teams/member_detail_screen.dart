@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../providers/team_provider.dart';
 import '../../models/event_assignment.dart';
+import '../../models/team_member.dart';
 import '../../services/assignment_service.dart';
 
 class MemberDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> member;
+  final String teamId;
+  final String memberId;
 
-  const MemberDetailScreen({super.key, required this.member});
+  const MemberDetailScreen({
+    super.key,
+    required this.teamId,
+    required this.memberId,
+  });
 
   @override
   State<MemberDetailScreen> createState() => _MemberDetailScreenState();
@@ -23,16 +30,34 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _loadAssignments();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureTeamLoaded();
+      _loadAssignments();
+    });
+  }
+
+  Future<void> _ensureTeamLoaded() async {
+    final teamProvider = Provider.of<TeamProvider>(context, listen: false);
+    if (teamProvider.currentTeam?.id != widget.teamId) {
+      await teamProvider.fetchTeamDetail(widget.teamId);
+    }
+  }
+
+  TeamMember? _findMember(TeamProvider teamProvider) {
+    try {
+      return teamProvider.currentTeamMembers.firstWhere(
+        (m) => m.userId == widget.memberId,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _loadAssignments() async {
     final teamProvider = Provider.of<TeamProvider>(context, listen: false);
     final team = teamProvider.currentTeam;
-    final memberId = widget.member['id'] as String?;
 
     if (team == null ||
-        memberId == null ||
         !(team.canViewResponses ||
             team.canManageMembers ||
             team.canManageTeam)) {
@@ -43,7 +68,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     try {
       final assignments = await AssignmentService.getTeamMemberAssignments(
         team.id,
-        memberId,
+        widget.memberId,
       );
       if (mounted) {
         setState(() {
@@ -64,16 +89,35 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPlaceholder = widget.member['isPlaceholder'] as bool? ?? false;
-    final isInvited = widget.member['isInvited'] as bool? ?? false;
-    final isLead = widget.member['role'] == 'Lead';
-    final name = widget.member['name'] as String? ?? 'Unknown';
-    final email = widget.member['email'] as String?;
-
-    // Get team info from provider
     final teamProvider = Provider.of<TeamProvider>(context);
+    final member = _findMember(teamProvider);
     final team = teamProvider.currentTeam;
     final teamName = team?.name ?? 'Team';
+
+    if (teamProvider.isLoading && member == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Member')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (member == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Member')),
+        body: Center(
+          child: Text(
+            'Member not found',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ),
+      );
+    }
+
+    final isPlaceholder = member.isPlaceholder;
+    final isInvited = member.isInvited;
+    final isLead = member.isTeamLead;
+    final name = member.userName;
+    final email = member.userEmail;
 
     return Scaffold(
       appBar: AppBar(title: Text(name)),
@@ -284,10 +328,8 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           if (isPlaceholder && !isInvited)
             FilledButton.icon(
               onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/send-invite',
-                  arguments: widget.member,
+                context.push(
+                  '/teams/${widget.teamId}/invite/${widget.memberId}',
                 );
               },
               icon: const Icon(Icons.email),

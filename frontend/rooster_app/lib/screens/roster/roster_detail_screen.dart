@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/roster_event.dart';
@@ -6,7 +7,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/roster_provider.dart';
 import '../../providers/team_provider.dart';
 import '../roster/assign_volunteers_sheet.dart';
-import 'event_detail_screen.dart';
 
 class RosterDetailScreen extends StatefulWidget {
   final String rosterId;
@@ -21,12 +21,14 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<RosterProvider>(
-        context,
-        listen: false,
-      ).fetchRosterDetail(widget.rosterId);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshRoster());
+  }
+
+  void _refreshRoster() {
+    Provider.of<RosterProvider>(
+      context,
+      listen: false,
+    ).fetchRosterDetail(widget.rosterId);
   }
 
   @override
@@ -242,13 +244,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  EventDetailScreen(eventId: event.id, teamId: teamId),
-            ),
-          );
+          context.push('/events/${event.id}').then((_) => _refreshRoster());
         },
         child: Padding(
           padding: const EdgeInsets.all(16),

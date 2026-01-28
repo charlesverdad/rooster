@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/team_provider.dart';
 import '../../models/team.dart';
 import '../../utils/invite_utils.dart';
-import '../auth/accept_invite_screen.dart';
-import 'team_detail_screen.dart';
 
 class MyTeamsScreen extends StatefulWidget {
   const MyTeamsScreen({super.key});
@@ -173,12 +172,11 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
         );
 
         // Navigate to the new team's detail page
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TeamDetailScreen(teamId: team.id),
-          ),
-        );
+        context.push('/teams/${team.id}').then((_) {
+          if (mounted) {
+            Provider.of<TeamProvider>(context, listen: false).fetchMyTeams();
+          }
+        });
       } else if (teamProvider.error != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -246,10 +244,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
   }
 
   void _navigateToInvite(String token) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => AcceptInviteScreen(token: token)),
-    );
+    context.push('/invite/$token');
   }
 
   Widget _buildTeamCard(BuildContext context, Team team) {
@@ -259,7 +254,13 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(context, '/team-detail', arguments: team.id);
+          final teamProvider = Provider.of<TeamProvider>(
+            context,
+            listen: false,
+          );
+          context.push('/teams/${team.id}').then((_) {
+            if (mounted) teamProvider.fetchMyTeams();
+          });
         },
         child: Padding(
           padding: const EdgeInsets.all(16),

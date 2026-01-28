@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/notification.dart';
 import '../../providers/notification_provider.dart';
-import '../assignments/assignment_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -208,11 +208,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           break;
         case 'team':
           // Navigate to team detail
-          Navigator.pushNamed(
-            context,
-            '/team-detail',
-            arguments: notification.referenceId,
-          );
+          context.push('/teams/${notification.referenceId}');
           break;
         case 'response':
           // For team leads - navigate to roster detail
@@ -226,12 +222,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _navigateToAssignment(BuildContext context, String assignmentId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            AssignmentDetailScreen(assignmentId: assignmentId),
-      ),
-    );
+    context.push('/assignments/$assignmentId');
   }
 }
