@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/002-get-ready-for-production-release-by-improving-the-/**)",
+      "Write(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/002-get-ready-for-production-release-by-improving-the-/**)",
+      "Edit(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/002-get-ready-for-production-release-by-improving-the-/**)",
+      "Glob(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/002-get-ready-for-production-release-by-improving-the-/**)",
+      "Grep(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/002-get-ready-for-production-release-by-improving-the-/**)",
+      "Read(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/002-get-ready-for-production-release-by-improving-the-/.auto-claude/specs/002-get-ready-for-production-release-by-improving-the-/**)",
+      "Write(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/002-get-ready-for-production-release-by-improving-the-/.auto-claude/specs/002-get-ready-for-production-release-by-improving-the-/**)",
+      "Edit(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/002-get-ready-for-production-release-by-improving-the-/.auto-claude/specs/002-get-ready-for-production-release-by-improving-the-/**)",
+      "Read(/Users/charles/work/rooster/.auto-claude/**)",
+      "Write(/Users/charles/work/rooster/.auto-claude/**)",
+      "Edit(/Users/charles/work/rooster/.auto-claude/**)",
+      "Glob(/Users/charles/work/rooster/.auto-claude/**)",
+      "Grep(/Users/charles/work/rooster/.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}
