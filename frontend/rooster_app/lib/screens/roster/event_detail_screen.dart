@@ -469,10 +469,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             listen: false,
           );
           await rosterProvider.assignVolunteerToEvent(event.id, userId);
-          await _loadEvent();
         },
       ),
-    );
+    ).then((_) => _loadEvent());
   }
 
   void _showRemoveConfirmation(

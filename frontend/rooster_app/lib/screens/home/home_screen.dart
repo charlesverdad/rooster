@@ -20,6 +20,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _refreshKey = 0;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
       notificationProvider.fetchNotifications(),
       teamProvider.fetchMyTeams(),
     ]);
+    if (mounted) {
+      setState(() => _refreshKey++);
+    }
   }
 
   @override
@@ -213,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Team Lead Section (if applicable)
                   if (isTeamLead) ...[
                     const SizedBox(height: 32),
-                    const TeamLeadSection(),
+                    TeamLeadSection(key: ValueKey(_refreshKey)),
                   ],
                 ],
               ),

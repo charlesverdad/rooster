@@ -332,7 +332,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                               }
                             },
                           ),
-                        );
+                        ).then((_) => _refreshRoster());
                       },
                       icon: const Icon(Icons.person_add),
                       label: const Text('Assign Volunteer'),
