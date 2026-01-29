@@ -3,23 +3,23 @@
   "spec": "004-swap-requests-between-volunteers",
   "state": "building",
   "subtasks": {
-    "completed": 11,
+    "completed": 12,
     "total": 15,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Frontend - Swap Request UI",
+    "current": "Integration & Testing",
     "id": null,
-    "total": 6
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 14,
+    "number": 15,
     "started_at": "2026-01-29T14:25:01.318144"
   },
-  "last_update": "2026-01-29T15:03:04.987274"
+  "last_update": "2026-01-29T15:06:18.152037"
 }
