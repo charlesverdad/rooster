@@ -18,19 +18,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Install dependencies
-        run: cd backend && uv sync --dev
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
 
       - name: Run linting
-        run: cd backend && uv run ruff check .
-
-      - name: Check formatting
-        run: cd backend && uv run ruff format --check .
+        run: nix-shell --run "just lint-backend"

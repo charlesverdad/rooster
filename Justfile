@@ -66,6 +66,7 @@ fmt-backend:
 
 # Lint frontend (flutter analyze)
 lint-frontend:
+    cd frontend/rooster_app && flutter pub get
     cd frontend/rooster_app && flutter analyze
 
 # Format frontend (dart)
@@ -86,6 +87,7 @@ test-backend *args:
 
 # Run frontend tests
 test-frontend:
+    cd frontend/rooster_app && flutter pub get
     cd frontend/rooster_app && flutter test
 
 # Run all tests
