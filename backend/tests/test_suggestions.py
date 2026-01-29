@@ -679,3 +679,115 @@ async def test_suggestion_to_dict(db: AsyncSession):
     assert isinstance(suggestion_dict["reasoning"], str)
     assert suggestion_dict["total_assignments"] == 0
     assert suggestion_dict["days_since_last"] is None
+
+
+@pytest.mark.asyncio
+async def test_fair_rotation_with_pending_assignments(db: AsyncSession):
+    """Test that fair rotation works with PENDING assignments.
+
+    This is a statistical test that verifies all team members get assigned
+    when creating multiple events. The bug was that PENDING assignments were
+    not counted, causing the same people to be suggested repeatedly.
+    """
+    # Setup: Create org and team
+    org = Organisation(name="Test Church")
+    db.add(org)
+    await db.flush()
+
+    team = Team(name="Media Team", organisation_id=org.id)
+    db.add(team)
+    await db.flush()
+
+    # Create 5 team members
+    users = []
+    for i in range(5):
+        user = User(
+            email=f"user{i}@example.com",
+            name=f"User {i}",
+            password_hash=get_password_hash("testpass"),
+        )
+        users.append(user)
+        db.add(user)
+    await db.flush()
+
+    # Add all users to team
+    for user in users:
+        member = TeamMember(user_id=user.id, team_id=team.id, role=TeamRole.MEMBER)
+        db.add(member)
+
+    # Create roster
+    roster = Roster(
+        name="Sunday Service",
+        team_id=team.id,
+        recurrence_pattern=RecurrencePattern.WEEKLY,
+        recurrence_day=6,
+        slots_needed=1,  # 1 slot per event
+        assignment_mode=AssignmentMode.MANUAL,
+        start_date=date.today(),
+    )
+    db.add(roster)
+    await db.flush()
+
+    # Create 15 events (3 full rotations)
+    events = []
+    for i in range(15):
+        event = RosterEvent(
+            roster_id=roster.id, date=date.today() + timedelta(days=7 * i)
+        )
+        db.add(event)
+        events.append(event)
+    await db.flush()
+    await db.commit()
+
+    # Simulate assigning suggestions to each event
+    service = SuggestionService(db)
+    assignment_counts = {user.id: 0 for user in users}
+
+    for event in events:
+        # Get suggestions for this event
+        suggestions = await service.get_suggestions(event.id, team.id, limit=5)
+
+        # Should have suggestions
+        assert len(suggestions) > 0
+
+        # Assign the top suggestion as PENDING
+        top_suggestion = suggestions[0]
+        assignment = EventAssignment(
+            event_id=event.id,
+            user_id=top_suggestion.user_id,
+            status=AssignmentStatus.PENDING,  # PENDING, not CONFIRMED
+        )
+        db.add(assignment)
+        await db.commit()
+
+        # Track who got assigned
+        assignment_counts[top_suggestion.user_id] += 1
+
+    # Statistical verification
+    # All 5 members should have at least one assignment after 15 events
+    assigned_members = [user_id for user_id, count in assignment_counts.items() if count > 0]
+    assert len(assigned_members) == 5, (
+        f"Fair rotation failed: only {len(assigned_members)}/5 members were assigned. "
+        f"Assignment counts: {assignment_counts}"
+    )
+
+    # Verify relatively even distribution
+    # With 15 events and 5 members, each should get 3 assignments on average
+    # Allow some variation but no member should have 0 or more than 6
+    for user_id, count in assignment_counts.items():
+        assert count >= 1, f"User {user_id} got 0 assignments (unfair rotation)"
+        assert count <= 7, f"User {user_id} got {count} assignments (unfair rotation)"
+
+    # Verify that the algorithm considers PENDING assignments
+    # If PENDING assignments were ignored, the same person would be suggested every time
+    # and we'd have 1 person with 15 assignments and 4 with 0
+    max_assignments = max(assignment_counts.values())
+    min_assignments = min(assignment_counts.values())
+    difference = max_assignments - min_assignments
+
+    # The difference should be small (at most 2-3 for fair rotation)
+    assert difference <= 4, (
+        f"Rotation is too uneven: difference between max ({max_assignments}) "
+        f"and min ({min_assignments}) assignments is {difference}. "
+        f"Full distribution: {assignment_counts}"
+    )

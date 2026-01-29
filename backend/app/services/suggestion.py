@@ -150,6 +150,7 @@ class SuggestionService:
                 continue  # Skip unavailable members
 
             # Get last assignment date for this member across all team events
+            # Include both CONFIRMED and PENDING (but not DECLINED)
             last_assignment_result = await self.db.execute(
                 select(RosterEvent.date)
                 .join(EventAssignment)
@@ -157,7 +158,9 @@ class SuggestionService:
                     and_(
                         EventAssignment.user_id == member.user_id,
                         EventAssignment.event_id.in_(team_event_ids),
-                        EventAssignment.status == AssignmentStatus.CONFIRMED,
+                        EventAssignment.status.in_(
+                            [AssignmentStatus.CONFIRMED, AssignmentStatus.PENDING]
+                        ),
                     )
                 )
                 .order_by(RosterEvent.date.desc())
@@ -165,13 +168,16 @@ class SuggestionService:
             )
             last_assignment_date = last_assignment_result.scalar_one_or_none()
 
-            # Count total confirmed assignments for this member in this team
+            # Count total assignments (CONFIRMED and PENDING) for this member in this team
+            # PENDING assignments are treated as actual assignments that haven't been accepted yet
             total_assignments_result = await self.db.execute(
                 select(func.count(EventAssignment.id)).where(
                     and_(
                         EventAssignment.user_id == member.user_id,
                         EventAssignment.event_id.in_(team_event_ids),
-                        EventAssignment.status == AssignmentStatus.CONFIRMED,
+                        EventAssignment.status.in_(
+                            [AssignmentStatus.CONFIRMED, AssignmentStatus.PENDING]
+                        ),
                     )
                 )
             )
