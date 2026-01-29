@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/event_assignment.dart';
+import '../../models/swap_request.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/assignment_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/team_provider.dart';
 import '../../utils/invite_utils.dart';
 import '../../widgets/assignment_action_card.dart';
+import '../../widgets/swap_request_action_card.dart';
 import '../../widgets/upcoming_assignment_card.dart';
 import '../../widgets/team_lead_section.dart';
 import '../../widgets/empty_state.dart';
@@ -43,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final teamProvider = Provider.of<TeamProvider>(context, listen: false);
     await Future.wait([
       assignmentProvider.fetchMyAssignments(),
+      assignmentProvider.fetchMySwapRequests(status: 'pending'),
       notificationProvider.fetchNotifications(),
       teamProvider.fetchMyTeams(),
     ]);
@@ -60,9 +63,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final isTeamLead = authProvider.user?.isTeamLead == true;
     final pendingAssignments = assignmentProvider.pendingAssignments;
+    final pendingSwapRequests = assignmentProvider.pendingSwapRequests;
     final upcomingAssignments = assignmentProvider.upcomingAssignments;
     final unreadCount = notificationProvider.unreadCount;
     final hasTeams = teamProvider.teams.isNotEmpty;
+    final totalActionItems = pendingAssignments.length + pendingSwapRequests.length;
     final hasNoContent =
         pendingAssignments.isEmpty && upcomingAssignments.isEmpty && !hasTeams;
 
@@ -131,8 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Pending Assignments Section
-                  if (pendingAssignments.isNotEmpty) ...[
+                  // Pending Assignments and Swap Requests Section
+                  if (totalActionItems > 0) ...[
                     Row(
                       children: [
                         const Text(
@@ -153,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${pendingAssignments.length}',
+                            '$totalActionItems',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -164,6 +169,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
+                    // Swap requests first
+                    ...pendingSwapRequests.map(
+                      (swapRequest) => SwapRequestActionCard(
+                        swapRequest: swapRequest,
+                        onAccept: () => _handleAcceptSwap(swapRequest),
+                        onDecline: () => _handleDeclineSwap(swapRequest),
+                      ),
+                    ),
+                    // Then pending assignments
                     ...pendingAssignments.map(
                       (assignment) => AssignmentActionCard(
                         assignment: assignment,
@@ -455,6 +469,56 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _handleAcceptSwap(SwapRequest swapRequest) async {
+    final assignmentProvider = Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    );
+    final success = await assignmentProvider.acceptSwapRequest(swapRequest.id);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Swap accepted! Assignment transferred from ${swapRequest.requesterName ?? "someone"}',
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else if (assignmentProvider.error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${assignmentProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleDeclineSwap(SwapRequest swapRequest) async {
+    final assignmentProvider = Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    );
+    final success = await assignmentProvider.declineSwapRequest(swapRequest.id);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Swap request declined'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else if (assignmentProvider.error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${assignmentProvider.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
