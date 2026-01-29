@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/004-swap-requests-between-volunteers/**)",
+      "Write(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/004-swap-requests-between-volunteers/**)",
+      "Edit(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/004-swap-requests-between-volunteers/**)",
+      "Glob(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/004-swap-requests-between-volunteers/**)",
+      "Grep(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/004-swap-requests-between-volunteers/**)",
+      "Read(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/004-swap-requests-between-volunteers/.auto-claude/specs/004-swap-requests-between-volunteers/**)",
+      "Write(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/004-swap-requests-between-volunteers/.auto-claude/specs/004-swap-requests-between-volunteers/**)",
+      "Edit(/Users/charles/work/rooster/.auto-claude/worktrees/tasks/004-swap-requests-between-volunteers/.auto-claude/specs/004-swap-requests-between-volunteers/**)",
+      "Read(/Users/charles/work/rooster/.auto-claude/**)",
+      "Write(/Users/charles/work/rooster/.auto-claude/**)",
+      "Edit(/Users/charles/work/rooster/.auto-claude/**)",
+      "Glob(/Users/charles/work/rooster/.auto-claude/**)",
+      "Grep(/Users/charles/work/rooster/.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "004-swap-requests-between-volunteers",
+  "state": "building",
+  "subtasks": {
+    "completed": 7,
+    "total": 15,
+    "in_progress": 1,
+    "failed": 0
+  },
+  "phase": {
+    "current": "Frontend - Swap Request UI",
+    "id": null,
+    "total": 6
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 10,
+    "started_at": "2026-01-29T14:25:01.318144"
+  },
+  "last_update": "2026-01-29T14:52:32.226154"
+}
