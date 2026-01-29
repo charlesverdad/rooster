@@ -20,10 +20,13 @@ from app.schemas.roster import (
     RosterEventUpdate,
     RosterResponse,
     RosterUpdate,
+    SuggestionResponse,
+    SuggestionsResponse,
     TeamLeadInfo,
 )
 from app.services.organisation import OrganisationService
 from app.services.roster import RosterService
+from app.services.suggestion import SuggestionService
 from app.services.team import TeamService
 
 router = APIRouter(prefix="/rosters", tags=["rosters"])
@@ -643,6 +646,57 @@ async def get_roster_event(
         ),
         assignments=_build_assignment_summaries(event),
         created_at=event.created_at,
+    )
+
+
+@router.get("/events/{event_id}/suggestions", response_model=SuggestionsResponse)
+async def get_event_suggestions(
+    event_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+    limit: int = Query(10, ge=1, le=50),
+) -> SuggestionsResponse:
+    """Get assignment suggestions for a roster event. Team lead only."""
+    roster_service = RosterService(db)
+    team_service = TeamService(db)
+    suggestion_service = SuggestionService(db)
+
+    event = await roster_service.get_event(event_id)
+    if not event:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found",
+        )
+
+    roster = event.roster
+    team = await team_service.get_team(roster.team_id)
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found",
+        )
+
+    # Only team leads can get suggestions
+    if not await team_service.can_manage_team(current_user.id, team):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to get suggestions for this event",
+        )
+
+    suggestions = await suggestion_service.get_suggestions(
+        event_id, roster.team_id, limit
+    )
+
+    return SuggestionsResponse(
+        suggestions=[
+            SuggestionResponse(
+                user_id=s.user_id,
+                user_name=s.user_name,
+                score=s.score,
+                reasoning=s.reasoning,
+            )
+            for s in suggestions
+        ]
     )
 
 
