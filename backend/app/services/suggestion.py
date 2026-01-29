@@ -248,7 +248,7 @@ class SuggestionService:
             select(RosterEvent)
             .options(
                 selectinload(RosterEvent.event_assignments),
-                selectinload(RosterEvent.roster)
+                selectinload(RosterEvent.roster),
             )
             .where(
                 and_(

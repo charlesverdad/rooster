@@ -765,7 +765,9 @@ async def test_fair_rotation_with_pending_assignments(db: AsyncSession):
 
     # Statistical verification
     # All 5 members should have at least one assignment after 15 events
-    assigned_members = [user_id for user_id, count in assignment_counts.items() if count > 0]
+    assigned_members = [
+        user_id for user_id, count in assignment_counts.items() if count > 0
+    ]
     assert len(assigned_members) == 5, (
         f"Fair rotation failed: only {len(assigned_members)}/5 members were assigned. "
         f"Assignment counts: {assignment_counts}"

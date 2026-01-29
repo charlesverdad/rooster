@@ -732,9 +732,7 @@ async def auto_assign_all_events(
             detail="Not authorized to auto-assign for this roster",
         )
 
-    assignments = await suggestion_service.auto_assign_roster(
-        roster_id, roster.team_id
-    )
+    assignments = await suggestion_service.auto_assign_roster(roster_id, roster.team_id)
 
     return {
         "assigned_count": len(assignments),
