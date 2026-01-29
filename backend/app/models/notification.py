@@ -20,6 +20,11 @@ class NotificationType(str, enum.Enum):
     ASSIGNMENT_REMINDER = "assignment_reminder"
     CONFLICT_DETECTED = "conflict_detected"
     TEAM_JOINED = "team_joined"
+    SWAP_REQUESTED = "swap_requested"
+    SWAP_ACCEPTED = "swap_accepted"
+    SWAP_DECLINED = "swap_declined"
+    SWAP_EXPIRED = "swap_expired"
+    SWAP_COMPLETED = "swap_completed"
 
 
 class Notification(Base, UUIDMixin, TimestampMixin):

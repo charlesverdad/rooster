@@ -22,8 +22,14 @@ from app.schemas.roster import (
     RosterUpdate,
     TeamLeadInfo,
 )
+from app.schemas.swap_request import (
+    SwapRequestCreate,
+    SwapRequestResponse,
+    SwapRequestUpdate,
+)
 from app.services.organisation import OrganisationService
 from app.services.roster import RosterService
+from app.services.swap_request import SwapRequestService
 from app.services.team import TeamService
 
 router = APIRouter(prefix="/rosters", tags=["rosters"])
@@ -1105,3 +1111,207 @@ async def delete_event_assignment(
         )
 
     await roster_service.delete_event_assignment(assignment_id)
+
+
+# Swap Requests
+
+
+@router.post(
+    "/swap-requests",
+    response_model=SwapRequestResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_swap_request(
+    data: SwapRequestCreate,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> SwapRequestResponse:
+    """Create a new swap request. Must be the assigned user."""
+    swap_service = SwapRequestService(db)
+    roster_service = RosterService(db)
+    team_service = TeamService(db)
+
+    # Get the assignment to verify ownership
+    assignment = await roster_service.get_event_assignment(data.requester_assignment_id)
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assignment not found",
+        )
+
+    # Verify the requester owns this assignment
+    if assignment.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to swap this assignment",
+        )
+
+    # Verify assignment is confirmed
+    if assignment.status != AssignmentStatus.CONFIRMED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only swap confirmed assignments",
+        )
+
+    # Verify target user is eligible
+    eligible_users = await swap_service.get_eligible_swap_targets(
+        data.requester_assignment_id
+    )
+    eligible_user_ids = [u.id for u in eligible_users]
+    if data.target_user_id not in eligible_user_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Target user is not eligible for this swap",
+        )
+
+    swap_request = await swap_service.create_swap_request(data)
+    await db.commit()
+    return SwapRequestResponse.model_validate(swap_request)
+
+
+@router.get("/swap-requests/my", response_model=list[SwapRequestResponse])
+async def list_my_swap_requests(
+    current_user: CurrentUser,
+    db: DbSession,
+    status_filter: str | None = Query(None, alias="status"),
+) -> list[SwapRequestResponse]:
+    """List all swap requests for the current user (as requester or target)."""
+    swap_service = SwapRequestService(db)
+
+    # Parse status filter if provided
+    from app.models.swap_request import SwapRequestStatus
+
+    status_enum = None
+    if status_filter:
+        try:
+            status_enum = SwapRequestStatus(status_filter)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status: {status_filter}",
+            )
+
+    swap_requests = await swap_service.get_user_swap_requests(
+        current_user.id, status_enum
+    )
+    return [SwapRequestResponse.model_validate(sr) for sr in swap_requests]
+
+
+@router.get("/swap-requests/{swap_request_id}", response_model=SwapRequestResponse)
+async def get_swap_request(
+    swap_request_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> SwapRequestResponse:
+    """Get a swap request by ID. Must be requester or target."""
+    swap_service = SwapRequestService(db)
+    roster_service = RosterService(db)
+
+    swap_request = await swap_service.get_swap_request(swap_request_id)
+    if not swap_request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Swap request not found",
+        )
+
+    # Verify user is either the requester or target
+    assignment = swap_request.requester_assignment
+    is_requester = assignment.user_id == current_user.id
+    is_target = swap_request.target_user_id == current_user.id
+
+    if not is_requester and not is_target:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view this swap request",
+        )
+
+    return SwapRequestResponse.model_validate(swap_request)
+
+
+@router.post(
+    "/swap-requests/{swap_request_id}/accept",
+    response_model=SwapRequestResponse,
+)
+async def accept_swap_request(
+    swap_request_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> SwapRequestResponse:
+    """Accept a swap request. Must be the target user."""
+    swap_service = SwapRequestService(db)
+
+    swap_request = await swap_service.accept_swap_request(
+        swap_request_id, current_user.id
+    )
+    if not swap_request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Swap request not found or not authorized",
+        )
+
+    await db.commit()
+    return SwapRequestResponse.model_validate(swap_request)
+
+
+@router.post(
+    "/swap-requests/{swap_request_id}/decline",
+    response_model=SwapRequestResponse,
+)
+async def decline_swap_request(
+    swap_request_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> SwapRequestResponse:
+    """Decline a swap request. Must be the target user."""
+    swap_service = SwapRequestService(db)
+
+    swap_request = await swap_service.decline_swap_request(
+        swap_request_id, current_user.id
+    )
+    if not swap_request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Swap request not found or not authorized",
+        )
+
+    await db.commit()
+    return SwapRequestResponse.model_validate(swap_request)
+
+
+@router.get(
+    "/event-assignments/{assignment_id}/eligible-swap-targets",
+    response_model=list[dict],
+)
+async def get_eligible_swap_targets(
+    assignment_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> list[dict]:
+    """Get eligible team members for swapping. Must be the assigned user."""
+    swap_service = SwapRequestService(db)
+    roster_service = RosterService(db)
+
+    # Get the assignment to verify ownership
+    assignment = await roster_service.get_event_assignment(assignment_id)
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assignment not found",
+        )
+
+    # Verify the requester owns this assignment
+    if assignment.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view swap targets for this assignment",
+        )
+
+    eligible_users = await swap_service.get_eligible_swap_targets(assignment_id)
+    return [
+        {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+        }
+        for user in eligible_users
+    ]
