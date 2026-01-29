@@ -115,7 +115,7 @@ async def test_register_invalid_email(test_client: AsyncClient):
         "/api/auth/register",
         json={"email": "not-an-email", "name": "Test User", "password": "password"},
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 async def test_register_missing_email(test_client: AsyncClient):
@@ -124,7 +124,7 @@ async def test_register_missing_email(test_client: AsyncClient):
         "/api/auth/register",
         json={"name": "Test User", "password": "password"},
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 async def test_register_missing_name(test_client: AsyncClient):
@@ -133,7 +133,7 @@ async def test_register_missing_name(test_client: AsyncClient):
         "/api/auth/register",
         json={"email": "test@example.com", "password": "password"},
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 async def test_register_missing_password(test_client: AsyncClient):
@@ -142,7 +142,7 @@ async def test_register_missing_password(test_client: AsyncClient):
         "/api/auth/register",
         json={"email": "test@example.com", "name": "Test User"},
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 async def test_register_empty_name(test_client: AsyncClient):
@@ -155,7 +155,7 @@ async def test_register_empty_name(test_client: AsyncClient):
     # At minimum, check it doesn't crash
     assert response.status_code in [
         status.HTTP_201_CREATED,
-        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
     ]
 
 

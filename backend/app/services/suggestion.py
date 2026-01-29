@@ -34,23 +34,23 @@ class Suggestion:
     def reasoning(self) -> str:
         """Generate human-readable reasoning for this suggestion."""
         if self.days_since_last is None:
-            return "Never rostered before"
+            return "Never assigned before"
 
+        # Build time-based part
         if self.days_since_last == 0:
-            return "Last rostered today"
+            time_part = "Last rostered today"
         elif self.days_since_last == 1:
-            return "Last rostered yesterday"
-        elif self.days_since_last < 7:
-            return f"Last rostered {self.days_since_last} days ago"
-        elif self.days_since_last < 14:
-            return "Last rostered 1 week ago"
-        elif self.days_since_last < 21:
-            return "Last rostered 2 weeks ago"
-        elif self.days_since_last < 28:
-            return "Last rostered 3 weeks ago"
+            time_part = "Last rostered yesterday"
         else:
-            weeks = self.days_since_last // 7
-            return f"Last rostered {weeks} weeks ago"
+            time_part = f"Last rostered {self.days_since_last} days ago"
+
+        # Add assignment count
+        if self.total_assignments == 1:
+            count_part = "1 previous assignment"
+        else:
+            count_part = f"{self.total_assignments} previous assignments"
+
+        return f"{time_part}, {count_part}"
 
     def to_dict(self) -> dict:
         """Convert to dictionary for API responses."""
