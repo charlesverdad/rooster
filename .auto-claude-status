@@ -3,7 +3,7 @@
   "spec": "004-swap-requests-between-volunteers",
   "state": "building",
   "subtasks": {
-    "completed": 12,
+    "completed": 14,
     "total": 15,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 15,
+    "number": 17,
     "started_at": "2026-01-29T14:25:01.318144"
   },
-  "last_update": "2026-01-29T15:06:18.152037"
+  "last_update": "2026-01-29T15:17:11.817484"
 }

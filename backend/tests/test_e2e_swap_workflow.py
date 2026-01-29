@@ -436,3 +436,124 @@ async def test_e2e_eligible_swap_targets(client: AsyncClient, db_session: AsyncS
     # User B should NOT be eligible (already assigned to same event)
     # Note: According to backend logic, users already assigned can still be eligible
     # for swaps (they swap assignments). So this assertion may need adjustment.
+
+
+@pytest.mark.asyncio
+async def test_e2e_swap_request_decline_workflow(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """
+    End-to-end test for swap request decline workflow.
+
+    Steps:
+    1. User A initiates swap request to User B
+    2. User B declines the swap
+    3. Verify swap request status changed to DECLINED
+    4. Verify User A receives notification of decline
+    5. Verify assignments remain unchanged
+    """
+    # Step 1: Setup fixtures - User A has a confirmed assignment
+    fixtures = await _create_e2e_fixtures(db_session)
+    user_a = fixtures["user_a"]
+    user_b = fixtures["user_b"]
+    assignment_a = fixtures["assignment_a"]
+    event = fixtures["event"]
+
+    # Store original assignment state
+    original_user_id = assignment_a.user_id
+    original_status = assignment_a.status
+
+    # Generate auth tokens
+    token_a = create_access_token(data={"sub": str(user_a.id)})
+    token_b = create_access_token(data={"sub": str(user_b.id)})
+
+    # Step 1: User A initiates swap request to User B
+    response = await client.post(
+        "/api/rosters/swap-requests",
+        json={
+            "requester_assignment_id": str(assignment_a.id),
+            "target_user_id": str(user_b.id),
+        },
+        headers={"Authorization": f"Bearer {token_a}"},
+    )
+    assert response.status_code == 201
+    swap_request_data = response.json()
+    swap_request_id = swap_request_data["id"]
+
+    # Verify swap request created with PENDING status
+    result = await db_session.execute(
+        select(SwapRequest).where(SwapRequest.id == uuid.UUID(swap_request_id))
+    )
+    swap_request = result.scalar_one()
+    assert swap_request.status == SwapRequestStatus.PENDING
+    assert swap_request.responded_at is None
+
+    # Step 2: User B declines the swap
+    response = await client.post(
+        f"/api/rosters/swap-requests/{swap_request_id}/decline",
+        headers={"Authorization": f"Bearer {token_b}"},
+    )
+    assert response.status_code == 200
+    declined_swap_data = response.json()
+    assert declined_swap_data["status"] == "declined"
+    assert declined_swap_data["responded_at"] is not None
+
+    # Step 3: Verify swap request status changed to DECLINED
+    await db_session.refresh(swap_request)
+    assert swap_request.status == SwapRequestStatus.DECLINED
+    assert swap_request.responded_at is not None
+
+    # Step 4: Verify User A receives notification of decline
+    result = await db_session.execute(
+        select(Notification)
+        .where(Notification.user_id == user_a.id)
+        .where(Notification.notification_type == NotificationType.SWAP_DECLINED)
+    )
+    notifications = list(result.scalars().all())
+    assert len(notifications) == 1
+    notification = notifications[0]
+    assert notification.reference_id == swap_request_id
+    assert notification.is_read is False
+
+    # Step 5: Verify assignments remain unchanged
+    await db_session.refresh(assignment_a)
+    assert assignment_a.user_id == original_user_id
+    assert assignment_a.status == original_status
+
+    # Verify User B still has no assignment for this event
+    result = await db_session.execute(
+        select(EventAssignment)
+        .where(EventAssignment.event_id == event.id)
+        .where(EventAssignment.user_id == user_b.id)
+    )
+    user_b_assignments = list(result.scalars().all())
+    assert len(user_b_assignments) == 0
+
+    # Verify User A still sees their original assignment
+    response = await client.get(
+        "/api/rosters/event-assignments/my",
+        headers={"Authorization": f"Bearer {token_a}"},
+    )
+    assert response.status_code == 200
+    user_a_assignments = response.json()
+    # Filter for this specific event
+    event_assignments_a = [
+        a for a in user_a_assignments if a["event"]["id"] == str(event.id)
+    ]
+    assert len(event_assignments_a) == 1
+    assert event_assignments_a[0]["id"] == str(assignment_a.id)
+    assert event_assignments_a[0]["user"]["id"] == str(user_a.id)
+    assert event_assignments_a[0]["status"] == "confirmed"
+
+    # Verify User B still has no assignments for this event
+    response = await client.get(
+        "/api/rosters/event-assignments/my",
+        headers={"Authorization": f"Bearer {token_b}"},
+    )
+    assert response.status_code == 200
+    user_b_assignments_api = response.json()
+    # Filter for this specific event
+    event_assignments_b = [
+        a for a in user_b_assignments_api if a["event"]["id"] == str(event.id)
+    ]
+    assert len(event_assignments_b) == 0
