@@ -248,6 +248,15 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _showSwapRequestSheet(context, detail.id),
+                icon: const Icon(Icons.swap_horiz),
+                label: const Text('Request Swap'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
               child: OutlinedButton(
                 onPressed: () {
                   setState(() {
@@ -391,6 +400,14 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     showModalBottomSheet(
       context: context,
       builder: (context) => ContactTeamLeadSheet(teamLead: teamLead),
+    );
+  }
+
+  void _showSwapRequestSheet(BuildContext context, String assignmentId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SwapRequestSheet(assignmentId: assignmentId),
     );
   }
 
@@ -679,5 +696,114 @@ class _DeclineConfirmationSheetState extends State<DeclineConfirmationSheet> {
         ],
       ),
     );
+  }
+}
+
+class SwapRequestSheet extends StatefulWidget {
+  final String assignmentId;
+
+  const SwapRequestSheet({super.key, required this.assignmentId});
+
+  @override
+  State<SwapRequestSheet> createState() => _SwapRequestSheetState();
+}
+
+class _SwapRequestSheetState extends State<SwapRequestSheet> {
+  final TextEditingController _reasonController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _reasonController.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 16,
+        right: 16,
+        top: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.swap_horiz, size: 28),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Request a Swap',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Request another volunteer to swap with you for this assignment.',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Reason for swap',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _reasonController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Enter your reason for requesting a swap...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _reasonController.text.trim().isEmpty
+                  ? null
+                  : () => _handleSubmit(context),
+              child: const Text('Send Swap Request'),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleSubmit(BuildContext context) async {
+    // TODO: Implement swap request submission
+    // For now, just show a success message and close
+    if (context.mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Swap request sent'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }
