@@ -128,9 +128,7 @@ async def test_suggest_prioritizes_long_time_since_last(db: AsyncSession):
     member_medium = TeamMember(
         user_id=user_medium.id, team_id=team.id, role=TeamRole.MEMBER
     )
-    member_old = TeamMember(
-        user_id=user_old.id, team_id=team.id, role=TeamRole.MEMBER
-    )
+    member_old = TeamMember(user_id=user_old.id, team_id=team.id, role=TeamRole.MEMBER)
     db.add_all([member_recent, member_medium, member_old])
 
     # Create roster
@@ -460,9 +458,7 @@ async def test_suggest_considers_total_assignments(db: AsyncSession):
         db.add(assignment)
 
     # Create one assignment for user_few (also 30 days ago)
-    event_few = RosterEvent(
-        roster_id=roster.id, date=date.today() - timedelta(days=30)
-    )
+    event_few = RosterEvent(roster_id=roster.id, date=date.today() - timedelta(days=30))
     db.add(event_few)
     await db.flush()
 

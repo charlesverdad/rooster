@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 
 from sqlalchemy import and_, func, select

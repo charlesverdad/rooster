@@ -210,3 +210,18 @@ class EventAssignmentDetailResponse(BaseModel):
     team_lead: Optional[TeamLeadInfo] = None
 
     model_config = {"from_attributes": True}
+
+
+class SuggestionResponse(BaseModel):
+    """Schema for volunteer assignment suggestion."""
+
+    user_id: uuid.UUID
+    user_name: str
+    score: float
+    reasoning: str
+
+
+class SuggestionsResponse(BaseModel):
+    """Schema for list of volunteer assignment suggestions."""
+
+    suggestions: list[SuggestionResponse]
