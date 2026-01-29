@@ -232,6 +232,26 @@ class RosterProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Map<String, dynamic>> autoAssignAllEvents(String rosterId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await RosterService.autoAssignAllEvents(rosterId);
+      // Refresh the roster to show new assignments
+      await fetchRoster(rosterId);
+      return result;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error auto-assigning events: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> updateRoster({
     String? name,
     int? slotsNeeded,

@@ -700,6 +700,48 @@ async def get_event_suggestions(
     )
 
 
+@router.post("/{roster_id}/auto-assign-all")
+async def auto_assign_all_events(
+    roster_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> dict:
+    """Auto-assign volunteers to all unfilled events using round-robin. Team lead only."""
+    roster_service = RosterService(db)
+    team_service = TeamService(db)
+    suggestion_service = SuggestionService(db)
+
+    roster = await roster_service.get_roster(roster_id)
+    if not roster:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Roster not found",
+        )
+
+    team = await team_service.get_team(roster.team_id)
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found",
+        )
+
+    # Only team leads can auto-assign
+    if not await team_service.can_manage_team(current_user.id, team):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to auto-assign for this roster",
+        )
+
+    assignments = await suggestion_service.auto_assign_roster(
+        roster_id, roster.team_id
+    )
+
+    return {
+        "assigned_count": len(assignments),
+        "assignments": assignments,
+    }
+
+
 @router.patch("/events/{event_id}", response_model=RosterEventResponse)
 async def update_roster_event(
     event_id: uuid.UUID,

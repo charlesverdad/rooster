@@ -479,34 +479,11 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
     BuildContext context,
   ) async {
     try {
-      final events = rosterProvider.currentEvents
-          .where((e) => !e.isFilled && !e.isCancelled)
-          .toList();
+      final rosterId = rosterProvider.currentRoster?.id;
+      if (rosterId == null) return;
 
-      if (events.isEmpty) return;
-
-      for (final event in events) {
-        // Fetch suggestions for this event
-        await rosterProvider.fetchSuggestionsForEvent(event.id);
-        final suggestions = rosterProvider.suggestions;
-
-        if (suggestions.isEmpty) continue;
-
-        // Assign top suggestions until event is filled
-        final slotsToFill = event.slotsNeeded - event.filledSlots;
-        final suggestionsToAssign =
-            suggestions.take(slotsToFill).toList();
-
-        for (final suggestion in suggestionsToAssign) {
-          await rosterProvider.assignVolunteerToEvent(
-            event.id,
-            suggestion.userId,
-          );
-        }
-      }
-
-      // Clear suggestions
-      rosterProvider.clearSuggestions();
+      // Use the new backend endpoint for efficient round-robin assignment
+      await rosterProvider.autoAssignAllEvents(rosterId);
     } catch (e) {
       debugPrint('Error auto-assigning initial rotation: $e');
     }

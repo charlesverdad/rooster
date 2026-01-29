@@ -267,7 +267,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  ...widget.suggestions!.map(
+                  ...widget.suggestions!.take(3).map(
                     (suggestion) => _buildSuggestionTile(suggestion),
                   ),
                   const SizedBox(height: 16),

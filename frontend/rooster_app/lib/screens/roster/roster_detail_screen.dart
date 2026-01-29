@@ -242,43 +242,16 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
     );
 
     int assignedCount = 0;
-    int errorCount = 0;
+    String? errorMessage;
 
-    for (final event in unfilledEvents) {
-      try {
-        // Fetch suggestions for this event
-        await rosterProvider.fetchSuggestionsForEvent(event.id);
-        final suggestions = rosterProvider.suggestions;
-
-        if (suggestions.isEmpty) {
-          errorCount++;
-          continue;
-        }
-
-        // Assign top suggestions until event is filled
-        final slotsToFill = event.slotsNeeded - event.filledSlots;
-        final suggestionsToAssign =
-            suggestions.take(slotsToFill).toList();
-
-        for (final suggestion in suggestionsToAssign) {
-          final success = await rosterProvider.assignVolunteerToEvent(
-            event.id,
-            suggestion.userId,
-          );
-          if (success) {
-            assignedCount++;
-          } else {
-            errorCount++;
-          }
-        }
-      } catch (e) {
-        errorCount++;
-        debugPrint('Error auto-assigning for event ${event.id}: $e');
-      }
+    try {
+      // Call the new backend endpoint that does round-robin assignment
+      final result = await rosterProvider.autoAssignAllEvents(widget.rosterId);
+      assignedCount = result['assigned_count'] as int? ?? 0;
+    } catch (e) {
+      errorMessage = e.toString();
+      debugPrint('Error auto-assigning events: $e');
     }
-
-    // Clear suggestions
-    rosterProvider.clearSuggestions();
 
     // Close progress dialog
     if (context.mounted) {
@@ -288,15 +261,17 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            assignedCount > 0
-                ? '✅ Auto-assigned $assignedCount volunteer(s)${errorCount > 0 ? " ($errorCount errors)" : ""}'
-                : 'Failed to auto-assign volunteers',
+            errorMessage != null
+                ? 'Failed to auto-assign: $errorMessage'
+                : assignedCount > 0
+                    ? '✅ Auto-assigned $assignedCount volunteer(s)'
+                    : 'No volunteers could be assigned',
           ),
-          backgroundColor: assignedCount > 0 ? null : Colors.red,
+          backgroundColor: errorMessage != null ? Colors.red : null,
         ),
       );
 
-      // Refresh roster
+      // Refresh roster (already done by autoAssignAllEvents, but do it again to be sure)
       _refreshRoster();
     }
   }

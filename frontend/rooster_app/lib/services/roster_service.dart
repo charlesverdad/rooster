@@ -253,4 +253,17 @@ class RosterService {
       throw ApiException(response.statusCode, response.body);
     }
   }
+
+  static Future<Map<String, dynamic>> autoAssignAllEvents(
+    String rosterId,
+  ) async {
+    final response =
+        await ApiClient.post('/rosters/$rosterId/auto-assign-all', {});
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
 }
