@@ -240,7 +240,7 @@ class RosterProvider with ChangeNotifier {
     try {
       final result = await RosterService.autoAssignAllEvents(rosterId);
       // Refresh the roster to show new assignments
-      await fetchRoster(rosterId);
+      await fetchRosterDetail(rosterId);
       return result;
     } catch (e) {
       _error = _getErrorMessage(e);
