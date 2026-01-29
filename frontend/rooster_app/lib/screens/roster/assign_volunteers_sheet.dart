@@ -369,6 +369,8 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
           // to use with the existing _handleAssign method
           final member = TeamMember(
             userId: suggestion.userId,
+            teamId: widget.teamId ?? '',
+            role: 'member',
             userName: suggestion.userName,
             isPlaceholder: false,
             isInvited: true,
