@@ -143,9 +143,31 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                 'Generated Events',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              Text(
-                '${events.length} events',
-                style: TextStyle(color: Colors.grey.shade600),
+              Row(
+                children: [
+                  Text(
+                    '${events.length} events',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  if (Provider.of<TeamProvider>(
+                        context,
+                        listen: false,
+                      ).currentTeam?.canAssignVolunteers ??
+                      false) ...[
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _autoSuggestAll(context),
+                      icon: const Icon(Icons.auto_awesome, size: 18),
+                      label: const Text('Auto-Suggest All'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -188,6 +210,95 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _autoSuggestAll(BuildContext context) async {
+    final rosterProvider = Provider.of<RosterProvider>(context, listen: false);
+    final unfilledEvents = rosterProvider.currentEvents
+        .where((e) => !e.isFilled && !e.isCancelled)
+        .toList();
+
+    if (unfilledEvents.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All events are already filled')),
+      );
+      return;
+    }
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Auto-assigning volunteers...'),
+          ],
+        ),
+      ),
+    );
+
+    int assignedCount = 0;
+    int errorCount = 0;
+
+    for (final event in unfilledEvents) {
+      try {
+        // Fetch suggestions for this event
+        await rosterProvider.fetchSuggestionsForEvent(event.id);
+        final suggestions = rosterProvider.suggestions;
+
+        if (suggestions.isEmpty) {
+          errorCount++;
+          continue;
+        }
+
+        // Assign top suggestions until event is filled
+        final slotsToFill = event.slotsNeeded - event.filledSlots;
+        final suggestionsToAssign =
+            suggestions.take(slotsToFill).toList();
+
+        for (final suggestion in suggestionsToAssign) {
+          final success = await rosterProvider.assignVolunteerToEvent(
+            event.id,
+            suggestion.userId,
+          );
+          if (success) {
+            assignedCount++;
+          } else {
+            errorCount++;
+          }
+        }
+      } catch (e) {
+        errorCount++;
+        debugPrint('Error auto-assigning for event ${event.id}: $e');
+      }
+    }
+
+    // Clear suggestions
+    rosterProvider.clearSuggestions();
+
+    // Close progress dialog
+    if (context.mounted) {
+      Navigator.of(context).pop();
+
+      // Show result
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            assignedCount > 0
+                ? '✅ Auto-assigned $assignedCount volunteer(s)${errorCount > 0 ? " ($errorCount errors)" : ""}'
+                : 'Failed to auto-assign volunteers',
+          ),
+          backgroundColor: assignedCount > 0 ? null : Colors.red,
+        ),
+      );
+
+      // Refresh roster
+      _refreshRoster();
+    }
   }
 
   Widget _buildInfoRow(IconData icon, String text) {

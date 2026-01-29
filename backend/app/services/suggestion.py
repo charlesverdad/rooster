@@ -121,8 +121,8 @@ class SuggestionService:
         )
         members = list(members_result.scalars().all())
 
-        # Filter out placeholder users
-        real_members = [m for m in members if m.user and not m.user.is_placeholder]
+        # Include all members (including placeholders - they are real people who haven't joined yet)
+        real_members = [m for m in members if m.user]
 
         # Get unavailable user IDs for this date
         unavailable_result = await self.db.execute(

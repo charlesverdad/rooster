@@ -333,8 +333,8 @@ async def test_suggest_respects_limit(db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_suggest_ignores_placeholder_users(db: AsyncSession):
-    """Test that placeholder users are excluded from suggestions."""
+async def test_suggest_includes_placeholder_users(db: AsyncSession):
+    """Test that placeholder users are included in suggestions (they are real people who haven't joined yet)."""
     # Setup
     org = Organisation(name="Test Church")
     db.add(org)
@@ -390,9 +390,11 @@ async def test_suggest_ignores_placeholder_users(db: AsyncSession):
     service = SuggestionService(db)
     suggestions = await service.get_suggestions(event.id, team.id, limit=10)
 
-    # Only real user should be suggested
-    assert len(suggestions) == 1
-    assert suggestions[0].user_name == "Real User"
+    # Both users should be suggested (including placeholder)
+    assert len(suggestions) == 2
+    user_names = {s.user_name for s in suggestions}
+    assert "Real User" in user_names
+    assert "Placeholder User" in user_names
 
 
 @pytest.mark.asyncio
