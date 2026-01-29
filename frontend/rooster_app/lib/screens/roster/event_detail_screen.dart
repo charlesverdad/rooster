@@ -494,13 +494,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     if (!context.mounted) return;
 
-    // Show the assign sheet (it will display suggestions in subtask-3-4)
+    // Show the assign sheet with suggestions
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => AssignVolunteersSheet(
         teamId: _teamId ?? '',
         eventDate: event.date,
+        suggestions: rosterProvider.suggestions,
         onAssign: (userId) async {
           final rosterProvider = Provider.of<RosterProvider>(
             context,
