@@ -246,7 +246,10 @@ class SuggestionService:
         # Get all unfilled events in this roster (not cancelled, sorted by date)
         events_result = await self.db.execute(
             select(RosterEvent)
-            .options(selectinload(RosterEvent.assignments))
+            .options(
+                selectinload(RosterEvent.event_assignments),
+                selectinload(RosterEvent.roster)
+            )
             .where(
                 and_(
                     RosterEvent.roster_id == roster_id,
@@ -262,15 +265,15 @@ class SuggestionService:
         for event in events:
             filled_slots = sum(
                 1
-                for a in event.assignments
+                for a in event.event_assignments
                 if a.status in [AssignmentStatus.CONFIRMED, AssignmentStatus.PENDING]
             )
-            if filled_slots < event.slots_needed:
+            if filled_slots < event.roster.slots_needed:
                 unfilled_events.append(
                     {
                         "event": event,
                         "filled_slots": filled_slots,
-                        "slots_to_fill": event.slots_needed - filled_slots,
+                        "slots_to_fill": event.roster.slots_needed - filled_slots,
                     }
                 )
 
@@ -364,9 +367,7 @@ class SuggestionService:
         unavailability_records = unavailability_result.scalars().all()
 
         # Build a set of (user_id, date) tuples for quick lookup
-        unavailable_set = {
-            (u.user_id, u.date) for u in unavailability_records
-        }
+        unavailable_set = {(u.user_id, u.date) for u in unavailability_records}
 
         # Round-robin assignment
         assignments_created = []
@@ -380,7 +381,7 @@ class SuggestionService:
             # Get users already assigned to this event
             already_assigned = {
                 a.user_id
-                for a in event.assignments
+                for a in event.event_assignments
                 if a.status in [AssignmentStatus.CONFIRMED, AssignmentStatus.PENDING]
             }
 
