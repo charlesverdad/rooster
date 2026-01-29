@@ -127,3 +127,108 @@ class NotificationService:
                 reference_id=team_id,
             )
         )
+
+    async def notify_swap_requested(
+        self,
+        target_user_id: uuid.UUID,
+        requester_name: str,
+        event_date: str,
+        swap_request_id: uuid.UUID,
+    ) -> Notification:
+        """Create a notification when a swap request is received."""
+        title = "Swap Request"
+        message = f"{requester_name} wants to swap their assignment on {event_date} with you"
+
+        return await self.create_notification(
+            NotificationCreate(
+                user_id=target_user_id,
+                type=NotificationType.SWAP_REQUESTED,
+                title=title,
+                message=message,
+                reference_id=swap_request_id,
+            )
+        )
+
+    async def notify_swap_accepted(
+        self,
+        requester_user_id: uuid.UUID,
+        accepter_name: str,
+        event_date: str,
+        swap_request_id: uuid.UUID,
+    ) -> Notification:
+        """Create a notification when a swap request is accepted."""
+        title = "Swap Accepted"
+        message = f"{accepter_name} accepted your swap request for {event_date}"
+
+        return await self.create_notification(
+            NotificationCreate(
+                user_id=requester_user_id,
+                type=NotificationType.SWAP_ACCEPTED,
+                title=title,
+                message=message,
+                reference_id=swap_request_id,
+            )
+        )
+
+    async def notify_swap_declined(
+        self,
+        requester_user_id: uuid.UUID,
+        decliner_name: str,
+        event_date: str,
+        swap_request_id: uuid.UUID,
+    ) -> Notification:
+        """Create a notification when a swap request is declined."""
+        title = "Swap Declined"
+        message = f"{decliner_name} declined your swap request for {event_date}"
+
+        return await self.create_notification(
+            NotificationCreate(
+                user_id=requester_user_id,
+                type=NotificationType.SWAP_DECLINED,
+                title=title,
+                message=message,
+                reference_id=swap_request_id,
+            )
+        )
+
+    async def notify_swap_expired(
+        self,
+        requester_user_id: uuid.UUID,
+        event_date: str,
+        swap_request_id: uuid.UUID,
+    ) -> Notification:
+        """Create a notification when a swap request expires."""
+        title = "Swap Request Expired"
+        message = f"Your swap request for {event_date} has expired"
+
+        return await self.create_notification(
+            NotificationCreate(
+                user_id=requester_user_id,
+                type=NotificationType.SWAP_EXPIRED,
+                title=title,
+                message=message,
+                reference_id=swap_request_id,
+            )
+        )
+
+    async def notify_swap_completed(
+        self,
+        team_lead_id: uuid.UUID,
+        requester_name: str,
+        accepter_name: str,
+        event_date: str,
+        swap_request_id: uuid.UUID,
+    ) -> Notification:
+        """Create a notification when a swap is completed (for team leads)."""
+        title = "Assignment Swap Completed"
+        message = f"{requester_name} and {accepter_name} have swapped assignments for {event_date}"
+
+        return await self.create_notification(
+            NotificationCreate(
+                user_id=team_lead_id,
+                type=NotificationType.SWAP_COMPLETED,
+                title=title,
+                message=message,
+                reference_id=swap_request_id,
+            )
+        )
