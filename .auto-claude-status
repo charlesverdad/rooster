@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "002-get-ready-for-production-release-by-improving-the-",
+  "state": "building",
+  "subtasks": {
+    "completed": 5,
+    "total": 9,
+    "in_progress": 1,
+    "failed": 0
+  },
+  "phase": {
+    "current": "Root Directory Cleanup",
+    "id": null,
+    "total": 2
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 6,
+    "started_at": "2026-01-28T18:15:01.600297"
+  },
+  "last_update": "2026-01-28T18:20:04.567967"
+}
