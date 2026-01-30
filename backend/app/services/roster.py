@@ -94,11 +94,11 @@ def calculate_event_dates(
         if current.day > recurrence_day:
             # Move to next month
             if current.month == 12:
-                current = date(current.year + 1, 1, recurrence_day)
+                current = _get_monthly_date(current.year + 1, 1, recurrence_day)
             else:
-                current = date(current.year, current.month + 1, recurrence_day)
+                current = _get_monthly_date(current.year, current.month + 1, recurrence_day)
         else:
-            current = date(current.year, current.month, recurrence_day)
+            current = _get_monthly_date(current.year, current.month, recurrence_day)
 
     max_events = count
     if end_after_occurrences:
@@ -116,18 +116,11 @@ def calculate_event_dates(
         elif recurrence_pattern == RecurrencePattern.BIWEEKLY:
             current = current + timedelta(weeks=2)
         elif recurrence_pattern == RecurrencePattern.MONTHLY:
-            # Move to next month, same day
+            # Move to next month, same day (clamped to valid range for the month)
             if current.month == 12:
-                current = date(current.year + 1, 1, recurrence_day)
+                current = _get_monthly_date(current.year + 1, 1, recurrence_day)
             else:
-                try:
-                    current = date(current.year, current.month + 1, recurrence_day)
-                except ValueError:
-                    # Day doesn't exist in that month, skip
-                    if current.month == 11:
-                        current = date(current.year + 1, 1, recurrence_day)
-                    else:
-                        current = date(current.year, current.month + 2, recurrence_day)
+                current = _get_monthly_date(current.year, current.month + 1, recurrence_day)
 
     return dates
 
