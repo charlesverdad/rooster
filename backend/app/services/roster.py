@@ -1,4 +1,5 @@
 import uuid
+import calendar
 from datetime import date, timedelta
 from typing import Optional
 
@@ -32,6 +33,24 @@ def frontend_day_to_python_weekday(day: int) -> int:
         Day of week in Python convention (0=Monday, 6=Sunday)
     """
     return (day - 1) % 7
+
+
+def _get_monthly_date(year: int, month: int, day: int) -> date:
+    """Safely create a date by clamping the day to the valid range for the month.
+
+    This handles cases where the requested day doesn't exist in the given month
+    (e.g., Feb 31 becomes Feb 28/29, Apr 31 becomes Apr 30).
+
+    Args:
+        year: The year
+        month: The month (1-12)
+        day: The requested day of month (will be clamped if too large)
+
+    Returns:
+        A date with the day clamped to the maximum valid day for that month
+    """
+    _, max_day = calendar.monthrange(year, month)
+    return date(year, month, min(day, max_day))
 
 
 def calculate_event_dates(
