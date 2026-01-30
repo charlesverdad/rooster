@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../models/roster.dart';
 import '../models/roster_event.dart';
+import '../models/suggestion.dart';
 import 'api_client.dart';
 
 class RosterService {
@@ -231,6 +232,36 @@ class RosterService {
 
     if (response.statusCode == 200) {
       return RosterEvent.fromJson(jsonDecode(response.body));
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
+  /// Get assignment suggestions for an event
+  static Future<List<Suggestion>> getSuggestionsForEvent(
+    String eventId, {
+    int limit = 10,
+  }) async {
+    final response =
+        await ApiClient.get('/rosters/events/$eventId/suggestions?limit=$limit');
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      final List<dynamic> suggestions = data['suggestions'] ?? [];
+      return suggestions.map((json) => Suggestion.fromJson(json)).toList();
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
+  static Future<Map<String, dynamic>> autoAssignAllEvents(
+    String rosterId,
+  ) async {
+    final response =
+        await ApiClient.post('/rosters/$rosterId/auto-assign-all', {});
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
       throw ApiException(response.statusCode, response.body);
     }

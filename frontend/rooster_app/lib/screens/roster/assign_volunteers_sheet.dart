@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/team_member.dart';
+import '../../models/suggestion.dart';
 import '../../providers/team_provider.dart';
 import '../../providers/roster_provider.dart';
 import '../../services/team_service.dart';
@@ -15,6 +16,9 @@ class AssignVolunteersSheet extends StatefulWidget {
   final DateTime? eventDate;
   final String? rosterName;
 
+  // Optional suggestions to display
+  final List<Suggestion>? suggestions;
+
   const AssignVolunteersSheet({
     super.key,
     this.teamId,
@@ -22,6 +26,7 @@ class AssignVolunteersSheet extends StatefulWidget {
     this.eventId,
     this.eventDate,
     this.rosterName,
+    this.suggestions,
   });
 
   // Named constructor for roster detail usage
@@ -29,6 +34,7 @@ class AssignVolunteersSheet extends StatefulWidget {
     super.key,
     required this.teamId,
     required this.onAssign,
+    this.suggestions,
   }) : eventId = null,
        eventDate = null,
        rosterName = null;
@@ -39,6 +45,7 @@ class AssignVolunteersSheet extends StatefulWidget {
     required this.eventId,
     required this.eventDate,
     required this.rosterName,
+    this.suggestions,
   }) : teamId = null,
        onAssign = null;
 
@@ -237,6 +244,34 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // Suggestions section (only when suggestions are provided and search is empty)
+                if (widget.suggestions != null &&
+                    widget.suggestions!.isNotEmpty &&
+                    _searchQuery.isEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Suggested',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...widget.suggestions!.take(3).map(
+                    (suggestion) => _buildSuggestionTile(suggestion),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (available.isNotEmpty) ...[
                   Text(
                     'Available',
@@ -293,6 +328,55 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionTile(Suggestion suggestion) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 2,
+      color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: Text(
+            suggestion.userName.isNotEmpty
+                ? suggestion.userName.substring(0, 1)
+                : '?',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        title: Text(
+          suggestion.userName,
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(
+          suggestion.reasoning,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () async {
+          // Create a TeamMember-like object from the suggestion
+          // to use with the existing _handleAssign method
+          final member = TeamMember(
+            userId: suggestion.userId,
+            teamId: widget.teamId ?? '',
+            role: 'member',
+            userName: suggestion.userName,
+            isPlaceholder: false,
+            isInvited: true,
+          );
+          await _handleAssign(member);
+        },
       ),
     );
   }

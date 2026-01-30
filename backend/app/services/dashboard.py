@@ -148,7 +148,7 @@ class DashboardService:
                 {
                     "user_id": member.user_id,
                     "user_name": member.user.name if member.user else "Unknown",
-                    "user_email": member.user.email if member.user else "Unknown",
+                    "user_email": (member.user and member.user.email) or "No email",
                     "is_available": unavailability is None,
                     "unavailability_reason": (
                         unavailability.reason if unavailability else None

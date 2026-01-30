@@ -253,11 +253,23 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   'Assignments',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                if (canManage && !event.isCancelled && !event.isFilled)
-                  TextButton.icon(
-                    onPressed: () => _showAssignSheet(context, event),
-                    icon: const Icon(Icons.person_add, size: 18),
-                    label: const Text('Assign'),
+                if (canManage && !event.isCancelled)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!event.isFilled)
+                        TextButton.icon(
+                          onPressed: () => _showSuggestSheet(context, event),
+                          icon: const Icon(Icons.auto_awesome, size: 18),
+                          label: const Text('Suggest'),
+                        ),
+                      if (!event.isFilled)
+                        TextButton.icon(
+                          onPressed: () => _showAssignSheet(context, event),
+                          icon: const Icon(Icons.person_add, size: 18),
+                          label: const Text('Assign'),
+                        ),
+                    ],
                   ),
               ],
             ),
@@ -469,6 +481,40 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         },
       ),
     ).then((_) => _loadEvent());
+  }
+
+  Future<void> _showSuggestSheet(BuildContext context, RosterEvent event) async {
+    final rosterProvider = Provider.of<RosterProvider>(
+      context,
+      listen: false,
+    );
+
+    // Fetch suggestions first
+    await rosterProvider.fetchSuggestionsForEvent(event.id);
+
+    if (!context.mounted) return;
+
+    // Show the assign sheet with suggestions
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => AssignVolunteersSheet(
+        teamId: _teamId ?? '',
+        eventDate: event.date,
+        suggestions: rosterProvider.suggestions,
+        onAssign: (userId) async {
+          final rosterProvider = Provider.of<RosterProvider>(
+            context,
+            listen: false,
+          );
+          await rosterProvider.assignVolunteerToEvent(event.id, userId);
+        },
+      ),
+    ).then((_) {
+      // Clear suggestions when sheet is closed
+      rosterProvider.clearSuggestions();
+      _loadEvent();
+    });
   }
 
   void _showRemoveConfirmation(

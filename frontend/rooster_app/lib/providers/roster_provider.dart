@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../models/roster.dart';
 import '../models/roster_event.dart';
 import '../models/event_assignment.dart';
+import '../models/suggestion.dart';
 import '../services/api_client.dart';
 import '../services/roster_service.dart';
 import '../services/assignment_service.dart';
@@ -10,12 +11,14 @@ class RosterProvider with ChangeNotifier {
   List<Roster> _rosters = [];
   Roster? _currentRoster;
   List<RosterEvent> _currentEvents = [];
+  List<Suggestion> _suggestions = [];
   bool _isLoading = false;
   String? _error;
 
   List<Roster> get rosters => _rosters;
   Roster? get currentRoster => _currentRoster;
   List<RosterEvent> get currentEvents => _currentEvents;
+  List<Suggestion> get suggestions => _suggestions;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -205,6 +208,47 @@ class RosterProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error fetching event assignments: $e');
       return [];
+    }
+  }
+
+  Future<void> fetchSuggestionsForEvent(String eventId, {int limit = 10}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _suggestions = await RosterService.getSuggestionsForEvent(eventId, limit: limit);
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error fetching suggestions: $e');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  void clearSuggestions() {
+    _suggestions = [];
+    notifyListeners();
+  }
+
+  Future<Map<String, dynamic>> autoAssignAllEvents(String rosterId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await RosterService.autoAssignAllEvents(rosterId);
+      // Refresh the roster to show new assignments
+      await fetchRosterDetail(rosterId);
+      return result;
+    } catch (e) {
+      _error = _getErrorMessage(e);
+      debugPrint('Error auto-assigning events: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

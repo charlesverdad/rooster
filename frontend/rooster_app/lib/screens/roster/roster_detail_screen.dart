@@ -143,9 +143,31 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                 'Generated Events',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              Text(
-                '${events.length} events',
-                style: TextStyle(color: Colors.grey.shade600),
+              Row(
+                children: [
+                  Text(
+                    '${events.length} events',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                  if (Provider.of<TeamProvider>(
+                        context,
+                        listen: false,
+                      ).currentTeam?.canAssignVolunteers ??
+                      false) ...[
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _autoSuggestAll(context),
+                      icon: const Icon(Icons.auto_awesome, size: 18),
+                      label: const Text('Auto-Suggest All'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -188,6 +210,70 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _autoSuggestAll(BuildContext context) async {
+    final rosterProvider = Provider.of<RosterProvider>(context, listen: false);
+    final unfilledEvents = rosterProvider.currentEvents
+        .where((e) => !e.isFilled && !e.isCancelled)
+        .toList();
+
+    if (unfilledEvents.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All events are already filled')),
+      );
+      return;
+    }
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Auto-assigning volunteers...'),
+          ],
+        ),
+      ),
+    );
+
+    int assignedCount = 0;
+    String? errorMessage;
+
+    try {
+      // Call the new backend endpoint that does round-robin assignment
+      final result = await rosterProvider.autoAssignAllEvents(widget.rosterId);
+      assignedCount = result['assigned_count'] as int? ?? 0;
+    } catch (e) {
+      errorMessage = e.toString();
+      debugPrint('Error auto-assigning events: $e');
+    }
+
+    // Close progress dialog
+    if (context.mounted) {
+      Navigator.of(context).pop();
+
+      // Show result
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorMessage != null
+                ? 'Failed to auto-assign: $errorMessage'
+                : assignedCount > 0
+                    ? '✅ Auto-assigned $assignedCount volunteer(s)'
+                    : 'No volunteers could be assigned',
+          ),
+          backgroundColor: errorMessage != null ? Colors.red : null,
+        ),
+      );
+
+      // Refresh roster (already done by autoAssignAllEvents, but do it again to be sure)
+      _refreshRoster();
+    }
   }
 
   Widget _buildInfoRow(IconData icon, String text) {

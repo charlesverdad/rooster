@@ -24,6 +24,7 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
   DateTime? _endDate;
   int _occurrences = 10;
   TimeOfDay? _eventTime;
+  bool _autoSuggestInitialRotation = false;
 
   @override
   void dispose() {
@@ -181,7 +182,21 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // Auto-suggest initial rotation checkbox
+          CheckboxListTile(
+            title: const Text('Auto-suggest initial rotation'),
+            subtitle: const Text(
+              'Automatically assign volunteers to the first generated events using fair rotation',
+            ),
+            value: _autoSuggestInitialRotation,
+            onChanged: (value) {
+              setState(() => _autoSuggestInitialRotation = value ?? false);
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          const SizedBox(height: 8),
 
           // Start date (only show if recurring)
           if (_recurrence != 'once') ...[
@@ -429,14 +444,23 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                 );
 
                 if (success && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '✅ Roster "${_nameController.text.trim()}" created',
+                  // Auto-suggest initial rotation if checkbox was checked
+                  if (_autoSuggestInitialRotation) {
+                    await _autoAssignInitialRotation(rosterProvider, context);
+                  }
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          _autoSuggestInitialRotation
+                              ? '✅ Roster "${_nameController.text.trim()}" created with auto-assigned volunteers'
+                              : '✅ Roster "${_nameController.text.trim()}" created',
+                        ),
                       ),
-                    ),
-                  );
-                  Navigator.of(context).pop();
+                    );
+                    Navigator.of(context).pop();
+                  }
                 }
               },
               style: FilledButton.styleFrom(
@@ -448,6 +472,21 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _autoAssignInitialRotation(
+    RosterProvider rosterProvider,
+    BuildContext context,
+  ) async {
+    try {
+      final rosterId = rosterProvider.currentRoster?.id;
+      if (rosterId == null) return;
+
+      // Use the new backend endpoint for efficient round-robin assignment
+      await rosterProvider.autoAssignAllEvents(rosterId);
+    } catch (e) {
+      debugPrint('Error auto-assigning initial rotation: $e');
+    }
   }
 
   Widget _buildDayButton(String label, int day) {
