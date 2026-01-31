@@ -264,8 +264,8 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
             errorMessage != null
                 ? 'Failed to auto-assign: $errorMessage'
                 : assignedCount > 0
-                    ? '✅ Auto-assigned $assignedCount volunteer(s)'
-                    : 'No volunteers could be assigned',
+                ? '✅ Auto-assigned $assignedCount volunteer(s)'
+                : 'No volunteers could be assigned',
           ),
           backgroundColor: errorMessage != null ? Colors.red : null,
         ),

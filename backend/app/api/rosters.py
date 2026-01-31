@@ -46,6 +46,22 @@ def _build_assignment_summaries(event) -> list[EventAssignmentSummary]:
     ]
 
 
+def _count_assigned_slots(event) -> int:
+    """Count the number of assigned slots (PENDING or CONFIRMED) for an event.
+
+    Both PENDING and CONFIRMED assignments count as "assigned" since
+    the team lead has assigned someone. DECLINED assignments don't count
+    as those slots need to be refilled.
+    """
+    return len(
+        [
+            a
+            for a in event.event_assignments
+            if a.status in (AssignmentStatus.CONFIRMED, AssignmentStatus.PENDING)
+        ]
+    )
+
+
 @router.post("", response_model=RosterResponse, status_code=status.HTTP_201_CREATED)
 async def create_roster(
     data: RosterCreate,
@@ -488,9 +504,7 @@ async def list_roster_events(
             roster_name=roster.name,
             team_id=roster.team_id,
             slots_needed=roster.slots_needed,
-            filled_slots=len(
-                [a for a in e.event_assignments if a.status.value == "confirmed"]
-            ),
+            filled_slots=_count_assigned_slots(e),
             assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
@@ -541,9 +555,7 @@ async def list_team_events(
             roster_name=e.roster.name if e.roster else None,
             team_id=team_id,
             slots_needed=e.roster.slots_needed if e.roster else None,
-            filled_slots=len(
-                [a for a in e.event_assignments if a.status.value == "confirmed"]
-            ),
+            filled_slots=_count_assigned_slots(e),
             assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
@@ -588,9 +600,7 @@ async def list_unfilled_events(
             roster_name=e.roster.name if e.roster else None,
             team_id=team_id,
             slots_needed=e.roster.slots_needed if e.roster else None,
-            filled_slots=len(
-                [a for a in e.event_assignments if a.status.value == "confirmed"]
-            ),
+            filled_slots=_count_assigned_slots(e),
             assignments=_build_assignment_summaries(e),
             created_at=e.created_at,
         )
@@ -641,9 +651,7 @@ async def get_roster_event(
         roster_name=roster.name,
         team_id=roster.team_id,
         slots_needed=roster.slots_needed,
-        filled_slots=len(
-            [a for a in event.event_assignments if a.status.value == "confirmed"]
-        ),
+        filled_slots=_count_assigned_slots(event),
         assignments=_build_assignment_summaries(event),
         created_at=event.created_at,
     )
@@ -788,9 +796,7 @@ async def update_roster_event(
         roster_name=roster.name,
         team_id=roster.team_id,
         slots_needed=roster.slots_needed,
-        filled_slots=len(
-            [a for a in updated.event_assignments if a.status.value == "confirmed"]
-        ),
+        filled_slots=_count_assigned_slots(updated),
         assignments=_build_assignment_summaries(updated),
         created_at=updated.created_at,
     )

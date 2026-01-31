@@ -23,7 +23,11 @@ class UpcomingAssignmentCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(Icons.check_circle, color: const Color(0xFF558B2F), size: 24),
+              Icon(
+                Icons.check_circle,
+                color: const Color(0xFF558B2F),
+                size: 24,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -86,7 +90,9 @@ class UpcomingAssignmentCard extends StatelessWidget {
       final daysUntil = assignmentDate
           .difference(DateTime(now.year, now.month, now.day))
           .inDays;
-      if (daysUntil < 7) {
+      if (daysUntil < 0) {
+        return 'Past';
+      } else if (daysUntil < 7) {
         return 'In $daysUntil days';
       } else {
         return _formatMonthDay(date);

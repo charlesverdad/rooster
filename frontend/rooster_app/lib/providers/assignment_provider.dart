@@ -20,8 +20,16 @@ class AssignmentProvider with ChangeNotifier {
   // Computed properties
   List<EventAssignment> get pendingAssignments =>
       _assignments.where((a) => a.isPending).toList();
-  List<EventAssignment> get upcomingAssignments =>
-      _assignments.where((a) => a.isConfirmed).toList();
+  List<EventAssignment> get upcomingAssignments => _assignments
+      .where(
+        (a) =>
+            a.isConfirmed &&
+            (a.eventDate?.isAfter(
+                  DateTime.now().subtract(const Duration(days: 1)),
+                ) ??
+                false),
+      )
+      .toList();
 
   Future<void> fetchMyAssignments({
     DateTime? startDate,

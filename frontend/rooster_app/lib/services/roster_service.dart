@@ -242,8 +242,9 @@ class RosterService {
     String eventId, {
     int limit = 10,
   }) async {
-    final response =
-        await ApiClient.get('/rosters/events/$eventId/suggestions?limit=$limit');
+    final response = await ApiClient.get(
+      '/rosters/events/$eventId/suggestions?limit=$limit',
+    );
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(response.body);
@@ -257,8 +258,10 @@ class RosterService {
   static Future<Map<String, dynamic>> autoAssignAllEvents(
     String rosterId,
   ) async {
-    final response =
-        await ApiClient.post('/rosters/$rosterId/auto-assign-all', {});
+    final response = await ApiClient.post(
+      '/rosters/$rosterId/auto-assign-all',
+      {},
+    );
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;

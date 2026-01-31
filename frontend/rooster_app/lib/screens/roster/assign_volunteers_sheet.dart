@@ -267,9 +267,9 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  ...widget.suggestions!.take(3).map(
-                    (suggestion) => _buildSuggestionTile(suggestion),
-                  ),
+                  ...widget.suggestions!
+                      .take(3)
+                      .map((suggestion) => _buildSuggestionTile(suggestion)),
                   const SizedBox(height: 16),
                 ],
                 if (available.isNotEmpty) ...[
@@ -336,7 +336,7 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 2,
-      color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).colorScheme.primary,
@@ -352,16 +352,11 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
         ),
         title: Text(
           suggestion.userName,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
           suggestion.reasoning,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade700,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () async {
@@ -549,9 +544,13 @@ class _AssignVolunteersSheetState extends State<AssignVolunteersSheet> {
         if (success) {
           _showAssignedToast(memberName, isPlaceholder);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to assign volunteer')),
-          );
+          // Use the detailed error message from the provider if available
+          final errorMessage =
+              rosterProvider.error ?? 'Failed to assign volunteer';
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(errorMessage)));
+          rosterProvider.clearError();
         }
       }
     }
