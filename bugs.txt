@@ -1,0 +1,69 @@
+# Rooster - Pre-Production Bug Report & Issues
+
+## Testing performed as: charles@church.com (Team Lead)
+
+---
+
+## BUGS
+
+### 1. Negative Day Count Display
+- **Location**: Home page, Upcoming Assignments section
+- **Issue**: Past assignments show "In -5 days" instead of being hidden or showing "5 days ago"
+- **Expected**: Past assignments should either be hidden from "Upcoming" or display properly (e.g., "5 days ago")
+
+### 2. Pluralization Error
+- **Location**: My Teams page
+- **Issue**: Shows "1 members" instead of "1 member" for teams with single member
+- **Expected**: Correct grammar - "1 member" (singular)
+
+### 3. Add Member Dialog - Button Not Responsive (Potential Bug)
+- **Location**: Team Detail > Add Member dialog
+- **Issue**: The "Add" button in the Add Member dialog did not respond to clicks
+- **Notes**: Could be a Flutter web rendering issue or actual bug - needs manual verification
+
+---
+
+## UI/UX OBSERVATIONS
+
+### 1. Test Data Visible
+- Rosters named "asdfadf" visible in production-ready state
+- Should clean up test data before go-live
+
+### 2. Past Assignments in "Upcoming" Section
+- Member profile (test 6) shows "Mon, Feb 2" as an upcoming assignment when today is Jan 31, 2026
+- These should be filtered out or moved to a "Past" section
+
+### 3. Large Number of Unfilled Slots
+- 56 unfilled slots showing in "Needs Attention"
+- May want to paginate or collapse this for better UX
+
+---
+
+## POSITIVE OBSERVATIONS
+
+- Clean, simple login page design
+- Good use of icons (church icon branding)
+- Clear team/member hierarchy
+- Placeholder member concept well-implemented (envelope icon distinction)
+- "Needs Attention" section helpful for team leads
+- Quick assign buttons (+ Assign) easily accessible
+
+---
+
+## TESTING NOT YET COMPLETED
+
+- [ ] Register new account flow
+- [ ] Create new team flow
+- [ ] Create new roster flow
+- [ ] Assign volunteers to roster slots
+- [ ] Invite placeholder member flow
+- [ ] Accept/decline assignment flow
+- [ ] Mark unavailability flow
+- [ ] Accept invite link flow
+- [ ] Settings/notifications
+- [ ] Logout flow
+
+---
+
+Generated: 2026-01-31
+Tester: Claude (automated browser testing)

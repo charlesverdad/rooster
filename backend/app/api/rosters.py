@@ -980,6 +980,22 @@ async def create_event_assignment(
     if user.is_placeholder:
         is_invited = await team_service.has_active_invite(user.id, team.id)
 
+    # Send notification (not for self-assigns - they're already confirmed)
+    if not is_self_assign:
+        from app.services.notification import NotificationService
+
+        notification_service = NotificationService(db)
+        await notification_service.notify_assignment_created_with_email(
+            assignment_id=assignment.id,
+            user_id=user.id,
+            user_name=user.name,
+            user_email=user.email,
+            roster_name=roster.name,
+            team_name=team.name,
+            event_date=event.date,
+            event_time=event.time,
+        )
+
     return EventAssignmentResponse(
         id=assignment.id,
         event_id=assignment.event_id,

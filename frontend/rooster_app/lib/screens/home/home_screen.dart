@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,8 @@ import '../../widgets/assignment_action_card.dart';
 import '../../widgets/upcoming_assignment_card.dart';
 import '../../widgets/team_lead_section.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/install_prompt.dart';
+import '../../widgets/notification_permission_prompt.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -81,14 +84,26 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               if (unreadCount > 0)
                 Positioned(
-                  right: 8,
-                  top: 8,
+                  right: 4,
+                  top: 4,
                   child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    decoration: BoxDecoration(
                       color: Colors.red,
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      unreadCount > 9 ? '9+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -130,6 +145,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
+
+                  // PWA install and notification prompts (web only)
+                  if (kIsWeb) ...[
+                    const InstallPrompt(),
+                    const NotificationPermissionPrompt(),
+                  ],
 
                   // Pending Assignments Section
                   if (pendingAssignments.isNotEmpty) ...[

@@ -127,3 +127,75 @@ class NotificationService:
                 reference_id=team_id,
             )
         )
+
+    async def notify_assignment_created_with_email(
+        self,
+        assignment_id: uuid.UUID,
+        user_id: uuid.UUID,
+        user_name: str,
+        user_email: str | None,
+        roster_name: str,
+        team_name: str,
+        event_date: datetime,
+        event_time: str | None = None,
+    ) -> Notification:
+        """Create notification and send email for new assignment.
+
+        Args:
+            assignment_id: The assignment ID
+            user_id: The user being assigned
+            user_name: The user's name
+            user_email: The user's email (if available)
+            roster_name: Name of the roster
+            team_name: Name of the team
+            event_date: Date of the event
+            event_time: Time of the event (optional)
+
+        Returns:
+            The created notification
+        """
+        from app.services.email import get_email_service
+
+        title = "New Assignment"
+        formatted_date = event_date.strftime("%B %d, %Y")
+        message = f"You've been assigned to {roster_name} on {formatted_date}"
+
+        # Create in-app notification
+        notification = await self.create_notification(
+            NotificationCreate(
+                user_id=user_id,
+                type=NotificationType.ASSIGNMENT_CREATED,
+                title=title,
+                message=message,
+                reference_id=assignment_id,
+            )
+        )
+
+        # Send email if user has email
+        if user_email:
+            email_service = get_email_service()
+            await email_service.send_assignment_notification(
+                to_email=user_email,
+                user_name=user_name,
+                roster_name=roster_name,
+                team_name=team_name,
+                event_date=formatted_date,
+                event_time=event_time,
+            )
+
+        # Send push notification if available
+        try:
+            from app.services.push import PushService
+
+            push_service = PushService(self.db)
+            await push_service.send_to_user(
+                user_id=user_id,
+                title=title,
+                body=message,
+                url=f"/assignments/{assignment_id}",
+            )
+        except ImportError:
+            # Push service not yet implemented
+            pass
+
+        return notification

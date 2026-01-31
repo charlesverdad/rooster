@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.roster import Assignment
     from app.models.availability import Unavailability
     from app.models.notification import Notification
+    from app.models.push_subscription import PushSubscription
 
 
 class User(Base, UUIDMixin, TimestampMixin):
@@ -55,6 +56,9 @@ class User(Base, UUIDMixin, TimestampMixin):
         back_populates="user", cascade="all, delete-orphan"
     )
     notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    push_subscriptions: Mapped[list["PushSubscription"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 

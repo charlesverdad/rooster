@@ -20,7 +20,10 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
   @override
   void initState() {
     super.initState();
-    _loadUnfilledEvents();
+    // Defer loading to avoid calling notifyListeners during build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUnfilledEvents();
+    });
   }
 
   Future<void> _loadUnfilledEvents() async {

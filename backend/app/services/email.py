@@ -2,6 +2,7 @@
 
 import smtplib
 import ssl
+from abc import ABC, abstractmethod
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
@@ -12,20 +13,143 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 
+class EmailProvider(ABC):
+    """Abstract base class for email providers."""
+
+    @abstractmethod
+    async def send(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        text_content: Optional[str],
+        from_email: str,
+        from_name: str,
+    ) -> bool:
+        """Send an email."""
+        pass
+
+
+class SMTPProvider(EmailProvider):
+    """SMTP email provider."""
+
+    def __init__(self, settings):
+        self.settings = settings
+
+    async def send(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        text_content: Optional[str],
+        from_email: str,
+        from_name: str,
+    ) -> bool:
+        try:
+            message = MIMEMultipart("alternative")
+            message["Subject"] = subject
+            message["From"] = f"{from_name} <{from_email}>"
+            message["To"] = to_email
+
+            # Add plain text version
+            if text_content:
+                part1 = MIMEText(text_content, "plain")
+                message.attach(part1)
+
+            # Add HTML version
+            part2 = MIMEText(html_content, "html")
+            message.attach(part2)
+
+            # Send the email
+            if self.settings.smtp_use_tls:
+                context = ssl.create_default_context()
+                with smtplib.SMTP(
+                    self.settings.smtp_host, self.settings.smtp_port
+                ) as server:
+                    server.starttls(context=context)
+                    server.login(self.settings.smtp_user, self.settings.smtp_password)
+                    server.sendmail(from_email, to_email, message.as_string())
+            else:
+                with smtplib.SMTP(
+                    self.settings.smtp_host, self.settings.smtp_port
+                ) as server:
+                    server.login(self.settings.smtp_user, self.settings.smtp_password)
+                    server.sendmail(from_email, to_email, message.as_string())
+
+            return True
+
+        except Exception as e:
+            logger.error(f"SMTP send failed: {e}")
+            return False
+
+
+class ResendProvider(EmailProvider):
+    """Resend API email provider."""
+
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+
+    async def send(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        text_content: Optional[str],
+        from_email: str,
+        from_name: str,
+    ) -> bool:
+        try:
+            import resend
+
+            resend.api_key = self.api_key
+            resend.Emails.send(
+                {
+                    "from": f"{from_name} <{from_email}>",
+                    "to": [to_email],
+                    "subject": subject,
+                    "html": html_content,
+                    "text": text_content,
+                }
+            )
+            return True
+
+        except Exception as e:
+            logger.error(f"Resend send failed: {e}")
+            return False
+
+
 class EmailService:
-    """Service for sending emails via SMTP."""
+    """Service for sending emails via configurable provider."""
 
     def __init__(self):
         self.settings = get_settings()
+        self._provider: Optional[EmailProvider] = None
+
+    @property
+    def provider(self) -> Optional[EmailProvider]:
+        """Get the configured email provider."""
+        if self._provider is not None:
+            return self._provider
+
+        if self.settings.email_provider == "resend":
+            if self.settings.resend_api_key:
+                self._provider = ResendProvider(self.settings.resend_api_key)
+        else:  # default to smtp
+            if self.settings.smtp_host and self.settings.smtp_user:
+                self._provider = SMTPProvider(self.settings)
+
+        return self._provider
 
     @property
     def is_enabled(self) -> bool:
         """Check if email sending is enabled."""
-        return (
-            self.settings.email_enabled
-            and bool(self.settings.smtp_host)
-            and bool(self.settings.smtp_user)
-        )
+        if not self.settings.email_enabled:
+            return False
+
+        if self.settings.email_provider == "resend":
+            return bool(self.settings.resend_api_key)
+        else:
+            return bool(self.settings.smtp_host) and bool(self.settings.smtp_user)
 
     def _get_invite_url(self, token: str) -> str:
         """Generate the invite acceptance URL."""
@@ -54,53 +178,26 @@ class EmailService:
             logger.warning(f"Email not sent (disabled): {subject} -> {to_email}")
             return False
 
-        try:
-            message = MIMEMultipart("alternative")
-            message["Subject"] = subject
-            message["From"] = (
-                f"{self.settings.smtp_from_name} <{self.settings.smtp_from_email}>"
-            )
-            message["To"] = to_email
-
-            # Add plain text version
-            if text_content:
-                part1 = MIMEText(text_content, "plain")
-                message.attach(part1)
-
-            # Add HTML version
-            part2 = MIMEText(html_content, "html")
-            message.attach(part2)
-
-            # Send the email
-            if self.settings.smtp_use_tls:
-                context = ssl.create_default_context()
-                with smtplib.SMTP(
-                    self.settings.smtp_host, self.settings.smtp_port
-                ) as server:
-                    server.starttls(context=context)
-                    server.login(self.settings.smtp_user, self.settings.smtp_password)
-                    server.sendmail(
-                        self.settings.smtp_from_email,
-                        to_email,
-                        message.as_string(),
-                    )
-            else:
-                with smtplib.SMTP(
-                    self.settings.smtp_host, self.settings.smtp_port
-                ) as server:
-                    server.login(self.settings.smtp_user, self.settings.smtp_password)
-                    server.sendmail(
-                        self.settings.smtp_from_email,
-                        to_email,
-                        message.as_string(),
-                    )
-
-            logger.info(f"Email sent successfully: {subject} -> {to_email}")
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to send email: {e}")
+        provider = self.provider
+        if provider is None:
+            logger.error("No email provider configured")
             return False
+
+        success = await provider.send(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            text_content=text_content,
+            from_email=self.settings.smtp_from_email,
+            from_name=self.settings.smtp_from_name,
+        )
+
+        if success:
+            logger.info(f"Email sent successfully: {subject} -> {to_email}")
+        else:
+            logger.error(f"Failed to send email: {subject} -> {to_email}")
+
+        return success
 
     async def send_invite_email(
         self,
