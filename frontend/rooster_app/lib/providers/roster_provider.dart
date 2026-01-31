@@ -211,13 +211,19 @@ class RosterProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchSuggestionsForEvent(String eventId, {int limit = 10}) async {
+  Future<void> fetchSuggestionsForEvent(
+    String eventId, {
+    int limit = 10,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _suggestions = await RosterService.getSuggestionsForEvent(eventId, limit: limit);
+      _suggestions = await RosterService.getSuggestionsForEvent(
+        eventId,
+        limit: limit,
+      );
     } catch (e) {
       _error = _getErrorMessage(e);
       debugPrint('Error fetching suggestions: $e');

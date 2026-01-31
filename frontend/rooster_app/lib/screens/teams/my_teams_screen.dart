@@ -293,7 +293,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${team.memberCount} members',
+                          '${team.memberCount} ${team.memberCount == 1 ? 'member' : 'members'}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade600,

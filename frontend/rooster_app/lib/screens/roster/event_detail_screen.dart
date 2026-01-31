@@ -469,25 +469,36 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => AssignVolunteersSheet(
+      builder: (sheetContext) => AssignVolunteersSheet(
         teamId: _teamId ?? '',
         eventDate: event.date,
         onAssign: (userId) async {
           final rosterProvider = Provider.of<RosterProvider>(
-            context,
+            sheetContext,
             listen: false,
           );
-          await rosterProvider.assignVolunteerToEvent(event.id, userId);
+          final success = await rosterProvider.assignVolunteerToEvent(
+            event.id,
+            userId,
+          );
+          if (!success && sheetContext.mounted) {
+            final errorMessage =
+                rosterProvider.error ?? 'Failed to assign volunteer';
+            ScaffoldMessenger.of(
+              sheetContext,
+            ).showSnackBar(SnackBar(content: Text(errorMessage)));
+            rosterProvider.clearError();
+          }
         },
       ),
     ).then((_) => _loadEvent());
   }
 
-  Future<void> _showSuggestSheet(BuildContext context, RosterEvent event) async {
-    final rosterProvider = Provider.of<RosterProvider>(
-      context,
-      listen: false,
-    );
+  Future<void> _showSuggestSheet(
+    BuildContext context,
+    RosterEvent event,
+  ) async {
+    final rosterProvider = Provider.of<RosterProvider>(context, listen: false);
 
     // Fetch suggestions first
     await rosterProvider.fetchSuggestionsForEvent(event.id);
@@ -498,16 +509,27 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => AssignVolunteersSheet(
+      builder: (sheetContext) => AssignVolunteersSheet(
         teamId: _teamId ?? '',
         eventDate: event.date,
         suggestions: rosterProvider.suggestions,
         onAssign: (userId) async {
           final rosterProvider = Provider.of<RosterProvider>(
-            context,
+            sheetContext,
             listen: false,
           );
-          await rosterProvider.assignVolunteerToEvent(event.id, userId);
+          final success = await rosterProvider.assignVolunteerToEvent(
+            event.id,
+            userId,
+          );
+          if (!success && sheetContext.mounted) {
+            final errorMessage =
+                rosterProvider.error ?? 'Failed to assign volunteer';
+            ScaffoldMessenger.of(
+              sheetContext,
+            ).showSnackBar(SnackBar(content: Text(errorMessage)));
+            rosterProvider.clearError();
+          }
         },
       ),
     ).then((_) {

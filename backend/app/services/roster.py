@@ -374,12 +374,15 @@ class RosterService:
 
         unfilled = []
         for event in events:
-            confirmed_count = sum(
+            # Count both PENDING and CONFIRMED assignments as "assigned"
+            # PENDING means the volunteer has been assigned but hasn't confirmed yet
+            # DECLINED assignments are not counted since those slots need to be refilled
+            assigned_count = sum(
                 1
                 for a in event.event_assignments
-                if a.status == AssignmentStatus.CONFIRMED
+                if a.status in (AssignmentStatus.CONFIRMED, AssignmentStatus.PENDING)
             )
-            if confirmed_count < event.roster.slots_needed:
+            if assigned_count < event.roster.slots_needed:
                 unfilled.append(event)
 
         return unfilled
