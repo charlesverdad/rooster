@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "*"  # Comma-separated list of origins, or "*" for all
 
+    # Web Push (VAPID) - Generate at https://vapidkeys.com
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@rooster.app"
+
     class Config:
         env_file = ".env"
 

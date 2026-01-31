@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.availability import Unavailability
-from app.models.roster import Assignment
+from app.models.roster import Assignment, Roster
 from app.schemas.availability import UnavailabilityCreate
 
 
@@ -64,11 +64,7 @@ class AvailabilityService:
         # Get all assignments for the user
         assignments_result = await self.db.execute(
             select(Assignment)
-            .options(
-                selectinload(Assignment.roster).selectinload(
-                    lambda r: r.team  # type: ignore
-                )
-            )
+            .options(selectinload(Assignment.roster).selectinload(Roster.team))
             .where(Assignment.user_id == user_id)
         )
         assignments = list(assignments_result.scalars().all())
