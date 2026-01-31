@@ -62,21 +62,41 @@ class _NotificationPermissionPromptState
     setState(() => _isLoading = true);
 
     try {
-      // Show instructions for enabling notifications
-      // In a full implementation, this would request permission and subscribe
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Click "Allow" when prompted to enable notifications',
-            ),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
+      // Request permission and subscribe to push notifications
+      final success = await PushService.requestPermissionAndSubscribe();
 
-      // For now, just dismiss - actual subscription would happen via JS interop
-      await _dismiss();
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notifications enabled!'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          setState(() => _isVisible = false);
+        } else {
+          // Check if permission was denied
+          final status = PushService.getPermissionStatus();
+          if (status == 'denied') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Notifications blocked. Enable in browser settings.',
+                ),
+                duration: Duration(seconds: 4),
+              ),
+            );
+            await _dismiss();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not enable notifications. Try again.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

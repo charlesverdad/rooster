@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web/web.dart' as web;
 import 'api_client.dart';
 
 /// Service for managing Web Push notifications.
@@ -79,7 +81,172 @@ class PushService {
     await prefs.remove(_subscriptionKey);
   }
 
-  /// Subscribe to push notifications.
+  /// Get the current notification permission status.
+  static String getPermissionStatus() {
+    if (!kIsWeb) return 'unsupported';
+    return web.Notification.permission;
+  }
+
+  /// Request notification permission from the browser.
+  /// Returns 'granted', 'denied', or 'default'.
+  static Future<String> requestPermission() async {
+    if (!kIsWeb) return 'unsupported';
+
+    try {
+      final jsResult = await web.Notification.requestPermission().toDart;
+      return jsResult.toDart;
+    } catch (e) {
+      debugPrint('Error requesting notification permission: $e');
+      return 'error';
+    }
+  }
+
+  /// Request permission and subscribe to push notifications.
+  /// Returns true if successful, false otherwise.
+  static Future<bool> requestPermissionAndSubscribe() async {
+    if (!kIsWeb) return false;
+
+    try {
+      // Request notification permission
+      final permission = await requestPermission();
+      if (permission != 'granted') {
+        debugPrint('Notification permission not granted: $permission');
+        return false;
+      }
+
+      // Get the VAPID public key
+      final vapidKey = await getVapidPublicKey();
+      if (vapidKey == null) {
+        debugPrint('VAPID key not available');
+        return false;
+      }
+
+      // Get service worker registration
+      final registration = await _getServiceWorkerRegistration();
+      if (registration == null) {
+        debugPrint('Service worker not registered');
+        return false;
+      }
+
+      // Subscribe to push
+      final subscription = await _subscribeToPush(registration, vapidKey);
+      if (subscription == null) {
+        debugPrint('Failed to subscribe to push');
+        return false;
+      }
+
+      // Send subscription to backend
+      final success = await _sendSubscriptionToBackend(subscription);
+      if (success) {
+        await _storeSubscription(subscription['endpoint'] as String);
+      }
+      return success;
+    } catch (e) {
+      debugPrint('Error in requestPermissionAndSubscribe: $e');
+      return false;
+    }
+  }
+
+  /// Get the service worker registration.
+  static Future<web.ServiceWorkerRegistration?>
+  _getServiceWorkerRegistration() async {
+    try {
+      final container = web.window.navigator.serviceWorker;
+      final registration = await container.ready.toDart;
+      return registration;
+    } catch (e) {
+      debugPrint('Error getting service worker registration: $e');
+      return null;
+    }
+  }
+
+  /// Subscribe to push notifications using the PushManager.
+  static Future<Map<String, dynamic>?> _subscribeToPush(
+    web.ServiceWorkerRegistration registration,
+    String vapidKey,
+  ) async {
+    try {
+      final pushManager = registration.pushManager;
+
+      // Convert VAPID key from base64url to Uint8Array
+      final applicationServerKey = _urlBase64ToJSUint8Array(vapidKey);
+
+      // Create subscription options
+      final options = web.PushSubscriptionOptionsInit(
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey,
+      );
+
+      // Subscribe
+      final subscription = await pushManager.subscribe(options).toDart;
+
+      // Extract subscription data
+      final endpoint = subscription.endpoint;
+      final p256dhBuffer = subscription.getKey('p256dh');
+      final authBuffer = subscription.getKey('auth');
+
+      if (p256dhBuffer == null || authBuffer == null) {
+        debugPrint('Failed to get subscription keys');
+        return null;
+      }
+
+      // Convert ArrayBuffer to base64
+      final p256dhKey = _arrayBufferToBase64(p256dhBuffer);
+      final authKey = _arrayBufferToBase64(authBuffer);
+
+      return {
+        'endpoint': endpoint,
+        'p256dh_key': p256dhKey,
+        'auth_key': authKey,
+      };
+    } catch (e) {
+      debugPrint('Error subscribing to push: $e');
+      return null;
+    }
+  }
+
+  /// Convert URL-safe base64 to JSUint8Array.
+  static JSUint8Array _urlBase64ToJSUint8Array(String base64String) {
+    // Add padding if needed
+    var padding = '=' * ((4 - base64String.length % 4) % 4);
+    var base64 = base64String + padding;
+
+    // Convert from URL-safe base64 to regular base64
+    base64 = base64.replaceAll('-', '+').replaceAll('_', '/');
+
+    // Decode to bytes
+    final rawData = base64Decode(base64);
+
+    // Create JSUint8Array from Dart Uint8List
+    return rawData.toJS;
+  }
+
+  /// Convert ArrayBuffer to base64 string.
+  static String _arrayBufferToBase64(JSArrayBuffer buffer) {
+    // Convert JSArrayBuffer to Dart Uint8List
+    final uint8List = buffer.toDart.asUint8List();
+    return base64Encode(uint8List);
+  }
+
+  /// Send subscription to backend.
+  static Future<bool> _sendSubscriptionToBackend(
+    Map<String, dynamic> subscription,
+  ) async {
+    try {
+      final response = await ApiClient.post('/push/subscribe', {
+        'endpoint': subscription['endpoint'],
+        'p256dh_key': subscription['p256dh_key'],
+        'auth_key': subscription['auth_key'],
+      });
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error sending subscription to backend: $e');
+      return false;
+    }
+  }
+
+  /// Subscribe to push notifications (legacy method for compatibility).
   /// Returns true if successful, false otherwise.
   static Future<bool> subscribe({
     required String endpoint,
