@@ -1,8 +1,9 @@
-FROM python:3.12-slim
+# Build stage - compile dependencies
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# Install system dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -14,8 +15,24 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Copy dependency files
 COPY pyproject.toml ./
 
-# Install Python dependencies
-RUN uv pip install --system --no-cache -e .
+# Create venv and install dependencies
+RUN uv venv /opt/venv && \
+    . /opt/venv/bin/activate && \
+    uv pip install --no-cache -e .
+
+# Runtime stage - minimal image
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install only runtime dependencies (libpq for psycopg)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy venv from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
 COPY app/ ./app/

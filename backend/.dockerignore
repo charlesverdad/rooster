@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+.eggs
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Tests
+tests/
+htmlcov/
+.coverage
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Docs
+*.md
+docs/
+
+# Misc
+.env
+.env.*
+!.env.example
+Makefile
