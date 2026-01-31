@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rooster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rooster}
+      POSTGRES_DB: ${POSTGRES_DB:-rooster}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rooster} -d ${POSTGRES_DB:-rooster}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-rooster}:${POSTGRES_PASSWORD:-rooster}@db:5432/${POSTGRES_DB:-rooster}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      DEBUG: ${DEBUG:-false}
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # Email (SMTP)
+      EMAIL_ENABLED: ${EMAIL_ENABLED:-false}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Rooster}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      # Email (Resend)
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        API_BASE_URL: ${API_BASE_URL:-http://localhost:8000/api}
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  postgres_data:
