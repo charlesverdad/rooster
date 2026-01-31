@@ -14,6 +14,7 @@ class PushService {
   static bool get isSupported => kIsWeb;
 
   /// Get the VAPID public key from the server.
+  /// Returns null if push is not configured (503) or on error.
   static Future<String?> getVapidPublicKey() async {
     if (!isSupported) return null;
 
@@ -22,6 +23,12 @@ class PushService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['publicKey'] as String?;
+      }
+      // 503 means push not configured - this is expected, don't log
+      if (response.statusCode != 503) {
+        debugPrint(
+          'Unexpected response getting VAPID key: ${response.statusCode}',
+        );
       }
     } catch (e) {
       debugPrint('Error getting VAPID key: $e');

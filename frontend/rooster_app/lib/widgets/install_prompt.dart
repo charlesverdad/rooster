@@ -17,6 +17,7 @@ class _InstallPromptState extends State<InstallPrompt> {
 
   bool _isDismissed = true;
   bool _canInstall = false;
+  bool _hasChecked = false;
 
   @override
   void initState() {
@@ -25,16 +26,25 @@ class _InstallPromptState extends State<InstallPrompt> {
   }
 
   Future<void> _checkState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final dismissed = prefs.getBool(_dismissedKey) ?? false;
+    // Only check once
+    if (_hasChecked) return;
+    _hasChecked = true;
 
-    if (mounted) {
-      setState(() {
-        _isDismissed = dismissed;
-        // In a real implementation, we'd check for the beforeinstallprompt event
-        // For now, we'll show the prompt on web when not dismissed
-        _canInstall = !dismissed;
-      });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dismissed = prefs.getBool(_dismissedKey) ?? false;
+
+      if (mounted && !dismissed) {
+        setState(() {
+          _isDismissed = false;
+          // In a real implementation, we'd check for the beforeinstallprompt event
+          // For now, we'll show the prompt on web when not dismissed
+          _canInstall = true;
+        });
+      }
+    } catch (e) {
+      // Silently fail - install prompt is optional
+      debugPrint('Error checking install state: $e');
     }
   }
 

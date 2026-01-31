@@ -17,6 +17,7 @@ class _NotificationPermissionPromptState
     extends State<NotificationPermissionPrompt> {
   bool _isVisible = false;
   bool _isLoading = false;
+  bool _hasChecked = false;
 
   @override
   void initState() {
@@ -25,18 +26,28 @@ class _NotificationPermissionPromptState
   }
 
   Future<void> _checkVisibility() async {
-    // Only show on web
-    if (!kIsWeb) return;
+    // Only check once and only on web
+    if (_hasChecked || !kIsWeb) return;
+    _hasChecked = true;
 
-    // Check if push is available and not dismissed
-    final isAvailable = await PushService.isAvailable();
-    final isDismissed = await PushService.isPermissionDismissed();
-    final isSubscribed = await PushService.isSubscribed();
+    try {
+      // Check if push is available and not dismissed
+      final isDismissed = await PushService.isPermissionDismissed();
+      if (isDismissed) return;
 
-    if (mounted) {
-      setState(() {
-        _isVisible = isAvailable && !isDismissed && !isSubscribed;
-      });
+      final isSubscribed = await PushService.isSubscribed();
+      if (isSubscribed) return;
+
+      final isAvailable = await PushService.isAvailable();
+
+      if (mounted && isAvailable) {
+        setState(() {
+          _isVisible = true;
+        });
+      }
+    } catch (e) {
+      // Silently fail - push notifications are optional
+      debugPrint('Error checking push availability: $e');
     }
   }
 
