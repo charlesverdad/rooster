@@ -2,6 +2,7 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.roster import AssignmentStatus
@@ -741,6 +742,34 @@ async def auto_assign_all_events(
         )
 
     assignments = await suggestion_service.auto_assign_roster(roster_id, roster.team_id)
+
+    # Send notifications for each auto-assigned volunteer
+    if assignments:
+        from app.services.notification import NotificationService
+        from app.models.user import User
+        from datetime import datetime
+
+        notification_service = NotificationService(db)
+        for assignment_info in assignments:
+            try:
+                user_result = await db.execute(
+                    select(User).where(User.id == uuid.UUID(assignment_info["user_id"]))
+                )
+                user = user_result.scalar_one_or_none()
+                if user:
+                    event_date = datetime.fromisoformat(assignment_info["event_date"])
+                    await notification_service.notify_assignment_created_with_email(
+                        assignment_id=uuid.UUID(assignment_info["assignment_id"]),
+                        user_id=user.id,
+                        user_name=user.name,
+                        user_email=user.email,
+                        roster_name=roster.name,
+                        team_name=team.name,
+                        event_date=event_date,
+                        event_time=None,
+                    )
+            except Exception:
+                pass  # Don't fail the whole auto-assign if a notification fails
 
     return {
         "assigned_count": len(assignments),

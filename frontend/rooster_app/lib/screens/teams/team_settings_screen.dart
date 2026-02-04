@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/team_member.dart';
 import '../../providers/team_provider.dart';
+import '../../widgets/back_button.dart';
 
 class TeamSettingsScreen extends StatefulWidget {
   final String teamId;
@@ -33,13 +34,19 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
 
     if (team == null && teamProvider.isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Team Settings')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Team Settings'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Team Settings')),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: const Text('Team Settings'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

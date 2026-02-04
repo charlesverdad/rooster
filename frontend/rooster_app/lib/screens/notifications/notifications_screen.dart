@@ -6,6 +6,7 @@ import '../../providers/notification_provider.dart';
 import '../../providers/team_provider.dart';
 import '../../services/api_client.dart';
 import '../../services/invite_service.dart';
+import '../../widgets/back_button.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -50,7 +51,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final notifications = notificationProvider.notifications;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: const Text('Notifications'),
+      ),
       body: notificationProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : notifications.isEmpty

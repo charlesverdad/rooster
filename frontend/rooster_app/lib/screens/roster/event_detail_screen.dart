@@ -5,6 +5,7 @@ import '../../models/roster_event.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/roster_provider.dart';
 import '../../providers/team_provider.dart';
+import '../../widgets/back_button.dart';
 import 'assign_volunteers_sheet.dart';
 
 class EventDetailScreen extends StatefulWidget {
@@ -78,14 +79,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Event Detail')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Event Detail'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_error != null || _event == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Event Detail')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Event Detail'),
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -110,6 +117,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(event.rosterName ?? 'Event'),
         actions: [
           if (canManage)

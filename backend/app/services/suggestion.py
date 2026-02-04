@@ -409,11 +409,13 @@ class SuggestionService:
                     status=AssignmentStatus.PENDING,
                 )
                 self.db.add(assignment)
+                await self.db.flush()
                 already_assigned.add(member.user_id)
                 filled_count += 1
 
                 assignments_created.append(
                     {
+                        "assignment_id": str(assignment.id),
                         "event_id": str(event.id),
                         "user_id": str(member.user_id),
                         "user_name": member.user.name,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/team_provider.dart';
+import '../../widgets/back_button.dart';
 import '../../models/team.dart';
 import '../../services/invite_service.dart';
 import '../../utils/invite_utils.dart';
@@ -74,7 +75,10 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
     final teams = teamProvider.teams;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Teams')),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: const Text('My Teams'),
+      ),
       floatingActionButton: teams.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _showCreateTeamDialog,
