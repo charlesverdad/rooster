@@ -80,6 +80,8 @@ class RosterProvider with ChangeNotifier {
     String? notes,
     DateTime? endDate,
     int? endAfterOccurrences,
+    int? recurrenceWeekday,
+    int? recurrenceWeekNumber,
   }) async {
     try {
       final roster = await RosterService.createRoster(
@@ -93,6 +95,8 @@ class RosterProvider with ChangeNotifier {
         notes: notes,
         endDate: endDate,
         endAfterOccurrences: endAfterOccurrences,
+        recurrenceWeekday: recurrenceWeekday,
+        recurrenceWeekNumber: recurrenceWeekNumber,
       );
 
       // Set as current roster

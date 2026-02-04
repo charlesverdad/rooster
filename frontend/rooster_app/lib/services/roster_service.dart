@@ -76,6 +76,8 @@ class RosterService {
     DateTime? endDate,
     int? endAfterOccurrences,
     int generateEventsCount = 7,
+    int? recurrenceWeekday,
+    int? recurrenceWeekNumber,
   }) async {
     final body = {
       'team_id': teamId,
@@ -95,6 +97,12 @@ class RosterService {
     }
     if (endAfterOccurrences != null) {
       body['end_after_occurrences'] = endAfterOccurrences;
+    }
+    if (recurrenceWeekday != null) {
+      body['recurrence_weekday'] = recurrenceWeekday;
+    }
+    if (recurrenceWeekNumber != null) {
+      body['recurrence_week_number'] = recurrenceWeekNumber;
     }
 
     final response = await ApiClient.post('/rosters', body);
