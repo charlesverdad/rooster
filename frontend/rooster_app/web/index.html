@@ -19,10 +19,11 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Volunteer scheduling made simple">
+  <meta name="theme-color" content="#FFFFFF">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Rooster">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -35,6 +36,13 @@
 <body>
   <script src="flutter_bootstrap.js" async></script>
   <script>
+    // Capture the beforeinstallprompt event so Dart can trigger it later
+    window._pwaInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window._pwaInstallPrompt = e;
+    });
+
     // Register service worker for push notifications
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {

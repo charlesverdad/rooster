@@ -38,9 +38,13 @@ class _NotificationPermissionPromptState
       final isSubscribed = await PushService.isSubscribed();
       if (isSubscribed) return;
 
-      final isAvailable = await PushService.isAvailable();
+      // Show if the browser supports notifications, even if VAPID
+      // isn't configured yet — the subscribe flow handles that gracefully.
+      final browserSupports =
+          PushService.isSupported &&
+          PushService.getPermissionStatus() != 'denied';
 
-      if (mounted && isAvailable) {
+      if (mounted && browserSupports) {
         setState(() {
           _isVisible = true;
         });
