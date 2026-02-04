@@ -126,6 +126,7 @@ docker-logs:
 
 # Build and start the full tunnel stack (proxy + cloudflared)
 tunnel:
+    uv run --project backend python scripts/generate-vapid-keys.py
     docker compose -f docker-compose.yaml -f docker-compose.tunnel.yaml up --build
 
 # Tear down tunnel stack
