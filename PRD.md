@@ -117,14 +117,27 @@ Dates a member cannot serve. Team leads see this when assigning.
 - Placeholders cannot mark unavailability (they don't have accounts)
 
 ### F8: Notifications
-- **Push notification triggers**:
-  - New assignment created (registered users only)
-  - Reminder: 1 day before assignment
-  - Assignment declined (to team lead)
-- **Email triggers**:
-  - Invite to join team (for placeholders being invited)
-  - Weekly digest of upcoming assignments
-  - New assignment notification
+
+#### Notification Matrix
+
+| Event | Recipient | Type | In-App | Push | Push Actions | Email |
+|-------|-----------|------|--------|------|-------------|-------|
+| New assignment | Assignee | `ASSIGNMENT_CREATED` | Yes | Yes | Accept / Decline | Yes |
+| Assignment accepted | Team lead | `ASSIGNMENT_CONFIRMED` | Yes | Yes | Tap to view | No |
+| Assignment declined | Team lead | `ASSIGNMENT_DECLINED` | Yes | Yes | Reassign / dismiss | No |
+| Invited to team | Invitee | `TEAM_INVITE` | Yes | Yes | Tap to view | Yes (existing) |
+| Member joined team | Team lead(s) | `TEAM_JOINED` | Yes | Yes | Tap to view | No |
+| Removed from team | Member | `TEAM_REMOVED` | Yes | No | -- | No |
+
+#### Push Action Semantics
+- **Accept** (on `ASSIGNMENT_CREATED`): Service worker calls API silently, shows brief confirmation. App doesn't open.
+- **Decline** (on `ASSIGNMENT_CREATED`): Opens app to assignment detail for decline reason.
+- **Reassign** (on `ASSIGNMENT_DECLINED`): Opens app to event page for team lead to reassign.
+- **Default tap**: Opens app to the relevant page (assignment detail, team page, etc.)
+
+#### Deferred (requires background scheduler)
+- `ASSIGNMENT_REMINDER` (1 day before) -- type exists, no trigger yet
+- Weekly digest email
 
 ---
 

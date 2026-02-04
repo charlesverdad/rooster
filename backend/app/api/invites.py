@@ -87,6 +87,19 @@ async def send_invite(
         token=invite.token,
     )
 
+    # Send in-app + push notification (useful once user accepts invite)
+    try:
+        from app.services.notification import NotificationService
+
+        notification_service = NotificationService(db)
+        await notification_service.notify_team_invite(
+            user_id=user_id,
+            team_name=team.name,
+            team_id=team_id,
+        )
+    except Exception:
+        pass
+
     return InviteResponse.model_validate(invite)
 
 

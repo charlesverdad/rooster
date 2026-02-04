@@ -72,11 +72,19 @@ class AppNotification {
     switch (type) {
       case 'assignment_created':
         return 'assignment';
+      case 'assignment_confirmed':
+        return 'response';
+      case 'assignment_declined':
+        return 'alert';
       case 'assignment_reminder':
         return 'reminder';
       case 'conflict_detected':
-        return 'response';
+        return 'conflict';
       case 'team_joined':
+        return 'team';
+      case 'team_invite':
+        return 'invite';
+      case 'team_removed':
         return 'team';
       default:
         return type;

@@ -139,6 +139,8 @@ class PushService {
       final success = await _sendSubscriptionToBackend(subscription);
       if (success) {
         await _storeSubscription(subscription['endpoint'] as String);
+        // Send auth token to service worker for push action callbacks
+        await sendAuthTokenToServiceWorker();
       }
       return success;
     } catch (e) {
@@ -243,6 +245,27 @@ class PushService {
     } catch (e) {
       debugPrint('Error sending subscription to backend: $e');
       return false;
+    }
+  }
+
+  /// Send the current auth token to the service worker for push action callbacks.
+  /// Call this after subscribing and on app startup if already subscribed.
+  static Future<void> sendAuthTokenToServiceWorker() async {
+    if (!kIsWeb) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      if (token == null) return;
+
+      final controller = web.window.navigator.serviceWorker.controller;
+      if (controller != null) {
+        final message = {'type': 'AUTH_TOKEN', 'token': token}.jsify();
+        controller.postMessage(message);
+        debugPrint('Auth token sent to service worker');
+      }
+    } catch (e) {
+      debugPrint('Error sending auth token to service worker: $e');
     }
   }
 

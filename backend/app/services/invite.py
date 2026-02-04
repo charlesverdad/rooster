@@ -203,10 +203,20 @@ class InviteService:
                 self.db.add(org_member)
 
         notification_service = NotificationService(self.db)
+        # Get team lead IDs to notify them about the new member
+        team_lead_ids: list[uuid.UUID] = []
+        if team:
+            from app.services.team import TeamService
+
+            team_service = TeamService(self.db)
+            team_lead_ids = await team_service.get_team_lead_ids(invite.team_id)
+
         await notification_service.notify_team_joined(
             user_id=user.id,
             team_id=invite.team_id,
             team_name=invite.team.name if invite.team else "your team",
+            team_lead_ids=team_lead_ids,
+            user_name=user.name,
         )
 
         await self.db.flush()

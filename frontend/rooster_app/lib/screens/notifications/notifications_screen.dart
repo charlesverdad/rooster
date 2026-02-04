@@ -142,6 +142,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         icon = Icons.check_circle;
         iconColor = Colors.green;
         break;
+      case 'alert':
+        icon = Icons.warning_rounded;
+        iconColor = Colors.deepOrange;
+        break;
+      case 'invite':
+        icon = Icons.person_add;
+        iconColor = Colors.blue;
+        break;
+      case 'conflict':
+        icon = Icons.error_outline;
+        iconColor = Colors.red;
+        break;
       case 'team':
         icon = Icons.group;
         iconColor = Colors.grey;
@@ -176,13 +188,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ],
         ),
-        trailing:
-            notification.type == 'assignment' || notification.type == 'reminder'
+        trailing: _hasNavigation(notification)
             ? Icon(Icons.chevron_right, color: Colors.grey.shade400)
             : null,
         onTap: () => _handleNotificationTap(context, notification),
       ),
     );
+  }
+
+  bool _hasNavigation(AppNotification notification) {
+    if (notification.referenceId == null) return false;
+    return const [
+      'assignment',
+      'reminder',
+      'response',
+      'alert',
+      'team',
+      'invite',
+    ].contains(notification.type);
   }
 
   Future<void> _handleNotificationTap(
@@ -206,16 +229,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         case 'reminder':
           _navigateToAssignment(context, notification.referenceId!);
           break;
+        case 'response':
+        case 'alert':
+          // Confirmed/declined - navigate to assignment detail
+          _navigateToAssignment(context, notification.referenceId!);
+          break;
         case 'team':
+        case 'invite':
           // Navigate to team detail
           context.push('/teams/${notification.referenceId}');
-          break;
-        case 'response':
-          // For team leads - navigate to roster detail
-          // For now, show a snackbar
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(notification.message)));
           break;
       }
     }

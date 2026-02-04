@@ -101,6 +101,16 @@ class TeamService:
         membership = await self.get_team_membership(user_id, team_id)
         return membership is not None and membership.role == TeamRole.LEAD
 
+    async def get_team_lead_ids(self, team_id: uuid.UUID) -> list[uuid.UUID]:
+        """Get user IDs of all team leads for a team."""
+        result = await self.db.execute(
+            select(TeamMember.user_id).where(
+                TeamMember.team_id == team_id,
+                TeamMember.role == TeamRole.LEAD,
+            )
+        )
+        return list(result.scalars().all())
+
     async def check_permission(
         self, user_id: uuid.UUID, team_id: uuid.UUID, permission: str
     ) -> bool:
@@ -175,7 +185,25 @@ class TeamService:
         membership = await self.get_team_membership(user_id, team_id)
         if not membership:
             return False
+
+        # Get team name for notification before deleting
+        team = await self.get_team(team_id)
         await self.db.delete(membership)
+
+        # Send in-app notification (no push for removals)
+        if team:
+            try:
+                from app.services.notification import NotificationService
+
+                notification_service = NotificationService(self.db)
+                await notification_service.notify_team_removed(
+                    user_id=user_id,
+                    team_name=team.name,
+                    team_id=team_id,
+                )
+            except Exception:
+                pass
+
         return True
 
     async def get_members(self, team_id: uuid.UUID) -> list[TeamMember]:

@@ -112,13 +112,23 @@ class NotificationService:
         )
 
     async def notify_team_joined(
-        self, user_id: uuid.UUID, team_id: uuid.UUID, team_name: str
+        self,
+        user_id: uuid.UUID,
+        team_id: uuid.UUID,
+        team_name: str,
+        team_lead_ids: list[uuid.UUID] | None = None,
+        user_name: str | None = None,
     ) -> Notification:
-        """Create a notification when a user joins a team."""
+        """Create a notification when a user joins a team.
+
+        Also notifies team leads that a new member has joined.
+        """
+        from app.services.push import PushService
+
         title = "Team Joined"
         message = f"You've joined {team_name}"
 
-        return await self.create_notification(
+        notification = await self.create_notification(
             NotificationCreate(
                 user_id=user_id,
                 type=NotificationType.TEAM_JOINED,
@@ -127,6 +137,47 @@ class NotificationService:
                 reference_id=team_id,
             )
         )
+
+        # Send push to the joining user
+        try:
+            push_service = PushService(self.db)
+            await push_service.send_to_user(
+                user_id=user_id,
+                title=title,
+                body=message,
+                url=f"/teams/{team_id}",
+            )
+        except Exception:
+            pass
+
+        # Notify team leads that someone joined
+        if team_lead_ids and user_name:
+            lead_title = "New Team Member"
+            lead_message = f"{user_name} has joined {team_name}"
+            try:
+                push_service = PushService(self.db)
+                for lead_id in team_lead_ids:
+                    if lead_id == user_id:
+                        continue
+                    await self.create_notification(
+                        NotificationCreate(
+                            user_id=lead_id,
+                            type=NotificationType.TEAM_JOINED,
+                            title=lead_title,
+                            message=lead_message,
+                            reference_id=team_id,
+                        )
+                    )
+                    await push_service.send_to_user(
+                        user_id=lead_id,
+                        title=lead_title,
+                        body=lead_message,
+                        url=f"/teams/{team_id}",
+                    )
+            except Exception:
+                pass
+
+        return notification
 
     async def notify_assignment_created_with_email(
         self,
@@ -183,7 +234,7 @@ class NotificationService:
                 event_time=event_time,
             )
 
-        # Send push notification if available
+        # Send push notification with accept/decline actions
         try:
             from app.services.push import PushService
 
@@ -193,9 +244,160 @@ class NotificationService:
                 title=title,
                 body=message,
                 url=f"/assignments/{assignment_id}",
+                actions=[
+                    {"action": "accept", "title": "Accept"},
+                    {"action": "decline", "title": "Decline"},
+                ],
+                tag=f"assignment-{assignment_id}",
+                data={
+                    "assignment_id": str(assignment_id),
+                    "accept_url": f"/api/event-assignments/{assignment_id}/accept",
+                    "url": f"/assignments/{assignment_id}",
+                },
             )
         except ImportError:
-            # Push service not yet implemented
             pass
 
         return notification
+
+    async def notify_assignment_confirmed(
+        self,
+        user_name: str,
+        roster_name: str,
+        event_date: datetime,
+        team_lead_ids: list[uuid.UUID],
+        assignment_id: uuid.UUID,
+    ) -> list[Notification]:
+        """Notify team leads when an assignment is accepted."""
+        from app.services.push import PushService
+
+        title = f"{user_name} accepted"
+        formatted_date = event_date.strftime("%B %d, %Y")
+        message = f"Confirmed for {roster_name} on {formatted_date}"
+
+        notifications = []
+        push_service = PushService(self.db)
+
+        for lead_id in team_lead_ids:
+            notification = await self.create_notification(
+                NotificationCreate(
+                    user_id=lead_id,
+                    type=NotificationType.ASSIGNMENT_CONFIRMED,
+                    title=title,
+                    message=message,
+                    reference_id=assignment_id,
+                )
+            )
+            notifications.append(notification)
+
+            try:
+                await push_service.send_to_user(
+                    user_id=lead_id,
+                    title=title,
+                    body=message,
+                    url=f"/assignments/{assignment_id}",
+                )
+            except Exception:
+                pass
+
+        return notifications
+
+    async def notify_assignment_declined(
+        self,
+        user_name: str,
+        roster_name: str,
+        event_date: datetime,
+        event_id: uuid.UUID,
+        team_lead_ids: list[uuid.UUID],
+        assignment_id: uuid.UUID,
+    ) -> list[Notification]:
+        """Notify team leads when an assignment is declined."""
+        from app.services.push import PushService
+
+        title = f"{user_name} declined"
+        formatted_date = event_date.strftime("%B %d, %Y")
+        message = f"Declined {roster_name} on {formatted_date}"
+
+        notifications = []
+        push_service = PushService(self.db)
+
+        for lead_id in team_lead_ids:
+            notification = await self.create_notification(
+                NotificationCreate(
+                    user_id=lead_id,
+                    type=NotificationType.ASSIGNMENT_DECLINED,
+                    title=title,
+                    message=message,
+                    reference_id=assignment_id,
+                )
+            )
+            notifications.append(notification)
+
+            try:
+                await push_service.send_to_user(
+                    user_id=lead_id,
+                    title=title,
+                    body=message,
+                    url=f"/events/{event_id}",
+                    actions=[{"action": "reassign", "title": "Reassign"}],
+                    data={"url": f"/events/{event_id}"},
+                )
+            except Exception:
+                pass
+
+        return notifications
+
+    async def notify_team_invite(
+        self,
+        user_id: uuid.UUID,
+        team_name: str,
+        team_id: uuid.UUID,
+    ) -> Notification:
+        """Notify a user when they are invited to a team."""
+        from app.services.push import PushService
+
+        title = "Team Invitation"
+        message = f"You've been invited to join {team_name}"
+
+        notification = await self.create_notification(
+            NotificationCreate(
+                user_id=user_id,
+                type=NotificationType.TEAM_INVITE,
+                title=title,
+                message=message,
+                reference_id=team_id,
+            )
+        )
+
+        try:
+            push_service = PushService(self.db)
+            await push_service.send_to_user(
+                user_id=user_id,
+                title=title,
+                body=message,
+                url=f"/teams/{team_id}",
+            )
+        except Exception:
+            pass
+
+        return notification
+
+    async def notify_team_removed(
+        self,
+        user_id: uuid.UUID,
+        team_name: str,
+        team_id: uuid.UUID,
+    ) -> Notification:
+        """Notify a user when they are removed from a team (in-app only)."""
+        title = "Removed from Team"
+        message = f"You've been removed from {team_name}"
+
+        return await self.create_notification(
+            NotificationCreate(
+                user_id=user_id,
+                type=NotificationType.TEAM_REMOVED,
+                title=title,
+                message=message,
+                reference_id=team_id,
+            )
+        )
