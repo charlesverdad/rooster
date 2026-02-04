@@ -1,10 +1,25 @@
+import 'dart:js_interop';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web/web.dart' as web;
+
+/// Typed wrapper for the BeforeInstallPromptEvent so we can call .prompt().
+extension type _BeforeInstallPromptEvent._(JSObject _) implements JSObject {
+  external JSPromise prompt();
+}
+
+/// JS interop to access the deferred beforeinstallprompt event stored on window.
+@JS('window._pwaInstallPrompt')
+external JSObject? get _deferredPromptRaw;
+
+@JS('window._pwaInstallPrompt')
+external set _deferredPromptRaw(JSObject? value);
 
 /// A dismissible card that prompts users to install the PWA.
 ///
-/// This widget listens for the `beforeinstallprompt` event via JavaScript interop
-/// and displays a prompt when the app can be installed.
+/// Listens for the browser's `beforeinstallprompt` event (captured in index.html)
+/// and triggers the native install dialog when the user taps Install.
 class InstallPrompt extends StatefulWidget {
   const InstallPrompt({super.key});
 
@@ -26,24 +41,34 @@ class _InstallPromptState extends State<InstallPrompt> {
   }
 
   Future<void> _checkState() async {
-    // Only check once
-    if (_hasChecked) return;
+    if (_hasChecked || !kIsWeb) return;
     _hasChecked = true;
 
     try {
+      // Already running as installed PWA — nothing to prompt.
+      if (web.window.matchMedia('(display-mode: standalone)').matches) return;
+
       final prefs = await SharedPreferences.getInstance();
       final dismissed = prefs.getBool(_dismissedKey) ?? false;
 
       if (mounted && !dismissed) {
         setState(() {
           _isDismissed = false;
-          // In a real implementation, we'd check for the beforeinstallprompt event
-          // For now, we'll show the prompt on web when not dismissed
           _canInstall = true;
         });
+
+        // If the event hasn't fired yet, listen for it.
+        if (_deferredPromptRaw == null) {
+          web.window.addEventListener(
+            'beforeinstallprompt',
+            ((web.Event e) {
+              e.preventDefault();
+              if (mounted) setState(() => _canInstall = true);
+            }).toJS,
+          );
+        }
       }
     } catch (e) {
-      // Silently fail - install prompt is optional
       debugPrint('Error checking install state: $e');
     }
   }
@@ -57,17 +82,26 @@ class _InstallPromptState extends State<InstallPrompt> {
   }
 
   Future<void> _install() async {
-    // In a real implementation, this would trigger the install prompt
-    // via JavaScript interop with the deferred `beforeinstallprompt` event
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'To install: tap the browser menu and select "Add to Home Screen"',
+    final raw = _deferredPromptRaw;
+    if (raw != null) {
+      // Trigger the native browser install dialog.
+      final prompt = _BeforeInstallPromptEvent._(raw);
+      prompt.prompt();
+      // Clear the deferred prompt — it can only be used once.
+      _deferredPromptRaw = null;
+      await _dismiss();
+    } else {
+      // Fallback for browsers that don't support beforeinstallprompt (e.g. iOS Safari).
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'To install: tap the share icon and select "Add to Home Screen"',
+          ),
+          duration: Duration(seconds: 5),
         ),
-        duration: Duration(seconds: 5),
-      ),
-    );
-    await _dismiss();
+      );
+      await _dismiss();
+    }
   }
 
   @override
