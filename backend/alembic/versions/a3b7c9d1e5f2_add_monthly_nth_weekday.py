@@ -21,8 +21,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Add new enum value to recurrencepattern
+    # PostgreSQL enum stores uppercase names (WEEKLY, BIWEEKLY, etc.)
     op.execute(
-        "ALTER TYPE recurrencepattern ADD VALUE IF NOT EXISTS 'monthly_nth_weekday'"
+        "ALTER TYPE recurrencepattern ADD VALUE IF NOT EXISTS 'MONTHLY_NTH_WEEKDAY'"
     )
 
     # Add new columns for nth weekday recurrence
