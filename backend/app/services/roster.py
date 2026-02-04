@@ -1,4 +1,5 @@
 import uuid
+import calendar
 from datetime import date, timedelta
 from typing import Optional
 
@@ -32,6 +33,24 @@ def frontend_day_to_python_weekday(day: int) -> int:
         Day of week in Python convention (0=Monday, 6=Sunday)
     """
     return (day - 1) % 7
+
+
+def _get_monthly_date(year: int, month: int, day: int) -> date:
+    """Safely create a date by clamping the day to the valid range for the month.
+
+    This handles cases where the requested day doesn't exist in the given month
+    (e.g., Feb 31 becomes Feb 28/29, Apr 31 becomes Apr 30).
+
+    Args:
+        year: The year
+        month: The month (1-12)
+        day: The requested day of month (will be clamped if too large)
+
+    Returns:
+        A date with the day clamped to the maximum valid day for that month
+    """
+    _, max_day = calendar.monthrange(year, month)
+    return date(year, month, min(day, max_day))
 
 
 def calculate_event_dates(
@@ -75,11 +94,11 @@ def calculate_event_dates(
         if current.day > recurrence_day:
             # Move to next month
             if current.month == 12:
-                current = date(current.year + 1, 1, recurrence_day)
+                current = _get_monthly_date(current.year + 1, 1, recurrence_day)
             else:
-                current = date(current.year, current.month + 1, recurrence_day)
+                current = _get_monthly_date(current.year, current.month + 1, recurrence_day)
         else:
-            current = date(current.year, current.month, recurrence_day)
+            current = _get_monthly_date(current.year, current.month, recurrence_day)
 
     max_events = count
     if end_after_occurrences:
@@ -97,18 +116,11 @@ def calculate_event_dates(
         elif recurrence_pattern == RecurrencePattern.BIWEEKLY:
             current = current + timedelta(weeks=2)
         elif recurrence_pattern == RecurrencePattern.MONTHLY:
-            # Move to next month, same day
+            # Move to next month, same day (clamped to valid range for the month)
             if current.month == 12:
-                current = date(current.year + 1, 1, recurrence_day)
+                current = _get_monthly_date(current.year + 1, 1, recurrence_day)
             else:
-                try:
-                    current = date(current.year, current.month + 1, recurrence_day)
-                except ValueError:
-                    # Day doesn't exist in that month, skip
-                    if current.month == 11:
-                        current = date(current.year + 1, 1, recurrence_day)
-                    else:
-                        current = date(current.year, current.month + 2, recurrence_day)
+                current = _get_monthly_date(current.year, current.month + 1, recurrence_day)
 
     return dates
 
