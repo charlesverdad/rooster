@@ -31,10 +31,6 @@ class _NotificationPermissionPromptState
     _hasChecked = true;
 
     try {
-      // Check if push is available and not dismissed
-      final isDismissed = await PushService.isPermissionDismissed();
-      if (isDismissed) return;
-
       final isSubscribed = await PushService.isSubscribed();
       if (isSubscribed) return;
 
@@ -52,13 +48,6 @@ class _NotificationPermissionPromptState
     } catch (e) {
       // Silently fail - push notifications are optional
       debugPrint('Error checking push availability: $e');
-    }
-  }
-
-  Future<void> _dismiss() async {
-    await PushService.dismissPermissionPrompt();
-    if (mounted) {
-      setState(() => _isVisible = false);
     }
   }
 
@@ -90,7 +79,7 @@ class _NotificationPermissionPromptState
                 duration: Duration(seconds: 4),
               ),
             );
-            await _dismiss();
+            setState(() => _isVisible = false);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -165,11 +154,8 @@ class _NotificationPermissionPromptState
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            else ...[
-              TextButton(onPressed: _dismiss, child: const Text('Later')),
-              const SizedBox(width: 4),
+            else
               FilledButton(onPressed: _enable, child: const Text('Enable')),
-            ],
           ],
         ),
       ),
