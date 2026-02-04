@@ -71,7 +71,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rooster'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset('assets/rooster-logo.png', height: 28),
+            const SizedBox(width: 8),
+            const Text('Rooster'),
+          ],
+        ),
         actions: [
           // Notification bell with badge
           Stack(
