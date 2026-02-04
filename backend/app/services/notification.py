@@ -267,7 +267,8 @@ class NotificationService:
                 tag=f"assignment-{assignment_id}",
                 data={
                     "assignment_id": str(assignment_id),
-                    "accept_url": f"/api/event-assignments/{assignment_id}/accept",
+                    "accept_url": f"/api/rosters/event-assignments/{assignment_id}/accept",
+                    "decline_url": f"/api/rosters/event-assignments/{assignment_id}/decline",
                     "url": f"/assignments/{assignment_id}",
                 },
             )
