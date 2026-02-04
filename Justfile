@@ -121,3 +121,17 @@ docker-down:
 # View logs
 docker-logs:
     docker compose logs -f
+
+# --- Tunnel (share dev build via public URL) ---
+
+# Build and start the full tunnel stack (proxy + cloudflared)
+tunnel:
+    docker compose -f docker-compose.yaml -f docker-compose.tunnel.yaml up --build
+
+# Tear down tunnel stack
+tunnel-down:
+    docker compose -f docker-compose.yaml -f docker-compose.tunnel.yaml down
+
+# Follow tunnel logs to find the public *.trycloudflare.com URL
+tunnel-logs:
+    docker compose -f docker-compose.yaml -f docker-compose.tunnel.yaml logs -f tunnel
