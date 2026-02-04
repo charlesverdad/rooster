@@ -1,10 +1,24 @@
-// Rooster Service Worker for Push Notifications
+// Rooster Service Worker for Push Notifications and Static Asset Caching
 
-const CACHE_NAME = 'rooster-v1';
+const CACHE_NAME = 'rooster-v2';
 
-// Install event - cache essential assets
+// Assets to precache on install
+const PRECACHE_URLS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/flutter_bootstrap.js',
+  '/icons/Icon-192.png',
+];
+
+// Install event - precache essential assets
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(PRECACHE_URLS);
+    })
+  );
   self.skipWaiting();
 });
 
@@ -22,6 +36,54 @@ self.addEventListener('activate', (event) => {
   );
   self.clients.claim();
 });
+
+// Fetch event - caching strategies by request type
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Network-only for API calls - never cache
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Navigation requests (HTML pages) - network-first with cache fallback
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request) || caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // Static assets (JS, WASM, CSS, fonts, images) - cache-first with network fallback
+  if (isStaticAsset(url.pathname)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) {
+          return cached;
+        }
+        return fetch(event.request).then((response) => {
+          // Only cache successful responses
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+});
+
+function isStaticAsset(pathname) {
+  return /\.(js|wasm|css|woff2?|ttf|eot|png|jpe?g|gif|ico|svg|webp)$/.test(pathname);
+}
 
 // Push event - handle incoming push notifications
 self.addEventListener('push', (event) => {
