@@ -18,13 +18,53 @@ async def register(user_data: UserCreate, db: DbSession) -> UserResponse:
     auth_service = AuthService(db)
 
     existing_user = await auth_service.get_user_by_email(user_data.email)
-    if existing_user:
+    if existing_user and not existing_user.is_placeholder:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
 
-    user = await auth_service.create_user(user_data)
+    if existing_user and existing_user.is_placeholder:
+        # Convert the placeholder into a full user instead of creating a duplicate
+        from app.core.security import get_password_hash
+
+        existing_user.name = user_data.name
+        existing_user.password_hash = get_password_hash(user_data.password)
+        existing_user.is_placeholder = False
+        await db.flush()
+        await db.refresh(existing_user)
+        user = existing_user
+    else:
+        user = await auth_service.create_user(user_data)
+
+    # Check for pending invites matching the new user's email
+    from app.services.invite import InviteService
+    from app.services.notification import NotificationService
+
+    invite_service = InviteService(db)
+    pending_invites = await invite_service.check_pending_invites_for_email(
+        user_data.email
+    )
+    if pending_invites:
+        notification_service = NotificationService(db)
+        for invite in pending_invites:
+            try:
+                # Skip if a TEAM_INVITE notification already exists for this team
+                # (e.g., created when the invite was originally sent to the placeholder)
+                existing = await notification_service.has_notification(
+                    user_id=user.id,
+                    notification_type="team_invite",
+                    reference_id=invite.team_id,
+                )
+                if not existing:
+                    await notification_service.notify_team_invite(
+                        user_id=user.id,
+                        team_name=invite.team.name if invite.team else "a team",
+                        team_id=invite.team_id,
+                    )
+            except Exception:
+                pass
+
     roles = await auth_service.get_user_roles(user.id)
     user_response = UserResponse.model_validate(user)
     user_response.roles = roles

@@ -993,7 +993,7 @@ async def create_event_assignment(
             roster_name=roster.name,
             team_name=team.name,
             event_date=event.date,
-            event_time=event.time,
+            event_time=None,
         )
 
     return EventAssignmentResponse(

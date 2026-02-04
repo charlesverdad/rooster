@@ -65,6 +65,22 @@ class NotificationService:
         await self.db.flush()
         return count
 
+    async def has_notification(
+        self,
+        user_id: uuid.UUID,
+        notification_type: str,
+        reference_id: uuid.UUID,
+    ) -> bool:
+        """Check if a notification already exists for a user with given type and reference."""
+        result = await self.db.execute(
+            select(Notification).where(
+                Notification.user_id == user_id,
+                Notification.type == notification_type,
+                Notification.reference_id == reference_id,
+            )
+        )
+        return result.scalar_one_or_none() is not None
+
     async def delete_notification(self, notification_id: uuid.UUID) -> bool:
         """Delete a notification."""
         result = await self.db.execute(

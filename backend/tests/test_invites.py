@@ -436,3 +436,290 @@ async def test_accept_invite_user_can_view_team_members(
     members = members_response.json()
     assert len(members) >= 1
     assert any(m["user_name"] == "Invitee User" for m in members)
+
+
+# =============================================================================
+# Invite to Already-Registered User Tests
+# =============================================================================
+
+
+async def _create_registered_user_invite_fixtures(db_session: AsyncSession):
+    """Helper to create fixtures with a placeholder and a separately-registered user.
+
+    The placeholder has no email (realistic: admin creates "John Doe" placeholder,
+    then invites to john@example.com which belongs to an existing user).
+    """
+    org = Organisation(name="Test Church")
+    db_session.add(org)
+    await db_session.flush()
+
+    team = Team(name="Media Team", organisation_id=org.id)
+    db_session.add(team)
+    await db_session.flush()
+
+    # Team lead
+    lead = User(
+        email="lead@example.com",
+        name="Team Lead",
+        password_hash=get_password_hash("password123"),
+    )
+    db_session.add(lead)
+    await db_session.flush()
+
+    org_admin = OrganisationMember(
+        user_id=lead.id,
+        organisation_id=org.id,
+        role=OrganisationRole.ADMIN,
+    )
+    db_session.add(org_admin)
+
+    lead_membership = TeamMember(
+        user_id=lead.id,
+        team_id=team.id,
+        role=TeamRole.LEAD,
+        permissions=[
+            "manage_team",
+            "manage_members",
+            "manage_rosters",
+            "assign_volunteers",
+            "send_invites",
+            "view_responses",
+        ],
+    )
+    db_session.add(lead_membership)
+
+    # Placeholder user (no email — hasn't been invited yet)
+    placeholder = User(
+        name="John Doe",
+        is_placeholder=True,
+    )
+    db_session.add(placeholder)
+    await db_session.flush()
+
+    placeholder_membership = TeamMember(
+        user_id=placeholder.id,
+        team_id=team.id,
+        role=TeamRole.MEMBER,
+        permissions=[],
+    )
+    db_session.add(placeholder_membership)
+
+    # Already-registered user with the email we'll invite to
+    registered = User(
+        email="john@example.com",
+        name="John Smith",
+        password_hash=get_password_hash("password123"),
+    )
+    db_session.add(registered)
+    await db_session.flush()
+
+    reg_org_member = OrganisationMember(
+        user_id=registered.id,
+        organisation_id=org.id,
+        role=OrganisationRole.MEMBER,
+    )
+    db_session.add(reg_org_member)
+    await db_session.commit()
+
+    return org, team, lead, placeholder, registered
+
+
+@pytest.mark.asyncio
+async def test_send_invite_to_registered_user_merges_placeholder(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Sending invite to an email belonging to a registered user should merge the placeholder."""
+    (
+        org,
+        team,
+        lead,
+        placeholder,
+        registered,
+    ) = await _create_registered_user_invite_fixtures(db_session)
+
+    token = create_access_token(subject=str(lead.id))
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = await test_client.post(
+        f"/api/invites/team/{team.id}/user/{placeholder.id}",
+        json={"email": "john@example.com"},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    data = response.json()
+    # The invite should be auto-accepted
+    assert data["accepted_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_send_invite_to_registered_user_creates_notification(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Sending invite to registered user's email should notify them."""
+    (
+        org,
+        team,
+        lead,
+        placeholder,
+        registered,
+    ) = await _create_registered_user_invite_fixtures(db_session)
+
+    lead_token = create_access_token(subject=str(lead.id))
+    lead_headers = {"Authorization": f"Bearer {lead_token}"}
+
+    await test_client.post(
+        f"/api/invites/team/{team.id}/user/{placeholder.id}",
+        json={"email": "john@example.com"},
+        headers=lead_headers,
+    )
+
+    # Check notifications for the registered user
+    reg_token = create_access_token(subject=str(registered.id))
+    reg_headers = {"Authorization": f"Bearer {reg_token}"}
+
+    notifications = await test_client.get(
+        "/api/notifications",
+        headers=reg_headers,
+    )
+    assert notifications.status_code == 200
+    data = notifications.json()
+    assert any(
+        n["type"] == "team_invite" and n["reference_id"] == str(team.id) for n in data
+    )
+
+
+async def _create_invite_fixtures_no_email(db_session: AsyncSession):
+    """Helper to create invite fixtures where the placeholder has a different email from the invite.
+
+    This simulates: placeholder created with no email, then invited to a specific email.
+    We use a unique placeholder email to avoid unique constraint issues.
+    """
+    org = Organisation(name="Test Church")
+    db_session.add(org)
+    await db_session.flush()
+
+    team = Team(name="Praise Team", organisation_id=org.id)
+    db_session.add(team)
+    await db_session.flush()
+
+    # Placeholder starts with no email (realistic flow)
+    user = User(
+        name="Invitee User",
+        password_hash=get_password_hash("placeholder"),
+        is_placeholder=True,
+    )
+    db_session.add(user)
+    await db_session.flush()
+
+    membership = TeamMember(
+        user_id=user.id,
+        team_id=team.id,
+        role=TeamRole.MEMBER,
+        permissions=[],
+    )
+    db_session.add(membership)
+
+    # Invite targets an email — create_invite would normally set placeholder.email,
+    # but we set it here to "target_invite@example.com" to simulate that step
+    invite_email = "target_invite@example.com"
+    user.email = invite_email
+    invite = Invite(
+        team_id=team.id,
+        user_id=user.id,
+        email=invite_email,
+    )
+    db_session.add(invite)
+    await db_session.commit()
+
+    return org, team, user, invite
+
+
+@pytest.mark.asyncio
+async def test_validate_token_returns_user_is_registered(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Validate token should return user_is_registered when a registered user has the invite email."""
+    org, team, placeholder, invite = await _create_invite_fixtures_no_email(db_session)
+
+    # Create a registered user with the same email as the invite
+    registered = User(
+        email="target_invite@example.com",
+        name="Already Registered",
+        password_hash=get_password_hash("password123"),
+        is_placeholder=False,
+    )
+    # We need to clear the placeholder's email first to avoid unique conflict
+    placeholder.email = None
+    await db_session.flush()
+    db_session.add(registered)
+    await db_session.commit()
+
+    # Update invite email is still target_invite@example.com
+    response = await test_client.get(f"/api/invites/validate/{invite.token}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["valid"] is True
+    assert data["user_is_registered"] is True
+
+
+@pytest.mark.asyncio
+async def test_validate_token_unregistered_user_is_registered_false(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Validate token should return user_is_registered=False when no registered user matches."""
+    org, team, user, invite = await _create_invite_fixtures(db_session)
+
+    response = await test_client.get(f"/api/invites/validate/{invite.token}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["valid"] is True
+    assert data["user_is_registered"] is False
+
+
+@pytest.mark.asyncio
+async def test_accept_invite_without_password_for_registered_user(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Accepting an invite without password should work when email matches a registered user."""
+    org, team, placeholder, invite = await _create_invite_fixtures_no_email(db_session)
+
+    # Create a registered user with the invite email, clearing placeholder email first
+    placeholder.email = None
+    await db_session.flush()
+
+    registered = User(
+        email="target_invite@example.com",
+        name="Already Registered",
+        password_hash=get_password_hash("password123"),
+        is_placeholder=False,
+    )
+    db_session.add(registered)
+    await db_session.commit()
+
+    response = await test_client.post(
+        f"/api/invites/accept/{invite.token}",
+        json={},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["access_token"] is not None
+    assert data["team_id"] == str(team.id)
+    assert data["team_name"] == "Praise Team"
+
+
+@pytest.mark.asyncio
+async def test_accept_invite_without_password_for_new_user_fails(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Accepting an invite without password should fail when the user is new (no registered match)."""
+    org, team, user, invite = await _create_invite_fixtures(db_session)
+
+    response = await test_client.post(
+        f"/api/invites/accept/{invite.token}",
+        json={},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is False
+    assert "password" in data["message"].lower()
