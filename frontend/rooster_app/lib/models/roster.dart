@@ -12,6 +12,8 @@ class Roster {
   final DateTime? endDate;
   final int? endAfterOccurrences;
   final bool isActive;
+  final int? recurrenceWeekday;
+  final int? recurrenceWeekNumber;
   final DateTime createdAt;
 
   // Additional fields for display
@@ -34,6 +36,8 @@ class Roster {
     this.endDate,
     this.endAfterOccurrences,
     this.isActive = true,
+    this.recurrenceWeekday,
+    this.recurrenceWeekNumber,
     required this.createdAt,
     this.teamName,
     this.filledSlots,
@@ -64,6 +68,8 @@ class Roster {
           : null,
       endAfterOccurrences: json['end_after_occurrences'],
       isActive: json['is_active'] ?? true,
+      recurrenceWeekday: json['recurrence_weekday'],
+      recurrenceWeekNumber: json['recurrence_week_number'],
       createdAt: DateTime.parse(json['created_at']),
       teamName: json['team_name'],
       filledSlots: json['filled_slots'],
@@ -89,6 +95,9 @@ class Roster {
       'end_date': endDate?.toIso8601String().split('T')[0],
       'end_after_occurrences': endAfterOccurrences,
       'is_active': isActive,
+      if (recurrenceWeekday != null) 'recurrence_weekday': recurrenceWeekday,
+      if (recurrenceWeekNumber != null)
+        'recurrence_week_number': recurrenceWeekNumber,
     };
   }
 }

@@ -269,6 +269,41 @@ class PushService {
     }
   }
 
+  /// Listen for NAVIGATE messages from the service worker.
+  /// When a push notification is tapped in an already-open window, the SW
+  /// sends a postMessage with type 'NAVIGATE' and a url to route to.
+  static void listenForServiceWorkerMessages(
+    void Function(String url) onNavigate,
+  ) {
+    if (!kIsWeb) return;
+
+    try {
+      final sw = web.window.navigator.serviceWorker;
+      sw.addEventListener(
+        'message',
+        (web.Event event) {
+          final messageEvent = event as web.MessageEvent;
+          final data = messageEvent.data;
+          if (data == null) return;
+
+          // Convert JSAny to a Dart map
+          final dartData = (data as JSObject).dartify();
+          if (dartData is Map) {
+            final type = dartData['type'];
+            final url = dartData['url'];
+            if (type == 'NAVIGATE' && url is String) {
+              debugPrint('Received NAVIGATE from service worker: $url');
+              onNavigate(url);
+            }
+          }
+        }.toJS,
+      );
+      debugPrint('Listening for service worker messages');
+    } catch (e) {
+      debugPrint('Error setting up service worker message listener: $e');
+    }
+  }
+
   /// Subscribe to push notifications (legacy method for compatibility).
   /// Returns true if successful, false otherwise.
   static Future<bool> subscribe({

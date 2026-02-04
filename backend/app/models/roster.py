@@ -20,6 +20,7 @@ class RecurrencePattern(str, enum.Enum):
     WEEKLY = "weekly"
     BIWEEKLY = "biweekly"
     MONTHLY = "monthly"
+    MONTHLY_NTH_WEEKDAY = "monthly_nth_weekday"
     ONE_TIME = "one_time"  # For single events
 
 
@@ -66,6 +67,14 @@ class Roster(Base, UUIDMixin, TimestampMixin):
     end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     end_after_occurrences: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # For MONTHLY_NTH_WEEKDAY pattern
+    recurrence_weekday: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )  # 0=Mon..6=Sun (Python weekday)
+    recurrence_week_number: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )  # 1-4 or 5=last
 
     # Relationships
     team: Mapped["Team"] = relationship(back_populates="rosters")

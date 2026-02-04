@@ -836,7 +836,7 @@ async def generate_more_events(
     roster_id: uuid.UUID,
     current_user: CurrentUser,
     db: DbSession,
-    count: int = Query(12, ge=1, le=52),
+    count: int = Query(7, ge=1, le=52),
 ) -> list[RosterEventResponse]:
     """Generate more events for a roster. Org admin or team lead only."""
     roster_service = RosterService(db)

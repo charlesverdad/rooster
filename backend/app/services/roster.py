@@ -1,3 +1,4 @@
+import calendar
 import uuid
 from datetime import date, timedelta
 from typing import Optional
@@ -34,6 +35,50 @@ def frontend_day_to_python_weekday(day: int) -> int:
     return (day - 1) % 7
 
 
+def _get_monthly_date(year: int, month: int, day: int) -> date:
+    """Get a valid date by clamping the day to the month's max valid day.
+
+    For example, day=31 in February returns Feb 28 (or 29 in a leap year).
+    """
+    max_day = calendar.monthrange(year, month)[1]
+    return date(year, month, min(day, max_day))
+
+
+def _nth_weekday_of_month(year: int, month: int, weekday: int, n: int) -> date:
+    """Find the nth occurrence of a weekday in a given month.
+
+    Args:
+        year: Year
+        month: Month (1-12)
+        weekday: Python weekday (0=Monday, 6=Sunday)
+        n: Which occurrence (1-4 for 1st-4th, 5 for last)
+
+    Returns:
+        The date of the nth weekday in the month.
+
+    Raises:
+        ValueError: If the nth occurrence doesn't exist in the month.
+    """
+    if n == 5:
+        # "Last" - count backwards from end of month
+        last_day = calendar.monthrange(year, month)[1]
+        d = date(year, month, last_day)
+        while d.weekday() != weekday:
+            d -= timedelta(days=1)
+        return d
+
+    # Find the first occurrence of this weekday in the month
+    first_day = date(year, month, 1)
+    days_until = (weekday - first_day.weekday()) % 7
+    first_occurrence = first_day + timedelta(days=days_until)
+
+    # Jump to the nth occurrence
+    result = first_occurrence + timedelta(weeks=n - 1)
+    if result.month != month:
+        raise ValueError(f"No {n}th weekday {weekday} in {year}-{month:02d}")
+    return result
+
+
 def calculate_event_dates(
     start_date: date,
     recurrence_pattern: RecurrencePattern,
@@ -41,16 +86,20 @@ def calculate_event_dates(
     count: int,
     end_date: Optional[date] = None,
     end_after_occurrences: Optional[int] = None,
+    recurrence_weekday: Optional[int] = None,
+    recurrence_week_number: Optional[int] = None,
 ) -> list[date]:
     """Calculate the dates for roster events based on recurrence pattern.
 
     Args:
         start_date: The first possible date
-        recurrence_pattern: Weekly, biweekly, monthly, or one_time
+        recurrence_pattern: Weekly, biweekly, monthly, monthly_nth_weekday, or one_time
         recurrence_day: Day of week (0=Monday, 6=Sunday) or day of month
         count: Maximum number of events to generate
         end_date: Optional end date (no events after this date)
         end_after_occurrences: Optional max occurrences
+        recurrence_weekday: Python weekday (0=Mon, 6=Sun) for monthly_nth_weekday
+        recurrence_week_number: Which occurrence (1-4, or 5=last)
 
     Returns:
         List of dates for events
@@ -75,11 +124,39 @@ def calculate_event_dates(
         if current.day > recurrence_day:
             # Move to next month
             if current.month == 12:
-                current = date(current.year + 1, 1, recurrence_day)
+                current = _get_monthly_date(current.year + 1, 1, recurrence_day)
             else:
-                current = date(current.year, current.month + 1, recurrence_day)
+                current = _get_monthly_date(
+                    current.year, current.month + 1, recurrence_day
+                )
         else:
-            current = date(current.year, current.month, recurrence_day)
+            current = _get_monthly_date(current.year, current.month, recurrence_day)
+
+    elif recurrence_pattern == RecurrencePattern.MONTHLY_NTH_WEEKDAY:
+        assert recurrence_weekday is not None and recurrence_week_number is not None
+        # Find the nth weekday in the current month
+        try:
+            candidate = _nth_weekday_of_month(
+                current.year, current.month, recurrence_weekday, recurrence_week_number
+            )
+        except ValueError:
+            candidate = None
+
+        if candidate is None or candidate < current:
+            # Move to next month
+            if current.month == 12:
+                current = _nth_weekday_of_month(
+                    current.year + 1, 1, recurrence_weekday, recurrence_week_number
+                )
+            else:
+                current = _nth_weekday_of_month(
+                    current.year,
+                    current.month + 1,
+                    recurrence_weekday,
+                    recurrence_week_number,
+                )
+        else:
+            current = candidate
 
     max_events = count
     if end_after_occurrences:
@@ -97,18 +174,33 @@ def calculate_event_dates(
         elif recurrence_pattern == RecurrencePattern.BIWEEKLY:
             current = current + timedelta(weeks=2)
         elif recurrence_pattern == RecurrencePattern.MONTHLY:
-            # Move to next month, same day
+            # Move to next month, same day (clamped to valid range)
             if current.month == 12:
-                current = date(current.year + 1, 1, recurrence_day)
+                current = _get_monthly_date(current.year + 1, 1, recurrence_day)
             else:
-                try:
-                    current = date(current.year, current.month + 1, recurrence_day)
-                except ValueError:
-                    # Day doesn't exist in that month, skip
-                    if current.month == 11:
-                        current = date(current.year + 1, 1, recurrence_day)
-                    else:
-                        current = date(current.year, current.month + 2, recurrence_day)
+                current = _get_monthly_date(
+                    current.year, current.month + 1, recurrence_day
+                )
+        elif recurrence_pattern == RecurrencePattern.MONTHLY_NTH_WEEKDAY:
+            # Move to the nth weekday of the next month
+            next_month = current.month + 1
+            next_year = current.year
+            if next_month > 12:
+                next_month = 1
+                next_year += 1
+            try:
+                current = _nth_weekday_of_month(
+                    next_year, next_month, recurrence_weekday, recurrence_week_number
+                )
+            except ValueError:
+                # This occurrence doesn't exist (e.g., 5th Tuesday), skip to next month
+                next_month += 1
+                if next_month > 12:
+                    next_month = 1
+                    next_year += 1
+                current = _nth_weekday_of_month(
+                    next_year, next_month, recurrence_weekday, recurrence_week_number
+                )
 
     return dates
 
@@ -131,6 +223,16 @@ class RosterService:
         ):
             python_recurrence_day = frontend_day_to_python_weekday(data.recurrence_day)
 
+        # Convert frontend weekday for nth weekday pattern
+        python_recurrence_weekday = None
+        if (
+            data.recurrence_pattern == RecurrencePattern.MONTHLY_NTH_WEEKDAY
+            and data.recurrence_weekday is not None
+        ):
+            python_recurrence_weekday = frontend_day_to_python_weekday(
+                data.recurrence_weekday
+            )
+
         roster = Roster(
             name=data.name,
             team_id=data.team_id,
@@ -143,6 +245,8 @@ class RosterService:
             start_date=data.start_date,
             end_date=data.end_date,
             end_after_occurrences=data.end_after_occurrences,
+            recurrence_weekday=python_recurrence_weekday,
+            recurrence_week_number=data.recurrence_week_number,
         )
         self.db.add(roster)
         await self.db.flush()
@@ -155,6 +259,8 @@ class RosterService:
             count=data.generate_events_count,
             end_date=data.end_date,
             end_after_occurrences=data.end_after_occurrences,
+            recurrence_weekday=python_recurrence_weekday,
+            recurrence_week_number=data.recurrence_week_number,
         )
 
         for event_date in event_dates:
@@ -406,7 +512,7 @@ class RosterService:
         return event
 
     async def generate_more_events(
-        self, roster_id: uuid.UUID, count: int = 12
+        self, roster_id: uuid.UUID, count: int = 7
     ) -> list[RosterEvent]:
         """Generate more events for a roster starting after the last existing event."""
         roster = await self.get_roster(roster_id)
@@ -428,6 +534,8 @@ class RosterService:
             count=count,
             end_date=roster.end_date,
             end_after_occurrences=roster.end_after_occurrences,
+            recurrence_weekday=roster.recurrence_weekday,
+            recurrence_week_number=roster.recurrence_week_number,
         )
 
         new_events = []

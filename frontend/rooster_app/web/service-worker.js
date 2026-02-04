@@ -11,8 +11,32 @@ const PRECACHE_URLS = [
   '/icons/Icon-192.png',
 ];
 
-// Auth token for push action callbacks (accept assignment silently)
+// Auth token for push action callbacks (accept/decline assignment silently)
 let authToken = null;
+
+// Persist auth token using Cache API so it survives SW restarts
+const TOKEN_CACHE = 'auth-token-cache';
+const TOKEN_KEY = '/auth-token';
+
+async function saveAuthToken(token) {
+  authToken = token;
+  const cache = await caches.open(TOKEN_CACHE);
+  await cache.put(TOKEN_KEY, new Response(token));
+}
+
+async function loadAuthToken() {
+  if (authToken) return authToken;
+  try {
+    const cache = await caches.open(TOKEN_CACHE);
+    const response = await cache.match(TOKEN_KEY);
+    if (response) {
+      authToken = await response.text();
+    }
+  } catch (e) {
+    console.error('[SW] Error loading auth token from cache:', e);
+  }
+  return authToken;
+}
 
 // Install event - precache essential assets
 self.addEventListener('install', (event) => {
@@ -32,7 +56,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name !== CACHE_NAME && name !== TOKEN_CACHE)
           .map((name) => caches.delete(name))
       );
     })
@@ -169,7 +193,7 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'accept' && notificationData.accept_url) {
     // Silent accept: call API without opening the app
     event.waitUntil(
-      handleAcceptAction(notificationData).then((success) => {
+      handleActionRequest(notificationData.accept_url).then((success) => {
         if (success) {
           // Show brief confirmation notification
           return self.registration.showNotification('Assignment Accepted', {
@@ -187,8 +211,28 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
+  if (event.action === 'decline' && notificationData.decline_url) {
+    // Silent decline: call API without opening the app
+    event.waitUntil(
+      handleActionRequest(notificationData.decline_url).then((success) => {
+        if (success) {
+          return self.registration.showNotification('Assignment Declined', {
+            body: 'Your assignment has been declined.',
+            icon: '/icons/Icon-192.png',
+            tag: 'decline-confirmation',
+            requireInteraction: false,
+          });
+        } else {
+          // Fallback: open the app if decline failed
+          return openApp(urlToOpen);
+        }
+      })
+    );
+    return;
+  }
+
   if (event.action === 'decline') {
-    // Open app to assignment detail for decline reason
+    // No decline_url available, open app to assignment detail
     event.waitUntil(openApp(urlToOpen));
     return;
   }
@@ -203,15 +247,20 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(openApp(urlToOpen));
 });
 
-// Handle silent accept action via API
-async function handleAcceptAction(data) {
+// Handle silent action (accept/decline) via API
+async function handleActionRequest(actionUrl) {
+  await loadAuthToken();
+
   if (!authToken) {
-    console.warn('[SW] No auth token available for accept action');
+    console.warn('[SW] No auth token available for action');
     return false;
   }
 
   try {
-    const response = await fetch(data.accept_url, {
+    // Resolve relative URL to full URL
+    const fullUrl = new URL(actionUrl, self.location.origin).href;
+
+    const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -220,14 +269,14 @@ async function handleAcceptAction(data) {
     });
 
     if (response.ok) {
-      console.log('[SW] Assignment accepted successfully');
+      console.log('[SW] Action succeeded:', actionUrl);
       return true;
     } else {
-      console.error('[SW] Accept failed:', response.status);
+      console.error('[SW] Action failed:', response.status);
       return false;
     }
   } catch (error) {
-    console.error('[SW] Accept request error:', error);
+    console.error('[SW] Action request error:', error);
     return false;
   }
 }
@@ -267,7 +316,7 @@ self.addEventListener('message', (event) => {
   }
 
   if (event.data && event.data.type === 'AUTH_TOKEN') {
-    authToken = event.data.token;
-    console.log('[SW] Auth token updated');
+    event.waitUntil(saveAuthToken(event.data.token));
+    console.log('[SW] Auth token updated and persisted');
   }
 });

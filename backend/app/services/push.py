@@ -219,8 +219,16 @@ class PushService:
             return True
         except WebPushException as e:
             logger.error(f"Push notification failed: {e}")
-            # If subscription is invalid (410 Gone or 404), remove it
-            if e.response and e.response.status_code in (404, 410):
+            # If subscription is invalid (410 Gone or 404), remove it.
+            # Check both the response object and the message string since
+            # pywebpush doesn't always attach the response object.
+            is_gone = False
+            if e.response is not None and hasattr(e.response, "status_code"):
+                is_gone = e.response.status_code in (404, 410)
+            else:
+                msg = str(e)
+                is_gone = "410 Gone" in msg or "404 Not Found" in msg
+            if is_gone:
                 logger.info(
                     f"Removing invalid subscription: {subscription.endpoint[:50]}..."
                 )
