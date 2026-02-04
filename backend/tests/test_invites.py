@@ -588,6 +588,99 @@ async def test_send_invite_to_registered_user_creates_notification(
     )
 
 
+@pytest.mark.asyncio
+async def test_send_invite_to_registered_user_creates_org_membership(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Inviting a registered user who has no org membership should create one so they can access team endpoints."""
+    org = Organisation(name="Test Church")
+    db_session.add(org)
+    await db_session.flush()
+
+    team = Team(name="Media Team", organisation_id=org.id)
+    db_session.add(team)
+    await db_session.flush()
+
+    # Team lead (has org + team membership)
+    lead = User(
+        email="lead@example.com",
+        name="Team Lead",
+        password_hash=get_password_hash("password123"),
+    )
+    db_session.add(lead)
+    await db_session.flush()
+
+    db_session.add(
+        OrganisationMember(
+            user_id=lead.id,
+            organisation_id=org.id,
+            role=OrganisationRole.ADMIN,
+        )
+    )
+    db_session.add(
+        TeamMember(
+            user_id=lead.id,
+            team_id=team.id,
+            role=TeamRole.LEAD,
+            permissions=[
+                "manage_team",
+                "manage_members",
+                "send_invites",
+                "view_responses",
+            ],
+        )
+    )
+
+    # Placeholder (no email, no org membership — realistic)
+    placeholder = User(name="John Doe", is_placeholder=True)
+    db_session.add(placeholder)
+    await db_session.flush()
+
+    db_session.add(
+        TeamMember(
+            user_id=placeholder.id,
+            team_id=team.id,
+            role=TeamRole.MEMBER,
+            permissions=[],
+        )
+    )
+
+    # Registered user — deliberately NO org membership
+    registered = User(
+        email="john@example.com",
+        name="John Smith",
+        password_hash=get_password_hash("password123"),
+    )
+    db_session.add(registered)
+    await db_session.commit()
+
+    # Send invite as lead — this should auto-accept and create org membership
+    lead_token = create_access_token(subject=str(lead.id))
+    response = await test_client.post(
+        f"/api/invites/team/{team.id}/user/{placeholder.id}",
+        json={"email": "john@example.com"},
+        headers={"Authorization": f"Bearer {lead_token}"},
+    )
+    assert response.status_code == 201
+
+    # Registered user should now be able to access the team (requires org membership)
+    reg_token = create_access_token(subject=str(registered.id))
+    reg_headers = {"Authorization": f"Bearer {reg_token}"}
+
+    team_response = await test_client.get(
+        f"/api/teams/{team.id}",
+        headers=reg_headers,
+    )
+    assert team_response.status_code == 200
+    assert team_response.json()["name"] == "Media Team"
+
+    members_response = await test_client.get(
+        f"/api/teams/{team.id}/members",
+        headers=reg_headers,
+    )
+    assert members_response.status_code == 200
+
+
 async def _create_invite_fixtures_no_email(db_session: AsyncSession):
     """Helper to create invite fixtures where the placeholder has a different email from the invite.
 

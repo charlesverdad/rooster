@@ -199,6 +199,22 @@ async def send_invite(
             registered_user=registered_user,
         )
 
+        # Ensure registered user has org membership (placeholders don't have one)
+        from app.models.organisation import OrganisationMember, OrganisationRole
+        from app.services.organisation import OrganisationService
+
+        org_service = OrganisationService(db)
+        existing_org_membership = await org_service.get_membership(
+            registered_user.id, team.organisation_id
+        )
+        if not existing_org_membership:
+            org_member = OrganisationMember(
+                user_id=registered_user.id,
+                organisation_id=team.organisation_id,
+                role=OrganisationRole.MEMBER,
+            )
+            db.add(org_member)
+
         # Create invite record pointing to the registered user (already merged)
         invite = InviteModel(
             team_id=team_id,
