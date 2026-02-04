@@ -1,0 +1,25 @@
+services:
+  # Override frontend to use relative API URL (works behind proxy)
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        API_BASE_URL: /api
+
+  # Reverse proxy: single origin for frontend + API
+  proxy:
+    image: nginx:alpine
+    volumes:
+      - ./tunnel/proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${PROXY_PORT:-8080}:80"
+    depends_on:
+      - backend
+      - frontend
+
+  # Cloudflare quick tunnel (no account needed)
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://proxy:80
+    depends_on:
+      - proxy
