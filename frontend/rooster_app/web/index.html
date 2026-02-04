@@ -30,12 +30,79 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <!-- Preload LCP image so it's discovered before body parse -->
+  <link rel="preload" as="image" href="icons/Icon-192.png">
+
   <title>Rooster</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Splash screen styles -->
+  <style>
+    #splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      z-index: 9999;
+      transition: opacity 0.3s ease-out;
+    }
+    #splash.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #splash img {
+      width: 96px;
+      height: 96px;
+      margin-bottom: 24px;
+    }
+    #splash .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
+  <!-- Splash screen shown while Flutter loads -->
+  <div id="splash">
+    <img src="icons/Icon-192.png" alt="Rooster">
+    <div class="spinner"></div>
+  </div>
+
   <script src="flutter_bootstrap.js" async></script>
   <script>
+    // Remove splash once Flutter's rendering element appears in the DOM
+    (function() {
+      var splash = document.getElementById('splash');
+      if (!splash) return;
+      var observer = new MutationObserver(function(mutations) {
+        // Flutter inserts a flt-glass-pane (or shadow host) when the engine renders
+        if (document.querySelector('flt-glass-pane, flutter-view')) {
+          splash.classList.add('fade-out');
+          setTimeout(function() { splash.remove(); }, 300);
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      // Fallback: remove splash after 10s in case detection fails
+      setTimeout(function() {
+        if (splash.parentNode) {
+          splash.classList.add('fade-out');
+          setTimeout(function() { splash.remove(); }, 300);
+        }
+        observer.disconnect();
+      }, 10000);
+    })();
+
     // Capture the beforeinstallprompt event so Dart can trigger it later
     window._pwaInstallPrompt = null;
     window.addEventListener('beforeinstallprompt', function(e) {
@@ -43,7 +110,7 @@
       window._pwaInstallPrompt = e;
     });
 
-    // Register service worker for push notifications
+    // Register service worker for push notifications and caching
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('/service-worker.js')
