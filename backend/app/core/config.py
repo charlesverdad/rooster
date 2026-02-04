@@ -33,6 +33,20 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True  # Use STARTTLS (required for Gmail)
     email_enabled: bool = False  # Set to true when SMTP credentials are configured
 
+    # Email provider: "smtp" or "resend"
+    email_provider: str = "smtp"
+
+    # Resend API (alternative to SMTP)
+    resend_api_key: str = ""
+
+    # CORS
+    cors_origins: str = "*"  # Comma-separated list of origins, or "*" for all
+
+    # Web Push (VAPID) - Generate at https://vapidkeys.com
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:admin@rooster.app"
+
     class Config:
         env_file = ".env"
 

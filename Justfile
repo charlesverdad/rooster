@@ -97,3 +97,27 @@ test: test-backend test-frontend
 check:
     cd backend && uv run ruff check . && uv run ruff format --check .
     cd frontend/rooster_app && flutter analyze && dart format --set-exit-if-changed .
+
+# --- Build ---
+
+# Build frontend for production (usage: just frontend-build "https://api.example.com/api")
+frontend-build api_url="http://localhost:8000/api":
+    cd frontend/rooster_app && flutter build web --release --dart-define=API_BASE_URL={{api_url}}
+
+# --- Docker ---
+
+# Build all Docker images
+docker-build:
+    docker compose build
+
+# Start all services
+docker-up:
+    docker compose up -d
+
+# Stop all services
+docker-down:
+    docker compose down
+
+# View logs
+docker-logs:
+    docker compose logs -f

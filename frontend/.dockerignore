@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Build outputs
+rooster_app/build/
+rooster_app/.dart_tool/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Flutter/Dart
+rooster_app/.flutter-plugins
+rooster_app/.flutter-plugins-dependencies
+rooster_app/.packages
+rooster_app/pubspec.lock
+
+# Platform builds we don't need for web
+rooster_app/android/
+rooster_app/ios/
+rooster_app/linux/
+rooster_app/macos/
+rooster_app/windows/
+
+# Tests
+rooster_app/test/
+
+# Docs
+*.md

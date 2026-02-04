@@ -1,11 +1,11 @@
 {
-    "name": "rooster_app",
-    "short_name": "rooster_app",
-    "start_url": ".",
+    "name": "Rooster",
+    "short_name": "Rooster",
+    "start_url": "/",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#673AB7",
+    "theme_color": "#673AB7",
+    "description": "Volunteer scheduling made simple. Manage team rosters, view assignments, and stay updated with notifications.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

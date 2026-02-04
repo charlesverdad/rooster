@@ -161,6 +161,15 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
             'View Responses',
             'See member availability and responses',
           ),
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.person_remove, color: Colors.red.shade600),
+            title: Text(
+              'Remove from team',
+              style: TextStyle(color: Colors.red.shade600),
+            ),
+            onTap: () => _showRemoveMemberDialog(context, member),
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -196,6 +205,48 @@ class _TeamSettingsScreenState extends State<TeamSettingsScreen> {
           newPermissions,
         );
       },
+    );
+  }
+
+  void _showRemoveMemberDialog(BuildContext context, TeamMember member) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove Member'),
+        content: Text(
+          'Are you sure you want to remove "${member.userName}" from this team?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              final teamProvider = Provider.of<TeamProvider>(
+                context,
+                listen: false,
+              );
+              final success = await teamProvider.removeMember(
+                widget.teamId,
+                member.userId,
+              );
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    success ? '${member.userName} removed' : 'Failed to remove',
+                  ),
+                  backgroundColor: success ? null : Colors.red,
+                ),
+              );
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
     );
   }
 

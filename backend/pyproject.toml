@@ -25,6 +25,9 @@ dependencies = [
     "httpx>=0.26.0",
     # Utilities
     "python-dateutil>=2.8.2",
+    # Email (Resend provider)
+    "resend>=0.8.0",
+    "pywebpush>=2.2.0",
 ]
 
 [project.optional-dependencies]
