@@ -6,6 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import UserResponse
 from app.services.auth import AuthService
 from app.core.security import get_password_hash
+from app.models.invite import Invite
+from app.models.organisation import Organisation
+from app.models.team import Team, TeamMember, TeamRole
+from app.models.user import User
 
 
 # =============================================================================
@@ -422,3 +426,133 @@ async def test_case_sensitivity_email(test_client: AsyncClient):
         data={"username": "casetest@example.com", "password": "password"},
     )
     assert response.status_code == status.HTTP_200_OK
+
+
+# =============================================================================
+# Registration with Placeholder Email Tests
+# =============================================================================
+
+
+async def test_register_with_invited_placeholder_email(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Registration should succeed when the email belongs to a placeholder user."""
+    # Create a placeholder user with that email (simulating invite flow)
+    placeholder = User(
+        email="invited@example.com",
+        name="Placeholder",
+        password_hash=get_password_hash("placeholder"),
+        is_placeholder=True,
+    )
+    db_session.add(placeholder)
+    await db_session.commit()
+
+    # Register with the same email — should succeed
+    response = await test_client.post(
+        "/api/auth/register",
+        json={
+            "email": "invited@example.com",
+            "name": "Real User",
+            "password": "securepass123",
+        },
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert data["email"] == "invited@example.com"
+    assert data["name"] == "Real User"
+
+
+async def test_register_with_invited_email_can_login(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """After registering with a placeholder's email, the user should be able to login."""
+    placeholder = User(
+        email="login_invited@example.com",
+        name="Placeholder",
+        password_hash=get_password_hash("placeholder"),
+        is_placeholder=True,
+    )
+    db_session.add(placeholder)
+    await db_session.commit()
+
+    await test_client.post(
+        "/api/auth/register",
+        json={
+            "email": "login_invited@example.com",
+            "name": "Real User",
+            "password": "mypassword",
+        },
+    )
+
+    login_response = await test_client.post(
+        "/api/auth/login",
+        data={"username": "login_invited@example.com", "password": "mypassword"},
+    )
+    assert login_response.status_code == status.HTTP_200_OK
+    assert "access_token" in login_response.json()
+
+
+async def test_register_with_pending_invite_creates_notification(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Registering with an email that has pending invites should create notifications."""
+    org = Organisation(name="Test Church")
+    db_session.add(org)
+    await db_session.flush()
+
+    team = Team(name="Worship Team", organisation_id=org.id)
+    db_session.add(team)
+    await db_session.flush()
+
+    placeholder = User(
+        email="pending_invite@example.com",
+        name="Placeholder",
+        password_hash=get_password_hash("placeholder"),
+        is_placeholder=True,
+    )
+    db_session.add(placeholder)
+    await db_session.flush()
+
+    membership = TeamMember(
+        user_id=placeholder.id,
+        team_id=team.id,
+        role=TeamRole.MEMBER,
+        permissions=[],
+    )
+    db_session.add(membership)
+
+    invite = Invite(
+        team_id=team.id,
+        user_id=placeholder.id,
+        email="pending_invite@example.com",
+    )
+    db_session.add(invite)
+    await db_session.commit()
+
+    # Register with the invited email
+    register_response = await test_client.post(
+        "/api/auth/register",
+        json={
+            "email": "pending_invite@example.com",
+            "name": "New User",
+            "password": "password123",
+        },
+    )
+    assert register_response.status_code == status.HTTP_201_CREATED
+
+    # Login and check notifications
+    login_response = await test_client.post(
+        "/api/auth/login",
+        data={"username": "pending_invite@example.com", "password": "password123"},
+    )
+    token = login_response.json()["access_token"]
+
+    notifications = await test_client.get(
+        "/api/notifications",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert notifications.status_code == 200
+    data = notifications.json()
+    assert any(
+        n["type"] == "team_invite" and n["reference_id"] == str(team.id) for n in data
+    )

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/roster_provider.dart';
+import '../../widgets/back_button.dart';
 
 class CreateRosterScreen extends StatefulWidget {
   final String? teamId;
@@ -37,7 +38,10 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('New Roster')),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: const Text('New Roster'),
+      ),
       body: Column(
         children: [
           Expanded(

@@ -114,16 +114,69 @@ class InviteService {
   /// Accept an invite
   static Future<Map<String, dynamic>> acceptInvite(
     String token,
-    String password,
+    String? password,
   ) async {
-    final response = await ApiClient.post('/invites/accept/$token', {
-      'password': password,
-    });
+    final body = <String, dynamic>{};
+    if (password != null) {
+      body['password'] = password;
+    }
+    final response = await ApiClient.post('/invites/accept/$token', body);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       throw ApiException(response.statusCode, response.body);
     }
+  }
+
+  /// Get pending invites for the current logged-in user
+  static Future<List<PendingInvite>> getMyPendingInvites() async {
+    final response = await ApiClient.get('/invites/my-pending');
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => PendingInvite.fromJson(json)).toList();
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
+  /// Accept a pending invite by team ID (for logged-in users)
+  static Future<Map<String, dynamic>> acceptInviteByTeam(String teamId) async {
+    final response = await ApiClient.post('/invites/accept-team/$teamId', {});
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+}
+
+class PendingInvite {
+  final String id;
+  final String teamId;
+  final String teamName;
+  final String email;
+  final DateTime createdAt;
+
+  PendingInvite({
+    required this.id,
+    required this.teamId,
+    required this.teamName,
+    required this.email,
+    required this.createdAt,
+  });
+
+  factory PendingInvite.fromJson(Map<String, dynamic> json) {
+    return PendingInvite(
+      id: json['id'].toString(),
+      teamId: json['team_id'].toString(),
+      teamName: json['team_name'] ?? 'Unknown team',
+      email: json['email'] ?? '',
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+    );
   }
 }

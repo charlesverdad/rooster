@@ -101,6 +101,16 @@ class TeamService:
         membership = await self.get_team_membership(user_id, team_id)
         return membership is not None and membership.role == TeamRole.LEAD
 
+    async def get_team_lead_ids(self, team_id: uuid.UUID) -> list[uuid.UUID]:
+        """Get user IDs of all team leads for a team."""
+        result = await self.db.execute(
+            select(TeamMember.user_id).where(
+                TeamMember.team_id == team_id,
+                TeamMember.role == TeamRole.LEAD,
+            )
+        )
+        return list(result.scalars().all())
+
     async def check_permission(
         self, user_id: uuid.UUID, team_id: uuid.UUID, permission: str
     ) -> bool:
@@ -175,7 +185,25 @@ class TeamService:
         membership = await self.get_team_membership(user_id, team_id)
         if not membership:
             return False
+
+        # Get team name for notification before deleting
+        team = await self.get_team(team_id)
         await self.db.delete(membership)
+
+        # Send in-app notification (no push for removals)
+        if team:
+            try:
+                from app.services.notification import NotificationService
+
+                notification_service = NotificationService(self.db)
+                await notification_service.notify_team_removed(
+                    user_id=user_id,
+                    team_name=team.name,
+                    team_id=team_id,
+                )
+            except Exception:
+                pass
+
         return True
 
     async def get_members(self, team_id: uuid.UUID) -> list[TeamMember]:
@@ -291,6 +319,66 @@ class TeamService:
         await self.db.flush()
         await self.db.refresh(membership)
         return membership
+
+    async def merge_placeholder_into_user(
+        self,
+        placeholder_id: uuid.UUID,
+        registered_user: User,
+    ) -> None:
+        """Merge a placeholder user into a registered user.
+
+        Transfers all team memberships and event assignments from the
+        placeholder to the registered user, then deletes the placeholder.
+        """
+        from app.models.roster import EventAssignment, Assignment
+
+        # Transfer team memberships
+        result = await self.db.execute(
+            select(TeamMember).where(TeamMember.user_id == placeholder_id)
+        )
+        placeholder_memberships = list(result.scalars().all())
+
+        for membership in placeholder_memberships:
+            # Check if registered user already has membership in this team
+            existing = await self.get_team_membership(
+                registered_user.id, membership.team_id
+            )
+            if existing:
+                # Already a member, just delete the placeholder membership
+                await self.db.delete(membership)
+            else:
+                # Transfer the membership
+                membership.user_id = registered_user.id
+                await self.db.flush()
+
+        # Transfer event assignments
+        result = await self.db.execute(
+            select(EventAssignment).where(EventAssignment.user_id == placeholder_id)
+        )
+        for assignment in result.scalars().all():
+            assignment.user_id = registered_user.id
+
+        # Transfer legacy assignments
+        result = await self.db.execute(
+            select(Assignment).where(Assignment.user_id == placeholder_id)
+        )
+        for assignment in result.scalars().all():
+            assignment.user_id = registered_user.id
+
+        # Transfer invites to point to registered user
+        result = await self.db.execute(
+            select(Invite).where(Invite.user_id == placeholder_id)
+        )
+        for invite in result.scalars().all():
+            invite.user_id = registered_user.id
+
+        await self.db.flush()
+
+        # Delete the placeholder user
+        placeholder = await self.db.get(User, placeholder_id)
+        if placeholder:
+            await self.db.delete(placeholder)
+            await self.db.flush()
 
     async def count_members_with_permission(
         self, team_id: uuid.UUID, permission: str

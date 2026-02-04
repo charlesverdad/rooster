@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/event_assignment.dart';
 import '../../providers/assignment_provider.dart';
+import '../../widgets/back_button.dart';
 
 class AssignmentDetailScreen extends StatefulWidget {
   final String assignmentId;
@@ -35,7 +36,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
 
     if (assignmentProvider.isLoadingDetail || detail == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Assignment')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Assignment'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -45,7 +49,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     final isDeclined = detail.isDeclined;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Assignment')),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: const Text('Assignment'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

@@ -2,6 +2,7 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models.roster import AssignmentStatus
@@ -742,6 +743,34 @@ async def auto_assign_all_events(
 
     assignments = await suggestion_service.auto_assign_roster(roster_id, roster.team_id)
 
+    # Send notifications for each auto-assigned volunteer
+    if assignments:
+        from app.services.notification import NotificationService
+        from app.models.user import User
+        from datetime import datetime
+
+        notification_service = NotificationService(db)
+        for assignment_info in assignments:
+            try:
+                user_result = await db.execute(
+                    select(User).where(User.id == uuid.UUID(assignment_info["user_id"]))
+                )
+                user = user_result.scalar_one_or_none()
+                if user:
+                    event_date = datetime.fromisoformat(assignment_info["event_date"])
+                    await notification_service.notify_assignment_created_with_email(
+                        assignment_id=uuid.UUID(assignment_info["assignment_id"]),
+                        user_id=user.id,
+                        user_name=user.name,
+                        user_email=user.email,
+                        roster_name=roster.name,
+                        team_name=team.name,
+                        event_date=event_date,
+                        event_time=None,
+                    )
+            except Exception:
+                pass  # Don't fail the whole auto-assign if a notification fails
+
     return {
         "assigned_count": len(assignments),
         "assignments": assignments,
@@ -993,7 +1022,7 @@ async def create_event_assignment(
             roster_name=roster.name,
             team_name=team.name,
             event_date=event.date,
-            event_time=event.time,
+            event_time=None,
         )
 
     return EventAssignmentResponse(
@@ -1158,6 +1187,8 @@ async def update_event_assignment(
             detail="Not authorized to update this assignment",
         )
 
+    old_status = assignment.status
+
     updated = await roster_service.update_event_assignment_status(
         assignment_id, data.status
     )
@@ -1166,6 +1197,35 @@ async def update_event_assignment(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update assignment",
         )
+
+    # Notify team leads on status changes
+    if data.status != old_status:
+        try:
+            from app.services.notification import NotificationService
+
+            notification_service = NotificationService(db)
+            team_lead_ids = await team_service.get_team_lead_ids(team.id)
+            user_name = updated.user.name if updated.user else "Someone"
+
+            if data.status == AssignmentStatus.CONFIRMED:
+                await notification_service.notify_assignment_confirmed(
+                    user_name=user_name,
+                    roster_name=roster.name,
+                    event_date=event.date,
+                    team_lead_ids=team_lead_ids,
+                    assignment_id=assignment_id,
+                )
+            elif data.status == AssignmentStatus.DECLINED:
+                await notification_service.notify_assignment_declined(
+                    user_name=user_name,
+                    roster_name=roster.name,
+                    event_date=event.date,
+                    event_id=event.id,
+                    team_lead_ids=team_lead_ids,
+                    assignment_id=assignment_id,
+                )
+        except Exception:
+            pass
 
     # Get invite status
     user = updated.user
@@ -1221,3 +1281,116 @@ async def delete_event_assignment(
         )
 
     await roster_service.delete_event_assignment(assignment_id)
+
+
+@router.post("/event-assignments/{assignment_id}/accept")
+async def accept_event_assignment(
+    assignment_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> dict:
+    """Accept an event assignment. For service worker push action callbacks."""
+    roster_service = RosterService(db)
+    team_service = TeamService(db)
+
+    assignment = await roster_service.get_event_assignment(assignment_id)
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assignment not found",
+        )
+
+    if assignment.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your assignment",
+        )
+
+    if assignment.status != AssignmentStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Assignment is already {assignment.status.value}",
+        )
+
+    updated = await roster_service.update_event_assignment_status(
+        assignment_id, AssignmentStatus.CONFIRMED
+    )
+
+    # Notify team leads
+    event = assignment.event
+    roster = event.roster
+    team = await team_service.get_team(roster.team_id)
+    if team and updated:
+        try:
+            from app.services.notification import NotificationService
+
+            notification_service = NotificationService(db)
+            team_lead_ids = await team_service.get_team_lead_ids(team.id)
+            await notification_service.notify_assignment_confirmed(
+                user_name=current_user.name,
+                roster_name=roster.name,
+                event_date=event.date,
+                team_lead_ids=team_lead_ids,
+                assignment_id=assignment_id,
+            )
+        except Exception:
+            pass
+
+    return {"status": "confirmed"}
+
+
+@router.post("/event-assignments/{assignment_id}/decline")
+async def decline_event_assignment(
+    assignment_id: uuid.UUID,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> dict:
+    """Decline an event assignment. For service worker push action callbacks."""
+    roster_service = RosterService(db)
+    team_service = TeamService(db)
+
+    assignment = await roster_service.get_event_assignment(assignment_id)
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assignment not found",
+        )
+
+    if assignment.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your assignment",
+        )
+
+    if assignment.status != AssignmentStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Assignment is already {assignment.status.value}",
+        )
+
+    updated = await roster_service.update_event_assignment_status(
+        assignment_id, AssignmentStatus.DECLINED
+    )
+
+    # Notify team leads
+    event = assignment.event
+    roster = event.roster
+    team = await team_service.get_team(roster.team_id)
+    if team and updated:
+        try:
+            from app.services.notification import NotificationService
+
+            notification_service = NotificationService(db)
+            team_lead_ids = await team_service.get_team_lead_ids(team.id)
+            await notification_service.notify_assignment_declined(
+                user_name=current_user.name,
+                roster_name=roster.name,
+                event_date=event.date,
+                event_id=event.id,
+                team_lead_ids=team_lead_ids,
+                assignment_id=assignment_id,
+            )
+        except Exception:
+            pass
+
+    return {"status": "declined"}

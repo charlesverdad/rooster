@@ -7,6 +7,7 @@ import '../../providers/team_provider.dart';
 import '../../models/event_assignment.dart';
 import '../../models/team_member.dart';
 import '../../services/assignment_service.dart';
+import '../../widgets/back_button.dart';
 
 class MemberDetailScreen extends StatefulWidget {
   final String teamId;
@@ -96,14 +97,20 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
     if (teamProvider.isLoading && member == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Member')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Member'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (member == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Member')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Member'),
+        ),
         body: Center(
           child: Text(
             'Member not found',
@@ -120,7 +127,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     final email = member.userEmail;
 
     return Scaffold(
-      appBar: AppBar(title: Text(name)),
+      appBar: AppBar(leading: const AppBackButton(), title: Text(name)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

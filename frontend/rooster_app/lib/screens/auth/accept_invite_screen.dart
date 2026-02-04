@@ -32,6 +32,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
   String? _email;
   bool _isExpired = false;
   bool _alreadyAccepted = false;
+  bool _userIsRegistered = false;
 
   @override
   void initState() {
@@ -56,6 +57,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
         _email = result['email'];
         _isExpired = result['expired'] == true;
         _alreadyAccepted = result['already_accepted'] == true;
+        _userIsRegistered = result['user_is_registered'] == true;
         _isLoading = false;
       });
     } on ApiException catch (e) {
@@ -74,7 +76,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
   }
 
   Future<void> _acceptInvite() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_userIsRegistered && !_formKey.currentState!.validate()) return;
 
     setState(() {
       _isSubmitting = true;
@@ -88,7 +90,7 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
     try {
       final result = await InviteService.acceptInvite(
         widget.token,
-        _passwordController.text,
+        _userIsRegistered ? null : _passwordController.text,
       );
 
       if (result['success'] == true && result['access_token'] != null) {
@@ -198,7 +200,9 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
 
                     // Welcome message
                     Text(
-                      'Hi ${_userName ?? 'there'}! Create your account to see your assignments.',
+                      _userIsRegistered
+                          ? 'Hi ${_userName ?? 'there'}! You already have an account. Tap below to join the team.'
+                          : 'Hi ${_userName ?? 'there'}! Create your account to see your assignments.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
@@ -221,69 +225,72 @@ class _AcceptInviteScreenState extends State<AcceptInviteScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Password
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Create Password',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
+                    if (!_userIsRegistered) ...[
+                      // Password
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'Create Password',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed: () {
+                              setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              );
+                            },
                           ),
-                          onPressed: () {
-                            setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            );
-                          },
                         ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a password';
+                          }
+                          if (value.length < 8) {
+                            return 'Password must be at least 8 characters';
+                          }
+                          return null;
+                        },
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
-                        }
-                        if (value.length < 8) {
-                          return 'Password must be at least 8 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Confirm Password
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
+                      // Confirm Password
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed: () {
+                              setState(
+                                () => _obscureConfirmPassword =
+                                    !_obscureConfirmPassword,
+                              );
+                            },
                           ),
-                          onPressed: () {
-                            setState(
-                              () => _obscureConfirmPassword =
-                                  !_obscureConfirmPassword,
-                            );
-                          },
                         ),
+                        validator: (value) {
+                          if (value != _passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
                       ),
-                      validator: (value) {
-                        if (value != _passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+                    ],
+                    const SizedBox(height: 8),
 
                     // Error message
                     if (_error != null) ...[

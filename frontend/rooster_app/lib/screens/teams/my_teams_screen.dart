@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/team_provider.dart';
+import '../../widgets/back_button.dart';
 import '../../models/team.dart';
+import '../../services/invite_service.dart';
 import '../../utils/invite_utils.dart';
 
 class MyTeamsScreen extends StatefulWidget {
@@ -13,11 +15,57 @@ class MyTeamsScreen extends StatefulWidget {
 }
 
 class _MyTeamsScreenState extends State<MyTeamsScreen> {
+  List<PendingInvite> _pendingInvites = [];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<TeamProvider>(context, listen: false).fetchMyTeams();
+      _fetchPendingInvites();
+    });
+  }
+
+  Future<void> _fetchPendingInvites() async {
+    try {
+      final invites = await InviteService.getMyPendingInvites();
+      if (mounted) {
+        setState(() {
+          _pendingInvites = invites;
+        });
+      }
+    } catch (e) {
+      // Silently fail — pending invites are supplementary
+    }
+  }
+
+  Future<void> _acceptInvite(PendingInvite invite) async {
+    try {
+      await InviteService.acceptInviteByTeam(invite.teamId);
+      if (!mounted) return;
+
+      // Refresh both lists
+      Provider.of<TeamProvider>(context, listen: false).fetchMyTeams();
+      _fetchPendingInvites();
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Joined ${invite.teamName}!')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to join team: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _declineInvite(PendingInvite invite) async {
+    // Just remove from local list — user can ignore the invite
+    setState(() {
+      _pendingInvites.removeWhere((i) => i.id == invite.id);
     });
   }
 
@@ -27,7 +75,10 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
     final teams = teamProvider.teams;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Teams')),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: const Text('My Teams'),
+      ),
       floatingActionButton: teams.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _showCreateTeamDialog,
@@ -64,11 +115,18 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
               ),
             )
           : RefreshIndicator(
-              onRefresh: teamProvider.fetchMyTeams,
+              onRefresh: () async {
+                await teamProvider.fetchMyTeams();
+                await _fetchPendingInvites();
+              },
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (teams.isEmpty)
+                  if (_pendingInvites.isNotEmpty) ...[
+                    _buildPendingInvitesSection(),
+                    const SizedBox(height: 16),
+                  ],
+                  if (teams.isEmpty && _pendingInvites.isEmpty)
                     _buildEmptyState()
                   else
                     ...teams.map((team) => _buildTeamCard(context, team)),
@@ -245,6 +303,85 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
 
   void _navigateToInvite(String token) {
     context.push('/invite/$token');
+  }
+
+  Widget _buildPendingInvitesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pending Invitations',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ..._pendingInvites.map((invite) => _buildPendingInviteCard(invite)),
+      ],
+    );
+  }
+
+  Widget _buildPendingInviteCard(PendingInvite invite) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.blue.shade100,
+                  child: Icon(Icons.mail_outline, color: Colors.blue.shade700),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        invite.teamName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'You\'ve been invited to join this team',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => _declineInvite(invite),
+                  child: const Text('Dismiss'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () => _acceptInvite(invite),
+                  child: const Text('Join Team'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildTeamCard(BuildContext context, Team team) {

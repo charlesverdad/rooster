@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'add_member_sheet.dart';
+import '../../widgets/back_button.dart';
 import '../../providers/roster_provider.dart';
 import '../../providers/team_provider.dart';
 import '../../models/team.dart';
@@ -44,14 +45,20 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
 
     if (teamProvider.isLoading && team == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Team')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Team'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (teamProvider.error != null && team == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Team')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Team'),
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -82,6 +89,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(team?.name ?? 'Team'),
         actions: [
           if (team?.canManageTeam ?? false)

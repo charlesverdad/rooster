@@ -17,9 +17,13 @@ class NotificationType(str, enum.Enum):
     """Types of notifications."""
 
     ASSIGNMENT_CREATED = "assignment_created"
+    ASSIGNMENT_CONFIRMED = "assignment_confirmed"
+    ASSIGNMENT_DECLINED = "assignment_declined"
     ASSIGNMENT_REMINDER = "assignment_reminder"
     CONFLICT_DETECTED = "conflict_detected"
     TEAM_JOINED = "team_joined"
+    TEAM_INVITE = "team_invite"
+    TEAM_REMOVED = "team_removed"
 
 
 class Notification(Base, UUIDMixin, TimestampMixin):

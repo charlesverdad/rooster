@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/team_member.dart';
 import '../../providers/team_provider.dart';
+import '../../widgets/back_button.dart';
 
 class SendInviteScreen extends StatefulWidget {
   final String teamId;
@@ -69,13 +70,19 @@ class _SendInviteScreenState extends State<SendInviteScreen> {
 
     if (teamProvider.isLoading && member == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Send Invite')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Send Invite'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Send Invite')),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: const Text('Send Invite'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

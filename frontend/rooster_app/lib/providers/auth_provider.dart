@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
+import '../services/push_service.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
@@ -21,6 +22,8 @@ class AuthProvider with ChangeNotifier {
     await ApiClient.loadToken();
     if (ApiClient.hasToken) {
       await fetchCurrentUser();
+      // Send auth token to service worker for push action callbacks
+      PushService.sendAuthTokenToServiceWorker();
     }
     _isInitialized = true;
     notifyListeners();
@@ -45,6 +48,8 @@ class AuthProvider with ChangeNotifier {
         final data = jsonDecode(response.body);
         await ApiClient.saveToken(data['access_token']);
         await fetchCurrentUser();
+        // Send auth token to service worker for push action callbacks
+        PushService.sendAuthTokenToServiceWorker();
         _isLoading = false;
         notifyListeners();
         return true;

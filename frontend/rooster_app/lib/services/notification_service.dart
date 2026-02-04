@@ -32,7 +32,7 @@ class NotificationService {
 
   /// Mark a single notification as read
   static Future<void> markAsRead(String notificationId) async {
-    final response = await ApiClient.post(
+    final response = await ApiClient.patch(
       '/notifications/$notificationId/read',
       {},
     );
@@ -44,7 +44,7 @@ class NotificationService {
 
   /// Mark all notifications as read
   static Future<void> markAllAsRead() async {
-    final response = await ApiClient.post('/notifications/read-all', {});
+    final response = await ApiClient.patch('/notifications/read-all', {});
 
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw ApiException(response.statusCode, response.body);

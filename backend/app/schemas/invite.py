@@ -34,12 +34,13 @@ class InviteValidation(BaseModel):
     email: Optional[str] = None
     expired: bool = False
     already_accepted: bool = False
+    user_is_registered: bool = False
 
 
 class InviteAccept(BaseModel):
     """Schema for accepting an invite."""
 
-    password: str
+    password: Optional[str] = None
 
 
 class InviteAcceptResponse(BaseModel):
@@ -51,3 +52,13 @@ class InviteAcceptResponse(BaseModel):
     access_token: Optional[str] = None
     team_id: Optional[uuid.UUID] = None
     team_name: Optional[str] = None
+
+
+class PendingInviteResponse(BaseModel):
+    """Schema for a pending invite visible to the invited user."""
+
+    id: uuid.UUID
+    team_id: uuid.UUID
+    team_name: str
+    email: str
+    created_at: datetime

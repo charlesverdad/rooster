@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/availability_provider.dart';
+import '../../widgets/back_button.dart';
 import '../../models/unavailability.dart';
 
 class AvailabilityScreen extends StatefulWidget {
@@ -177,7 +178,10 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
     final past = unavailabilities.where((u) => u.date.isBefore(today)).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Availability')),
+      appBar: AppBar(
+        leading: const AppBackButton(),
+        title: const Text('My Availability'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddUnavailabilityDialog,
         icon: const Icon(Icons.event_busy),

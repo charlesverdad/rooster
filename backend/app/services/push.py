@@ -134,6 +134,9 @@ class PushService:
         body: str,
         url: Optional[str] = None,
         icon: Optional[str] = None,
+        actions: Optional[list[dict]] = None,
+        tag: Optional[str] = None,
+        data: Optional[dict] = None,
     ) -> int:
         """Send a push notification to all of a user's subscriptions.
 
@@ -143,6 +146,9 @@ class PushService:
             body: Notification body text
             url: URL to open when notification is clicked
             icon: URL to notification icon
+            actions: List of action dicts e.g. [{"action": "accept", "title": "Accept"}]
+            tag: Tag for notification grouping/replacement
+            data: Arbitrary data dict passed to the service worker
 
         Returns:
             Number of notifications successfully sent
@@ -155,7 +161,7 @@ class PushService:
         if not subscriptions:
             return 0
 
-        payload = {
+        payload: dict = {
             "title": title,
             "body": body,
         }
@@ -163,6 +169,12 @@ class PushService:
             payload["url"] = url
         if icon:
             payload["icon"] = icon
+        if actions:
+            payload["actions"] = actions
+        if tag:
+            payload["tag"] = tag
+        if data:
+            payload["data"] = data
 
         sent = 0
         for subscription in subscriptions:

@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/roster_provider.dart';
 import '../../providers/team_provider.dart';
 import '../roster/assign_volunteers_sheet.dart';
+import '../../widgets/back_button.dart';
 
 class RosterDetailScreen extends StatefulWidget {
   final String rosterId;
@@ -39,14 +40,20 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
 
     if (rosterProvider.isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Roster Detail')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Roster Detail'),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (rosterProvider.error != null || roster == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Roster Detail')),
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: const Text('Roster Detail'),
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -73,6 +80,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: Text(roster.name),
         actions: [
           IconButton(

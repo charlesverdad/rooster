@@ -3,6 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../models/notification.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/team_provider.dart';
+import '../../services/api_client.dart';
+import '../../services/invite_service.dart';
+import '../../widgets/back_button.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -12,14 +16,32 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  /// IDs of notifications that were unread when the screen first opened.
+  /// Used so the blue highlight persists during this viewing session,
+  /// even though we immediately mark them as read on the backend (to
+  /// clear the badge).
+  final Set<String> _initiallyUnreadIds = {};
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<NotificationProvider>(
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = Provider.of<NotificationProvider>(
         context,
         listen: false,
-      ).fetchNotifications();
+      );
+      await provider.fetchNotifications();
+
+      // Snapshot which ones are unread right now
+      for (final n in provider.notifications) {
+        if (!n.isRead) _initiallyUnreadIds.add(n.id);
+      }
+
+      // Mark all as read on backend (clears badge) but don't update
+      // local styling — highlights stay until next time this screen opens.
+      if (_initiallyUnreadIds.isNotEmpty) {
+        provider.markAllAsRead();
+      }
     });
   }
 
@@ -30,22 +52,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(),
         title: const Text('Notifications'),
-        actions: [
-          if (notificationProvider.unreadCount > 0)
-            TextButton(
-              onPressed: () async {
-                await notificationProvider.markAllAsRead();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('All notifications marked as read'),
-                  ),
-                );
-              },
-              child: const Text('Mark all read'),
-            ),
-        ],
       ),
       body: notificationProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -89,7 +97,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             )
           : RefreshIndicator(
-              onRefresh: notificationProvider.fetchNotifications,
+              onRefresh: () async {
+                _initiallyUnreadIds.clear();
+                await notificationProvider.fetchNotifications();
+              },
               child: ListView.builder(
                 itemCount: notifications.length,
                 itemBuilder: (context, index) {
@@ -124,7 +135,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     BuildContext context,
     AppNotification notification,
   ) {
-    final isRead = notification.isRead;
+    // Use the snapshot from when the screen opened, not the live state,
+    // so highlights persist during this session.
+    final showAsUnread = _initiallyUnreadIds.contains(notification.id);
 
     IconData icon;
     Color iconColor;
@@ -142,6 +155,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         icon = Icons.check_circle;
         iconColor = Colors.green;
         break;
+      case 'alert':
+        icon = Icons.warning_rounded;
+        iconColor = Colors.deepOrange;
+        break;
+      case 'invite':
+        icon = Icons.person_add;
+        iconColor = Colors.blue;
+        break;
+      case 'conflict':
+        icon = Icons.error_outline;
+        iconColor = Colors.red;
+        break;
       case 'team':
         icon = Icons.group;
         iconColor = Colors.grey;
@@ -152,7 +177,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     return Container(
-      color: isRead ? null : Colors.blue.shade50,
+      color: showAsUnread ? Colors.blue.shade50 : null,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: iconColor.withValues(alpha: 0.1),
@@ -161,7 +186,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: Text(
           notification.title,
           style: TextStyle(
-            fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+            fontWeight: showAsUnread ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         subtitle: Column(
@@ -176,8 +201,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ],
         ),
-        trailing:
-            notification.type == 'assignment' || notification.type == 'reminder'
+        trailing: _hasNavigation(notification)
             ? Icon(Icons.chevron_right, color: Colors.grey.shade400)
             : null,
         onTap: () => _handleNotificationTap(context, notification),
@@ -185,20 +209,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
+  bool _hasNavigation(AppNotification notification) {
+    if (notification.referenceId == null) return false;
+    return const [
+      'assignment',
+      'reminder',
+      'response',
+      'alert',
+      'team',
+      'invite',
+    ].contains(notification.type);
+  }
+
   Future<void> _handleNotificationTap(
     BuildContext context,
     AppNotification notification,
   ) async {
-    // Mark as read
-    if (!notification.isRead) {
-      await Provider.of<NotificationProvider>(
-        context,
-        listen: false,
-      ).markAsRead(notification.id);
-    }
-
-    if (!context.mounted) return;
-
     // Navigate based on notification type
     if (notification.referenceId != null) {
       switch (notification.type) {
@@ -206,16 +232,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         case 'reminder':
           _navigateToAssignment(context, notification.referenceId!);
           break;
+        case 'response':
+        case 'alert':
+          _navigateToAssignment(context, notification.referenceId!);
+          break;
         case 'team':
-          // Navigate to team detail
           context.push('/teams/${notification.referenceId}');
           break;
-        case 'response':
-          // For team leads - navigate to roster detail
-          // For now, show a snackbar
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(notification.message)));
+        case 'invite':
+          await _handleInviteTap(context, notification);
           break;
       }
     }
@@ -223,5 +248,88 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _navigateToAssignment(BuildContext context, String assignmentId) {
     context.push('/assignments/$assignmentId');
+  }
+
+  Future<void> _handleInviteTap(
+    BuildContext context,
+    AppNotification notification,
+  ) async {
+    if (notification.referenceId == null) return;
+
+    final teamId = notification.referenceId!;
+
+    final accept = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Team Invitation'),
+        content: Text(notification.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Join Team'),
+          ),
+        ],
+      ),
+    );
+
+    if (accept != true || !context.mounted) return;
+
+    try {
+      await InviteService.acceptInviteByTeam(teamId);
+      if (!context.mounted) return;
+
+      // Remove this notification and refresh teams
+      final notifProvider = Provider.of<NotificationProvider>(
+        context,
+        listen: false,
+      );
+      notifProvider.deleteNotification(notification.id);
+      _initiallyUnreadIds.remove(notification.id);
+
+      Provider.of<TeamProvider>(context, listen: false).fetchMyTeams();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Successfully joined the team!')),
+      );
+
+      context.push('/teams/$teamId');
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      if (e.isNotFound) {
+        // No pending invite — user probably already joined
+        // Remove the stale notification
+        Provider.of<NotificationProvider>(
+          context,
+          listen: false,
+        ).deleteNotification(notification.id);
+        _initiallyUnreadIds.remove(notification.id);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You\'ve already joined this team.')),
+        );
+
+        // Navigate to the team anyway
+        context.push('/teams/$teamId');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to join team: ${e.message}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to join team: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

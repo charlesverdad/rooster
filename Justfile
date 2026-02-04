@@ -118,6 +118,10 @@ docker-up:
 docker-down:
     docker compose down
 
+# Run database migrations in Docker
+docker-db-migrate:
+    docker compose exec backend alembic upgrade head
+
 # View logs
 docker-logs:
     docker compose logs -f
