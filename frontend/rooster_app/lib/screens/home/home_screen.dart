@@ -24,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _refreshKey = 0;
+  bool _showAllPending = false;
 
   @override
   void initState() {
@@ -156,56 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   // PWA install and notification prompts (web only)
                   if (kIsWeb) ...[
                     const InstallPrompt(),
-                    const NotificationPermissionPrompt(),
-                  ],
-
-                  // Pending Assignments Section
-                  if (pendingAssignments.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        const Text(
-                          'Action Required',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFCE4EC),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${pendingAssignments.length}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFBF4060),
-                            ),
-                          ),
-                        ),
-                      ],
+                    NotificationPermissionPrompt(
+                      key: ValueKey('notif_$_refreshKey'),
                     ),
-                    const SizedBox(height: 12),
-                    ...pendingAssignments.map(
-                      (assignment) => AssignmentActionCard(
-                        assignment: assignment,
-                        onAccept: () => _handleAccept(assignment),
-                        onDecline: () => _handleDecline(assignment),
-                        onTap: () => _navigateToDetail(assignment),
-                        onTeamTap: assignment.teamId != null
-                            ? () => context
-                                  .push('/teams/${assignment.teamId}')
-                                  .then((_) => _loadData())
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
                   ],
 
                   // Upcoming Assignments Section
@@ -240,6 +194,67 @@ class _HomeScreenState extends State<HomeScreen> {
                                 : null,
                           ),
                         ),
+
+                  // Action Required Section
+                  if (pendingAssignments.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        const Text(
+                          'Action Required',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFCE4EC),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${pendingAssignments.length}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFBF4060),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ...pendingAssignments
+                        .take(_showAllPending ? pendingAssignments.length : 3)
+                        .map(
+                          (assignment) => AssignmentActionCard(
+                            assignment: assignment,
+                            onAccept: () => _handleAccept(assignment),
+                            onDecline: () => _handleDecline(assignment),
+                            onTap: () => _navigateToDetail(assignment),
+                            onTeamTap: assignment.teamId != null
+                                ? () => context
+                                      .push('/teams/${assignment.teamId}')
+                                      .then((_) => _loadData())
+                                : null,
+                          ),
+                        ),
+                    if (pendingAssignments.length > 3)
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _showAllPending = !_showAllPending),
+                        child: Text(
+                          _showAllPending
+                              ? 'Show less'
+                              : 'Show all (${pendingAssignments.length})',
+                        ),
+                      ),
+                  ],
 
                   // Team Lead Section (if applicable)
                   if (isTeamLead) ...[

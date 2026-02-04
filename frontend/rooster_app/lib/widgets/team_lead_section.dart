@@ -16,6 +16,7 @@ class TeamLeadSection extends StatefulWidget {
 class _TeamLeadSectionState extends State<TeamLeadSection> {
   List<RosterEvent> _unfilledEvents = [];
   bool _isLoading = true;
+  bool _showAllUnfilled = false;
 
   @override
   void initState() {
@@ -201,19 +202,30 @@ class _TeamLeadSectionState extends State<TeamLeadSection> {
               ],
             ),
             const SizedBox(height: 12),
-            // Show first 3 unfilled events
+            // Show unfilled events (collapsible when >3)
             ...unfilledEvents
-                .take(3)
+                .take(_showAllUnfilled ? unfilledEvents.length : 3)
                 .map((event) => _buildUnfilledEventItem(context, event)),
             if (unfilledEvents.length > 3)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  '+ ${unfilledEvents.length - 3} more unfilled slots',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFFBF8040),
-                    fontWeight: FontWeight.w500,
+                child: TextButton(
+                  onPressed: () =>
+                      setState(() => _showAllUnfilled = !_showAllUnfilled),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    _showAllUnfilled
+                        ? 'Show less'
+                        : '+ ${unfilledEvents.length - 3} more unfilled slots',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFFBF8040),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),

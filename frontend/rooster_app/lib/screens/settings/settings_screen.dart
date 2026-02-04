@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/push_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,8 +13,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  static const _notificationsEnabledKey = 'notifications_enabled';
-  bool _notificationsEnabled = true;
+  bool _notificationsEnabled = false;
+  bool _notificationsLoading = false;
 
   @override
   void initState() {
@@ -22,31 +23,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadNotificationSetting() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _notificationsEnabled = prefs.getBool(_notificationsEnabledKey) ?? true;
-    });
+    if (!kIsWeb) return;
+    final subscribed = await PushService.isSubscribed();
+    if (mounted) {
+      setState(() => _notificationsEnabled = subscribed);
+    }
   }
 
   Future<void> _setNotificationsEnabled(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_notificationsEnabledKey, value);
-    setState(() {
-      _notificationsEnabled = value;
-    });
+    setState(() => _notificationsLoading = true);
 
-    // PHASE 3: Replace with real push notification subscribe/unsubscribe
-    debugPrint('Notifications ${value ? 'enabled' : 'disabled'}');
+    try {
+      bool success;
+      if (value) {
+        success = await PushService.requestPermissionAndSubscribe();
+      } else {
+        success = await PushService.unsubscribe();
+      }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            value ? 'Notifications enabled' : 'Notifications disabled',
-          ),
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      if (mounted) {
+        if (success) {
+          setState(() => _notificationsEnabled = value);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                value ? 'Notifications enabled' : 'Notifications disabled',
+              ),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        } else if (value && PushService.getPermissionStatus() == 'denied') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Notifications blocked. Enable in browser settings.',
+              ),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not update notification settings.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _notificationsLoading = false);
+      }
     }
   }
 
@@ -104,10 +131,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.notifications),
             title: const Text('Notifications'),
-            trailing: Switch(
-              value: _notificationsEnabled,
-              onChanged: _setNotificationsEnabled,
-            ),
+            trailing: _notificationsLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Switch(
+                    value: _notificationsEnabled,
+                    onChanged: _setNotificationsEnabled,
+                  ),
           ),
 
           // My Availability
