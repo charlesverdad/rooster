@@ -413,7 +413,7 @@ class RosterService:
         return event
 
     async def generate_more_events(
-        self, roster_id: uuid.UUID, count: int = 12
+        self, roster_id: uuid.UUID, count: int = 7
     ) -> list[RosterEvent]:
         """Generate more events for a roster starting after the last existing event."""
         roster = await self.get_roster(roster_id)

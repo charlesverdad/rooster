@@ -21,7 +21,7 @@ class RosterCreate(BaseModel):
     start_date: date
     end_date: Optional[date] = None
     end_after_occurrences: Optional[int] = None
-    generate_events_count: int = 12  # How many events to auto-generate
+    generate_events_count: int = 7  # How many events to auto-generate
 
 
 class RosterUpdate(BaseModel):
