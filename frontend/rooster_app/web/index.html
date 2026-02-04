@@ -84,6 +84,14 @@
     (function() {
       var splash = document.getElementById('splash');
       if (!splash) return;
+      // PWA launched from home screen already shows a browser-generated splash,
+      // so hide ours immediately to avoid a double splash effect
+      var isPWA = window.matchMedia('(display-mode: standalone)').matches
+                || window.navigator.standalone === true;
+      if (isPWA) {
+        splash.remove();
+        return;
+      }
       var observer = new MutationObserver(function(mutations) {
         // Flutter inserts a flt-glass-pane (or shadow host) when the engine renders
         if (document.querySelector('flt-glass-pane, flutter-view')) {
