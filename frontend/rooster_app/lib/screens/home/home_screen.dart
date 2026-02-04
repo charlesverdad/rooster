@@ -157,7 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   // PWA install and notification prompts (web only)
                   if (kIsWeb) ...[
                     const InstallPrompt(),
-                    const NotificationPermissionPrompt(),
+                    NotificationPermissionPrompt(
+                      key: ValueKey('notif_$_refreshKey'),
+                    ),
                   ],
 
                   // Upcoming Assignments Section

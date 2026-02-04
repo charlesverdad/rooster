@@ -154,8 +154,14 @@ class _NotificationPermissionPromptState
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            else
+            else ...[
+              TextButton(
+                onPressed: () => setState(() => _isVisible = false),
+                child: const Text('Later'),
+              ),
+              const SizedBox(width: 4),
               FilledButton(onPressed: _enable, child: const Text('Enable')),
+            ],
           ],
         ),
       ),
