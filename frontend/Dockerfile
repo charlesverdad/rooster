@@ -13,7 +13,10 @@ RUN flutter pub get
 ARG API_BASE_URL=http://localhost:8000/api
 
 # Build web release
-RUN flutter build web --release --dart-define=API_BASE_URL=${API_BASE_URL}
+# CRITICAL: --pwa-strategy none prevents Flutter from generating its own
+# flutter_service_worker.js which would replace our custom service-worker.js
+# and break push notifications (accept/decline actions, silent API calls).
+RUN flutter build web --release --pwa-strategy none --dart-define=API_BASE_URL=${API_BASE_URL}
 
 # Production stage
 FROM nginx:alpine

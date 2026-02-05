@@ -1,4 +1,9 @@
 // Rooster Service Worker for Push Notifications and Static Asset Caching
+//
+// IMPORTANT: This is the ONLY service worker for the app. The Flutter build
+// must use --pwa-strategy none to prevent Flutter from generating its own
+// flutter_service_worker.js, which would replace this one and break push
+// notifications (no push/notificationclick handlers in Flutter's SW).
 
 const CACHE_NAME = 'rooster-v2';
 
@@ -178,7 +183,8 @@ self.addEventListener('push', (event) => {
 
 // Notification click event - handle user interaction
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.action);
+  console.log('[SW] Notification clicked, action:', JSON.stringify(event.action));
+  console.log('[SW] Notification data:', JSON.stringify(event.notification.data));
 
   event.notification.close();
 
@@ -190,50 +196,17 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  if (event.action === 'accept' && notificationData.accept_url) {
-    // Silent accept: call API without opening the app
+  // Handle accept/decline using assignment_id to construct the URL directly
+  // (avoids any data-passing issues with accept_url/decline_url)
+  if ((event.action === 'accept' || event.action === 'decline') && notificationData.assignment_id) {
+    const verb = event.action === 'accept' ? 'accept' : 'decline';
+    const actionUrl = `/api/rosters/event-assignments/${notificationData.assignment_id}/${verb}`;
+    console.log('[SW] Handling', verb.toUpperCase(), 'action:', actionUrl, '(event.action:', event.action, ')');
     event.waitUntil(
-      handleActionRequest(notificationData.accept_url).then((success) => {
-        if (success) {
-          // Show brief confirmation notification
-          return self.registration.showNotification('Assignment Accepted', {
-            body: 'Your assignment has been confirmed.',
-            icon: '/icons/Icon-192.png',
-            tag: 'accept-confirmation',
-            requireInteraction: false,
-          });
-        } else {
-          // Fallback: open the app if accept failed
-          return openApp(urlToOpen);
-        }
+      handleActionRequest(actionUrl).then(() => {
+        return openApp(urlToOpen);
       })
     );
-    return;
-  }
-
-  if (event.action === 'decline' && notificationData.decline_url) {
-    // Silent decline: call API without opening the app
-    event.waitUntil(
-      handleActionRequest(notificationData.decline_url).then((success) => {
-        if (success) {
-          return self.registration.showNotification('Assignment Declined', {
-            body: 'Your assignment has been declined.',
-            icon: '/icons/Icon-192.png',
-            tag: 'decline-confirmation',
-            requireInteraction: false,
-          });
-        } else {
-          // Fallback: open the app if decline failed
-          return openApp(urlToOpen);
-        }
-      })
-    );
-    return;
-  }
-
-  if (event.action === 'decline') {
-    // No decline_url available, open app to assignment detail
-    event.waitUntil(openApp(urlToOpen));
     return;
   }
 
