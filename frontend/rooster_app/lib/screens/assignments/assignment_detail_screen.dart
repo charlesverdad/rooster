@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/event_assignment.dart';
 import '../../providers/assignment_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/back_button.dart';
 
 class AssignmentDetailScreen extends StatefulWidget {
@@ -17,24 +18,51 @@ class AssignmentDetailScreen extends StatefulWidget {
 
 class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
   bool _showingActions = false;
+  bool _hasTriggeredFetch = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AssignmentProvider>(
-        context,
-        listen: false,
-      ).fetchAssignmentDetail(widget.assignmentId);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeFetch());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _maybeFetch();
+  }
+
+  @override
+  void didUpdateWidget(covariant AssignmentDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.assignmentId != widget.assignmentId) {
+      _hasTriggeredFetch = false;
+      Provider.of<AssignmentProvider>(context, listen: false).clearCurrentDetail();
+      _maybeFetch();
+    }
+  }
+
+  void _maybeFetch() {
+    if (_hasTriggeredFetch) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isInitialized || !authProvider.isAuthenticated) return;
+    _hasTriggeredFetch = true;
+    Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    ).fetchAssignmentDetail(widget.assignmentId);
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     final assignmentProvider = Provider.of<AssignmentProvider>(context);
     final detail = assignmentProvider.currentAssignmentDetail;
 
-    if (assignmentProvider.isLoadingDetail || detail == null) {
+    if (!authProvider.isInitialized ||
+        assignmentProvider.isLoadingDetail ||
+        detail == null ||
+        detail.id != widget.assignmentId) {
       return Scaffold(
         appBar: AppBar(
           leading: const AppBackButton(),

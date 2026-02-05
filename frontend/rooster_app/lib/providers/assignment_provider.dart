@@ -6,6 +6,7 @@ import '../services/assignment_service.dart';
 class AssignmentProvider with ChangeNotifier {
   List<EventAssignment> _assignments = [];
   EventAssignmentDetail? _currentAssignmentDetail;
+  String? _currentAssignmentId;
   bool _isLoading = false;
   bool _isLoadingDetail = false;
   String? _error;
@@ -58,12 +59,17 @@ class AssignmentProvider with ChangeNotifier {
   Future<void> fetchAssignmentDetail(String assignmentId) async {
     _isLoadingDetail = true;
     _error = null;
+    _currentAssignmentId = assignmentId;
+    _currentAssignmentDetail = null;
     notifyListeners();
 
     try {
-      _currentAssignmentDetail = await AssignmentService.getAssignmentDetail(
+      final detail = await AssignmentService.getAssignmentDetail(
         assignmentId,
       );
+      if (_currentAssignmentId == assignmentId) {
+        _currentAssignmentDetail = detail;
+      }
     } catch (e) {
       _error = _getErrorMessage(e);
       debugPrint('Error fetching assignment detail: $e');
@@ -114,6 +120,7 @@ class AssignmentProvider with ChangeNotifier {
 
   void clearCurrentDetail() {
     _currentAssignmentDetail = null;
+    _currentAssignmentId = null;
     notifyListeners();
   }
 

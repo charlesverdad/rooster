@@ -257,19 +257,11 @@ class NotificationService:
             push_service = PushService(self.db)
             await push_service.send_to_user(
                 user_id=user_id,
-                title=title,
-                body=message,
-                url=f"/assignments/{assignment_id}",
-                actions=[
-                    {"action": "accept", "title": "Accept"},
-                    {"action": "decline", "title": "Decline"},
-                ],
-                tag=f"assignment-{assignment_id}",
+                title="New assignment",
+                body="Action needed: tap to respond.",
+                url="/?focus=action-required",
                 data={
-                    "assignment_id": str(assignment_id),
-                    "accept_url": f"/api/rosters/event-assignments/{assignment_id}/accept",
-                    "decline_url": f"/api/rosters/event-assignments/{assignment_id}/decline",
-                    "url": f"/assignments/{assignment_id}",
+                    "url": "/?focus=action-required",
                 },
             )
         except ImportError:
