@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.api.auth import router as auth_router
 from app.api.organisations import router as organisations_router
@@ -50,6 +52,16 @@ app.include_router(push_router, prefix="/api")
 
 
 @app.get("/health")
-async def health_check() -> dict[str, str]:
-    """Health check endpoint."""
-    return {"status": "healthy"}
+async def health_check():
+    """Health check endpoint that verifies database connectivity."""
+    from app.core.database import async_session_maker
+
+    try:
+        async with async_session_maker() as session:
+            await session.execute(text("SELECT 1"))
+        return {"status": "healthy"}
+    except Exception:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "detail": "database unreachable"},
+        )
