@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/event_assignment.dart';
 
-class AssignmentActionCard extends StatelessWidget {
+class AssignmentActionCard extends StatefulWidget {
   final EventAssignment assignment;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
@@ -18,11 +18,115 @@ class AssignmentActionCard extends StatelessWidget {
   });
 
   @override
+  State<AssignmentActionCard> createState() => _AssignmentActionCardState();
+}
+
+class _AssignmentActionCardState extends State<AssignmentActionCard>
+    with SingleTickerProviderStateMixin {
+  // null = idle, true = accepted, false = declined
+  bool? _dismissState;
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _sizeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+      ),
+    );
+    _sizeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleAccept() {
+    if (_dismissState != null) return;
+    setState(() => _dismissState = true);
+    // Animate first, then fire the callback so the provider doesn't
+    // remove the item before the animation completes.
+    _controller.forward().then((_) {
+      if (mounted) widget.onAccept();
+    });
+  }
+
+  void _handleDecline() {
+    if (_dismissState != null) return;
+    widget.onDecline();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_dismissState == null) {
+      return _buildCard(context);
+    }
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return SizeTransition(
+          sizeFactor: _sizeAnimation,
+          axisAlignment: -1.0,
+          child: FadeTransition(opacity: _fadeAnimation, child: child),
+        );
+      },
+      child: _buildDismissedCard(context),
+    );
+  }
+
+  Widget _buildDismissedCard(BuildContext context) {
+    final isAccepted = _dismissState == true;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: isAccepted ? Colors.green.shade50 : Colors.orange.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isAccepted ? Icons.check_circle : Icons.cancel,
+              color: isAccepted ? Colors.green : Colors.orange,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              isAccepted ? 'Accepted' : 'Declined',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isAccepted
+                    ? Colors.green.shade800
+                    : Colors.orange.shade800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -48,22 +152,22 @@ class AssignmentActionCard extends StatelessWidget {
 
               // Roster name
               Text(
-                assignment.rosterName ?? 'Assignment',
+                widget.assignment.rosterName ?? 'Assignment',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (assignment.teamName != null &&
-                  assignment.teamName!.isNotEmpty) ...[
+              if (widget.assignment.teamName != null &&
+                  widget.assignment.teamName!.isNotEmpty) ...[
                 const SizedBox(height: 2),
                 GestureDetector(
-                  onTap: onTeamTap,
+                  onTap: widget.onTeamTap,
                   child: Text(
-                    assignment.teamName!,
+                    widget.assignment.teamName!,
                     style: TextStyle(
                       fontSize: 13,
-                      color: onTeamTap != null
+                      color: widget.onTeamTap != null
                           ? Colors.blue
                           : Colors.grey.shade500,
                     ),
@@ -74,7 +178,7 @@ class AssignmentActionCard extends StatelessWidget {
 
               // Date
               Text(
-                _formatDate(assignment.eventDate),
+                _formatDate(widget.assignment.eventDate),
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 16),
@@ -84,7 +188,7 @@ class AssignmentActionCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: onDecline,
+                      onPressed: _handleDecline,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
                       ),
@@ -94,7 +198,7 @@ class AssignmentActionCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
-                      onPressed: onAccept,
+                      onPressed: _handleAccept,
                       child: const Text('Accept'),
                     ),
                   ),
