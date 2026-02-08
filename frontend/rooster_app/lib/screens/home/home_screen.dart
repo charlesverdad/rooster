@@ -284,7 +284,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           (assignment) => AssignmentActionCard(
                             assignment: assignment,
                             onAccept: () => _handleAccept(assignment),
-                            onDecline: () => _handleDecline(assignment),
+                            onDeclineConfirm: () => _confirmDecline(),
+                            onDecline: () =>
+                                _handleDeclineConfirmed(assignment),
                             onTap: () => _navigateToDetail(assignment),
                             onTeamTap: assignment.teamId != null
                                 ? () => context
@@ -614,28 +616,28 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _handleDecline(EventAssignment assignment) async {
-    // Show decline confirmation sheet
+  Future<bool> _confirmDecline() async {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       builder: (context) => const _DeclineConfirmationSheet(),
     );
+    return confirmed == true;
+  }
 
-    if (confirmed == true && mounted) {
-      final assignmentProvider = Provider.of<AssignmentProvider>(
-        context,
-        listen: false,
+  Future<void> _handleDeclineConfirmed(EventAssignment assignment) async {
+    final assignmentProvider = Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    );
+    final success = await assignmentProvider.declineAssignment(assignment.id);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Declined'),
+          duration: Duration(seconds: 2),
+        ),
       );
-      final success = await assignmentProvider.declineAssignment(assignment.id);
-
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Declined'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
     }
   }
 }
