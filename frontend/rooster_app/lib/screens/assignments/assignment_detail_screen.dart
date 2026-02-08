@@ -37,7 +37,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.assignmentId != widget.assignmentId) {
       _hasTriggeredFetch = false;
-      Provider.of<AssignmentProvider>(context, listen: false).clearCurrentDetail();
+      Provider.of<AssignmentProvider>(
+        context,
+        listen: false,
+      ).clearCurrentDetail();
       _maybeFetch();
     }
   }
@@ -58,6 +61,10 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final assignmentProvider = Provider.of<AssignmentProvider>(context);
     final detail = assignmentProvider.currentAssignmentDetail;
+
+    // Trigger fetch when auth becomes ready (build is called on Provider changes,
+    // but didChangeDependencies is not, so we need to check here too)
+    _maybeFetch();
 
     if (!authProvider.isInitialized ||
         assignmentProvider.isLoadingDetail ||

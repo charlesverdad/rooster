@@ -398,7 +398,7 @@ class _RosterDetailScreenState extends State<RosterDetailScreen> {
                       .toList(),
                 ),
               ],
-              if (!isFilled && !event.isCancelled) ...[
+              if (!event.isCancelled) ...[
                 const SizedBox(height: 12),
                 if (canManage)
                   SizedBox(

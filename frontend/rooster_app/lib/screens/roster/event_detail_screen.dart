@@ -271,12 +271,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                           icon: const Icon(Icons.auto_awesome, size: 18),
                           label: const Text('Suggest'),
                         ),
-                      if (!event.isFilled)
-                        TextButton.icon(
-                          onPressed: () => _showAssignSheet(context, event),
-                          icon: const Icon(Icons.person_add, size: 18),
-                          label: const Text('Assign'),
-                        ),
+                      TextButton.icon(
+                        onPressed: () => _showAssignSheet(context, event),
+                        icon: const Icon(Icons.person_add, size: 18),
+                        label: const Text('Assign'),
+                      ),
                     ],
                   ),
               ],
@@ -300,7 +299,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 (a) => _buildAssignmentCard(context, a, canManage),
               ),
 
-            if (!event.isCancelled && !event.isFilled) ...[
+            if (!event.isCancelled) ...[
               const SizedBox(height: 16),
               if (canManage)
                 OutlinedButton.icon(

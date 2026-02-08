@@ -64,9 +64,7 @@ class AssignmentProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final detail = await AssignmentService.getAssignmentDetail(
-        assignmentId,
-      );
+      final detail = await AssignmentService.getAssignmentDetail(assignmentId);
       if (_currentAssignmentId == assignmentId) {
         _currentAssignmentDetail = detail;
       }

@@ -53,9 +53,8 @@ GoRouter createRouter(AuthProvider authProvider) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => HomeScreen(
-          focus: state.uri.queryParameters['focus'],
-        ),
+        builder: (context, state) =>
+            HomeScreen(focus: state.uri.queryParameters['focus']),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(

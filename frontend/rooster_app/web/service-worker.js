@@ -5,7 +5,7 @@
 // flutter_service_worker.js, which would replace this one and break push
 // notifications (no push/notificationclick handlers in Flutter's SW).
 
-const CACHE_NAME = 'rooster-v2';
+const CACHE_NAME = 'rooster-v3';
 
 // Assets to precache on install
 const PRECACHE_URLS = [
@@ -15,33 +15,6 @@ const PRECACHE_URLS = [
   '/flutter_bootstrap.js',
   '/icons/Icon-192.png',
 ];
-
-// Auth token for push action callbacks (accept/decline assignment silently)
-let authToken = null;
-
-// Persist auth token using Cache API so it survives SW restarts
-const TOKEN_CACHE = 'auth-token-cache';
-const TOKEN_KEY = '/auth-token';
-
-async function saveAuthToken(token) {
-  authToken = token;
-  const cache = await caches.open(TOKEN_CACHE);
-  await cache.put(TOKEN_KEY, new Response(token));
-}
-
-async function loadAuthToken() {
-  if (authToken) return authToken;
-  try {
-    const cache = await caches.open(TOKEN_CACHE);
-    const response = await cache.match(TOKEN_KEY);
-    if (response) {
-      authToken = await response.text();
-    }
-  } catch (e) {
-    console.error('[SW] Error loading auth token from cache:', e);
-  }
-  return authToken;
-}
 
 // Install event - precache essential assets
 self.addEventListener('install', (event) => {
@@ -61,7 +34,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME && name !== TOKEN_CACHE)
+          .filter((name) => name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     })
@@ -119,7 +92,7 @@ function isStaticAsset(pathname) {
 
 // Push event - handle incoming push notifications
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push received:', event);
+  console.log('[SW] Push received');
 
   let data = {
     title: 'Rooster',
@@ -138,9 +111,7 @@ self.addEventListener('push', (event) => {
         icon: payload.icon || data.icon,
         badge: data.badge,
         url: payload.url || data.url,
-        actions: payload.actions || null,
         tag: payload.tag || null,
-        payload: payload.data || null,
       };
     } catch (e) {
       console.error('[SW] Error parsing push data:', e);
@@ -155,23 +126,10 @@ self.addEventListener('push', (event) => {
     vibrate: [100, 50, 100],
     data: {
       url: data.url,
-      dateOfArrival: Date.now(),
-      ...(data.payload || {}),
     },
     requireInteraction: true,
   };
 
-  // Use actions from the push payload if provided, otherwise defaults
-  if (data.actions && data.actions.length > 0) {
-    options.actions = data.actions;
-  } else {
-    options.actions = [
-      { action: 'open', title: 'Open' },
-      { action: 'dismiss', title: 'Dismiss' },
-    ];
-  }
-
-  // Use tag for notification grouping/replacement
   if (data.tag) {
     options.tag = data.tag;
   }
@@ -181,78 +139,16 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// Notification click event - handle user interaction
+// Notification click event - open the app to the relevant page
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked, action:', JSON.stringify(event.action));
-  console.log('[SW] Notification data:', JSON.stringify(event.notification.data));
-
-  event.notification.close();
-
   const notificationData = event.notification.data || {};
   const urlToOpen = notificationData.url || '/';
 
-  // Handle specific actions
-  if (event.action === 'dismiss') {
-    return;
-  }
+  console.log('[SW] Notification clicked, opening:', urlToOpen);
+  event.notification.close();
 
-  // Handle accept/decline using assignment_id to construct the URL directly
-  // (avoids any data-passing issues with accept_url/decline_url)
-  if ((event.action === 'accept' || event.action === 'decline') && notificationData.assignment_id) {
-    const verb = event.action === 'accept' ? 'accept' : 'decline';
-    const actionUrl = `/api/rosters/event-assignments/${notificationData.assignment_id}/${verb}`;
-    console.log('[SW] Handling', verb.toUpperCase(), 'action:', actionUrl, '(event.action:', event.action, ')');
-    event.waitUntil(
-      handleActionRequest(actionUrl).then(() => {
-        return openApp(urlToOpen);
-      })
-    );
-    return;
-  }
-
-  if (event.action === 'reassign') {
-    // Open app to event page for reassignment
-    event.waitUntil(openApp(urlToOpen));
-    return;
-  }
-
-  // Default tap (no action or 'open'): open the app
   event.waitUntil(openApp(urlToOpen));
 });
-
-// Handle silent action (accept/decline) via API
-async function handleActionRequest(actionUrl) {
-  await loadAuthToken();
-
-  if (!authToken) {
-    console.warn('[SW] No auth token available for action');
-    return false;
-  }
-
-  try {
-    // Resolve relative URL to full URL
-    const fullUrl = new URL(actionUrl, self.location.origin).href;
-
-    const response = await fetch(fullUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (response.ok) {
-      console.log('[SW] Action succeeded:', actionUrl);
-      return true;
-    } else {
-      console.error('[SW] Action failed:', response.status);
-      return false;
-    }
-  } catch (error) {
-    console.error('[SW] Action request error:', error);
-    return false;
-  }
-}
 
 // Open or focus the app window
 function openApp(url) {
@@ -282,14 +178,7 @@ self.addEventListener('notificationclose', (event) => {
 
 // Handle messages from the main app
 self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
-  }
-
-  if (event.data && event.data.type === 'AUTH_TOKEN') {
-    event.waitUntil(saveAuthToken(event.data.token));
-    console.log('[SW] Auth token updated and persisted');
   }
 });

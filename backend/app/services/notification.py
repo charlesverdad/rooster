@@ -250,19 +250,17 @@ class NotificationService:
                 event_time=event_time,
             )
 
-        # Send push notification with accept/decline actions
+        # Send push notification — opens home action-required section
         try:
             from app.services.push import PushService
 
             push_service = PushService(self.db)
             await push_service.send_to_user(
                 user_id=user_id,
-                title="New assignment",
-                body="Action needed: tap to respond.",
+                title=title,
+                body=message,
                 url="/?focus=action-required",
-                data={
-                    "url": "/?focus=action-required",
-                },
+                tag="new-assignment",
             )
         except ImportError:
             pass
