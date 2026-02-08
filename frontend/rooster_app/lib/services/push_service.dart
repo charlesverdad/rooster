@@ -139,8 +139,6 @@ class PushService {
       final success = await _sendSubscriptionToBackend(subscription);
       if (success) {
         await _storeSubscription(subscription['endpoint'] as String);
-        // Send auth token to service worker for push action callbacks
-        await sendAuthTokenToServiceWorker();
       }
       return success;
     } catch (e) {
@@ -248,24 +246,38 @@ class PushService {
     }
   }
 
-  /// Send the current auth token to the service worker for push action callbacks.
-  /// Call this after subscribing and on app startup if already subscribed.
-  static Future<void> sendAuthTokenToServiceWorker() async {
+  /// Listen for NAVIGATE messages from the service worker.
+  /// When a push notification is tapped in an already-open window, the SW
+  /// sends a postMessage with type 'NAVIGATE' and a url to route to.
+  static void listenForServiceWorkerMessages(
+    void Function(String url) onNavigate,
+  ) {
     if (!kIsWeb) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      if (token == null) return;
+      final sw = web.window.navigator.serviceWorker;
+      sw.addEventListener(
+        'message',
+        (web.Event event) {
+          final messageEvent = event as web.MessageEvent;
+          final data = messageEvent.data;
+          if (data == null) return;
 
-      final controller = web.window.navigator.serviceWorker.controller;
-      if (controller != null) {
-        final message = {'type': 'AUTH_TOKEN', 'token': token}.jsify();
-        controller.postMessage(message);
-        debugPrint('Auth token sent to service worker');
-      }
+          // Convert JSAny to a Dart map
+          final dartData = (data as JSObject).dartify();
+          if (dartData is Map) {
+            final type = dartData['type'];
+            final url = dartData['url'];
+            if (type == 'NAVIGATE' && url is String) {
+              debugPrint('Received NAVIGATE from service worker: $url');
+              onNavigate(url);
+            }
+          }
+        }.toJS,
+      );
+      debugPrint('Listening for service worker messages');
     } catch (e) {
-      debugPrint('Error sending auth token to service worker: $e');
+      debugPrint('Error setting up service worker message listener: $e');
     }
   }
 

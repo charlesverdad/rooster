@@ -144,6 +144,30 @@ uv add --dev <package> --project backend  # Add dev dependency
 7. Dashboard views (member home, calendar)
 8. Basic notifications (in-app)
 
+## Push Notifications & Service Worker
+
+The app uses a **custom service worker** (`frontend/rooster_app/web/service-worker.js`) for:
+- Web Push notification display (push event handler)
+- Notification tap opens the relevant in-app page (notificationclick handler)
+- Static asset caching (cache-first for assets, network-first for navigation)
+- Notification deduplication via `tag` (e.g., `new-assignment` replaces previous)
+
+**CRITICAL: `--pwa-strategy none` is required on all `flutter build web` commands.**
+Without this flag, Flutter generates `flutter_service_worker.js` and registers it
+via `flutter_bootstrap.js`, which **replaces the custom service worker** at the same
+scope (`/`). The Flutter-generated SW has no push or notificationclick handlers,
+so push notifications silently break. Both SWs call `skipWaiting()`, so the last
+one registered wins — and Flutter's async bootstrap script always registers last.
+
+### Service Worker Architecture
+- `web/service-worker.js` — custom SW registered by inline script in `index.html`
+- Push payloads include `url` (in-app route) and `tag` (for deduplication)
+- `notificationclick` opens the app to the notification URL
+- SW sends `NAVIGATE` postMessage to existing windows for in-app routing
+- Accept/decline actions are handled in-app on the assignment detail screen
+- Note: `event.action` from notification buttons is unreliable on Android Chrome,
+  so we deliberately avoid silent API calls from the service worker
+
 ## Notes
 
 - See `PRD.md` for full feature specifications

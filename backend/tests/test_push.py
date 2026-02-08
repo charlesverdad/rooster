@@ -1,3 +1,4 @@
+import json
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -238,3 +239,77 @@ async def test_push_service_send_to_user_not_configured(db_session, test_user):
         )
 
         assert sent == 0
+
+
+@pytest.mark.asyncio
+async def test_push_service_send_payload_includes_tag_and_url(db_session, test_user):
+    """Test that send_to_user passes tag and url in the push payload."""
+    service = PushService(db_session)
+
+    # Add a subscription
+    await service.subscribe(
+        user_id=test_user.id,
+        endpoint="https://fcm.googleapis.com/fcm/send/test",
+        p256dh_key="test-key",
+        auth_key="test-auth",
+    )
+
+    with (
+        patch.object(service, "settings") as mock_settings,
+        patch("app.services.push.webpush") as mock_webpush,
+    ):
+        mock_settings.vapid_public_key = "test-pub"
+        mock_settings.vapid_private_key = "test-priv"
+        mock_settings.vapid_subject = "mailto:test@example.com"
+
+        sent = await service.send_to_user(
+            user_id=test_user.id,
+            title="New Assignment",
+            body="You've been assigned",
+            url="/?focus=action-required",
+            tag="new-assignment",
+        )
+
+        assert sent == 1
+        mock_webpush.assert_called_once()
+        payload = json.loads(mock_webpush.call_args.kwargs["data"])
+        assert payload["title"] == "New Assignment"
+        assert payload["body"] == "You've been assigned"
+        assert payload["url"] == "/?focus=action-required"
+        assert payload["tag"] == "new-assignment"
+        assert "actions" not in payload
+        assert "data" not in payload
+
+
+@pytest.mark.asyncio
+async def test_push_service_send_without_tag(db_session, test_user):
+    """Test that send_to_user omits tag from payload when not provided."""
+    service = PushService(db_session)
+
+    await service.subscribe(
+        user_id=test_user.id,
+        endpoint="https://fcm.googleapis.com/fcm/send/test",
+        p256dh_key="test-key",
+        auth_key="test-auth",
+    )
+
+    with (
+        patch.object(service, "settings") as mock_settings,
+        patch("app.services.push.webpush") as mock_webpush,
+    ):
+        mock_settings.vapid_public_key = "test-pub"
+        mock_settings.vapid_private_key = "test-priv"
+        mock_settings.vapid_subject = "mailto:test@example.com"
+
+        sent = await service.send_to_user(
+            user_id=test_user.id,
+            title="Team Joined",
+            body="Welcome",
+            url="/teams/123",
+        )
+
+        assert sent == 1
+        payload = json.loads(mock_webpush.call_args.kwargs["data"])
+        assert payload["title"] == "Team Joined"
+        assert payload["url"] == "/teams/123"
+        assert "tag" not in payload

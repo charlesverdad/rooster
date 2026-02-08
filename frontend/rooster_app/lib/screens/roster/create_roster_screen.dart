@@ -26,6 +26,8 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
   int _occurrences = 10;
   TimeOfDay? _eventTime;
   bool _autoSuggestInitialRotation = false;
+  int _nthWeekNumber = 1; // 1=1st, 2=2nd, 3=3rd, 4=4th, 5=last
+  int _nthWeekday = 0; // 0=Sunday (frontend convention)
 
   @override
   void dispose() {
@@ -97,12 +99,71 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                         if (selected) setState(() => _recurrence = 'monthly');
                       },
                     ),
+                    ChoiceChip(
+                      label: const Text('Monthly (nth day)'),
+                      selected: _recurrence == 'monthly_nth_weekday',
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() => _recurrence = 'monthly_nth_weekday');
+                        }
+                      },
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
-                // Day selector (only show if not one-time)
-                if (_recurrence != 'once') ...[
+                // Nth weekday selectors (only for monthly_nth_weekday)
+                if (_recurrence == 'monthly_nth_weekday') ...[
+                  const Text(
+                    'Which occurrence',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final entry in {
+                        1: '1st',
+                        2: '2nd',
+                        3: '3rd',
+                        4: '4th',
+                        5: 'Last',
+                      }.entries)
+                        ChoiceChip(
+                          label: Text(entry.value),
+                          selected: _nthWeekNumber == entry.key,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => _nthWeekNumber = entry.key);
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Day of week',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildNthDayButton('Su', 0),
+                      _buildNthDayButton('M', 1),
+                      _buildNthDayButton('Tu', 2),
+                      _buildNthDayButton('W', 3),
+                      _buildNthDayButton('Th', 4),
+                      _buildNthDayButton('F', 5),
+                      _buildNthDayButton('Sa', 6),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                // Day selector (only show if not one-time and not nth weekday)
+                if (_recurrence != 'once' &&
+                    _recurrence != 'monthly_nth_weekday') ...[
                   const Text(
                     'Day',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -467,6 +528,12 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
                     endAfterOccurrences: _endType == 'after_occurrences'
                         ? _occurrences
                         : null,
+                    recurrenceWeekday: _recurrence == 'monthly_nth_weekday'
+                        ? _nthWeekday
+                        : null,
+                    recurrenceWeekNumber: _recurrence == 'monthly_nth_weekday'
+                        ? _nthWeekNumber
+                        : null,
                   );
 
                   if (success && context.mounted) {
@@ -520,6 +587,32 @@ class _CreateRosterScreenState extends State<CreateRosterScreen> {
     final isSelected = _selectedDay == day;
     return GestureDetector(
       onTap: () => setState(() => _selectedDay = day),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).primaryColor
+              : Colors.grey.shade200,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.grey.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNthDayButton(String label, int day) {
+    final isSelected = _nthWeekday == day;
+    return GestureDetector(
+      onTap: () => setState(() => _nthWeekday = day),
       child: Container(
         width: 40,
         height: 40,

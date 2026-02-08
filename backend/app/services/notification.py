@@ -250,7 +250,7 @@ class NotificationService:
                 event_time=event_time,
             )
 
-        # Send push notification with accept/decline actions
+        # Send push notification — opens home action-required section
         try:
             from app.services.push import PushService
 
@@ -259,17 +259,8 @@ class NotificationService:
                 user_id=user_id,
                 title=title,
                 body=message,
-                url=f"/assignments/{assignment_id}",
-                actions=[
-                    {"action": "accept", "title": "Accept"},
-                    {"action": "decline", "title": "Decline"},
-                ],
-                tag=f"assignment-{assignment_id}",
-                data={
-                    "assignment_id": str(assignment_id),
-                    "accept_url": f"/api/event-assignments/{assignment_id}/accept",
-                    "url": f"/assignments/{assignment_id}",
-                },
+                url="/?focus=action-required",
+                tag="new-assignment",
             )
         except ImportError:
             pass

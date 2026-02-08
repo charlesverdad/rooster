@@ -101,8 +101,11 @@ check:
 # --- Build ---
 
 # Build frontend for production (usage: just frontend-build "https://api.example.com/api")
+# CRITICAL: --pwa-strategy none is required. Without it, Flutter generates
+# flutter_service_worker.js which replaces our custom service-worker.js,
+# breaking push notifications (no push/notificationclick handlers).
 frontend-build api_url="http://localhost:8000/api":
-    cd frontend/rooster_app && flutter build web --release --dart-define=API_BASE_URL={{api_url}}
+    cd frontend/rooster_app && flutter build web --release --pwa-strategy none --dart-define=API_BASE_URL={{api_url}}
 
 # --- Docker ---
 

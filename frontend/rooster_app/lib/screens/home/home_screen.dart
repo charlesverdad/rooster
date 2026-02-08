@@ -16,7 +16,9 @@ import '../../widgets/install_prompt.dart';
 import '../../widgets/notification_permission_prompt.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String? focus;
+
+  const HomeScreen({super.key, this.focus});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -25,6 +27,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _refreshKey = 0;
   bool _showAllPending = false;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _actionRequiredKey = GlobalKey();
+  bool _didAutoScroll = false;
 
   @override
   void initState() {
@@ -33,6 +38,12 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -53,6 +64,42 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       setState(() => _refreshKey++);
     }
+    _maybeScrollToActionRequired();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focus != widget.focus) {
+      _didAutoScroll = false;
+      _maybeScrollToActionRequired();
+    }
+  }
+
+  void _maybeScrollToActionRequired() {
+    if (!mounted) return;
+    if (_didAutoScroll) return;
+    if (widget.focus != 'action-required') return;
+
+    final assignmentProvider = Provider.of<AssignmentProvider>(
+      context,
+      listen: false,
+    );
+    if (assignmentProvider.pendingAssignments.isEmpty) return;
+
+    final contextForKey = _actionRequiredKey.currentContext;
+    if (contextForKey == null) return;
+
+    _didAutoScroll = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        contextForKey,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOut,
+        alignment: 0.1,
+      );
+    });
   }
 
   @override
@@ -130,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: assignmentProvider.isLoading
             ? _buildSkeleton()
             : ListView(
+                controller: _scrollController,
                 padding: const EdgeInsets.all(16),
                 children: [
                   // Greeting
@@ -199,6 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (pendingAssignments.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     Row(
+                      key: _actionRequiredKey,
                       children: [
                         const Text(
                           'Action Required',

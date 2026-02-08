@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'services/api_client.dart';
+import 'services/push_service.dart';
 import 'providers/assignment_provider.dart';
 import 'providers/availability_provider.dart';
 import 'providers/notification_provider.dart';
@@ -39,6 +41,13 @@ class _MyAppState extends State<MyApp> {
 
     // Initialize auth (load token, fetch user)
     _authProvider.init();
+
+    // Listen for NAVIGATE messages from service worker (push notification taps)
+    if (kIsWeb) {
+      PushService.listenForServiceWorkerMessages((url) {
+        _router.go(url);
+      });
+    }
   }
 
   @override

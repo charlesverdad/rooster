@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.models.roster import AssignmentMode, AssignmentStatus, RecurrencePattern
 
@@ -21,7 +21,21 @@ class RosterCreate(BaseModel):
     start_date: date
     end_date: Optional[date] = None
     end_after_occurrences: Optional[int] = None
-    generate_events_count: int = 12  # How many events to auto-generate
+    generate_events_count: int = 7  # How many events to auto-generate
+    recurrence_weekday: Optional[int] = (
+        None  # 0=Sun..6=Sat (frontend), converted to Python in service
+    )
+    recurrence_week_number: Optional[int] = None  # 1-4 or 5=last
+
+    @model_validator(mode="after")
+    def validate_nth_weekday_fields(self):
+        if self.recurrence_pattern == RecurrencePattern.MONTHLY_NTH_WEEKDAY:
+            if self.recurrence_weekday is None or self.recurrence_week_number is None:
+                raise ValueError(
+                    "recurrence_weekday and recurrence_week_number are required "
+                    "for monthly_nth_weekday pattern"
+                )
+        return self
 
 
 class RosterUpdate(BaseModel):
@@ -37,6 +51,8 @@ class RosterUpdate(BaseModel):
     end_date: Optional[date] = None
     end_after_occurrences: Optional[int] = None
     is_active: Optional[bool] = None
+    recurrence_weekday: Optional[int] = None
+    recurrence_week_number: Optional[int] = None
 
 
 class RosterResponse(BaseModel):
@@ -55,6 +71,8 @@ class RosterResponse(BaseModel):
     end_date: Optional[date] = None
     end_after_occurrences: Optional[int] = None
     is_active: bool = True
+    recurrence_weekday: Optional[int] = None
+    recurrence_week_number: Optional[int] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

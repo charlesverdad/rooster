@@ -75,7 +75,9 @@ class RosterService {
     String? notes,
     DateTime? endDate,
     int? endAfterOccurrences,
-    int generateEventsCount = 12,
+    int generateEventsCount = 7,
+    int? recurrenceWeekday,
+    int? recurrenceWeekNumber,
   }) async {
     final body = {
       'team_id': teamId,
@@ -95,6 +97,12 @@ class RosterService {
     }
     if (endAfterOccurrences != null) {
       body['end_after_occurrences'] = endAfterOccurrences;
+    }
+    if (recurrenceWeekday != null) {
+      body['recurrence_weekday'] = recurrenceWeekday;
+    }
+    if (recurrenceWeekNumber != null) {
+      body['recurrence_week_number'] = recurrenceWeekNumber;
     }
 
     final response = await ApiClient.post('/rosters', body);
@@ -192,7 +200,7 @@ class RosterService {
   /// Generate more events for a roster
   static Future<List<RosterEvent>> generateMoreEvents(
     String rosterId, {
-    int count = 12,
+    int count = 7,
   }) async {
     final response = await ApiClient.post(
       '/rosters/$rosterId/events/generate?count=$count',
