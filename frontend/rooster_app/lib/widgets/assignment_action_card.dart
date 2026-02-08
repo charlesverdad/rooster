@@ -4,6 +4,7 @@ import '../models/event_assignment.dart';
 class AssignmentActionCard extends StatefulWidget {
   final EventAssignment assignment;
   final VoidCallback onAccept;
+  final Future<bool> Function() onDeclineConfirm;
   final VoidCallback onDecline;
   final VoidCallback? onTap;
   final VoidCallback? onTeamTap;
@@ -12,6 +13,7 @@ class AssignmentActionCard extends StatefulWidget {
     super.key,
     required this.assignment,
     required this.onAccept,
+    required this.onDeclineConfirm,
     required this.onDecline,
     this.onTap,
     this.onTeamTap,
@@ -23,9 +25,11 @@ class AssignmentActionCard extends StatefulWidget {
 
 class _AssignmentActionCardState extends State<AssignmentActionCard>
     with SingleTickerProviderStateMixin {
-  // null = idle, true = accepted, false = declined
-  bool? _dismissState;
+  bool _isDismissing = false;
+  bool _isAccepted = false;
+  bool _isDeclined = false;
   late final AnimationController _controller;
+  late final Animation<Offset> _slideAnimation;
   late final Animation<double> _fadeAnimation;
   late final Animation<double> _sizeAnimation;
 
@@ -33,19 +37,26 @@ class _AssignmentActionCardState extends State<AssignmentActionCard>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
+    _slideAnimation =
+        Tween<Offset>(begin: Offset.zero, end: const Offset(0, -0.15)).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.15, 0.85, curve: Curves.easeIn),
+          ),
+        );
     _fadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+        curve: const Interval(0.15, 0.85, curve: Curves.easeOut),
       ),
     );
     _sizeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
+        curve: const Interval(0.4, 1.0, curve: Curves.easeInOut),
       ),
     );
   }
@@ -57,23 +68,40 @@ class _AssignmentActionCardState extends State<AssignmentActionCard>
   }
 
   void _handleAccept() {
-    if (_dismissState != null) return;
-    setState(() => _dismissState = true);
-    // Animate first, then fire the callback so the provider doesn't
-    // remove the item before the animation completes.
-    _controller.forward().then((_) {
-      if (mounted) widget.onAccept();
+    if (_isDismissing) return;
+    // Phase 1: button feedback (checkmark), then start dismiss animation
+    setState(() {
+      _isAccepted = true;
+      _isDismissing = true;
+    });
+    // Brief pause for button feedback before slide+fade begins
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      _controller.forward().then((_) {
+        if (mounted) widget.onAccept();
+      });
     });
   }
 
-  void _handleDecline() {
-    if (_dismissState != null) return;
-    widget.onDecline();
+  Future<void> _handleDecline() async {
+    if (_isDismissing) return;
+    final confirmed = await widget.onDeclineConfirm();
+    if (!confirmed || !mounted || _isDismissing) return;
+    setState(() {
+      _isDeclined = true;
+      _isDismissing = true;
+    });
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      _controller.forward().then((_) {
+        if (mounted) widget.onDecline();
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_dismissState == null) {
+    if (!_isDismissing) {
       return _buildCard(context);
     }
 
@@ -83,42 +111,13 @@ class _AssignmentActionCardState extends State<AssignmentActionCard>
         return SizeTransition(
           sizeFactor: _sizeAnimation,
           axisAlignment: -1.0,
-          child: FadeTransition(opacity: _fadeAnimation, child: child),
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: FadeTransition(opacity: _fadeAnimation, child: child),
+          ),
         );
       },
-      child: _buildDismissedCard(context),
-    );
-  }
-
-  Widget _buildDismissedCard(BuildContext context) {
-    final isAccepted = _dismissState == true;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      color: isAccepted ? Colors.green.shade50 : Colors.orange.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isAccepted ? Icons.check_circle : Icons.cancel,
-              color: isAccepted ? Colors.green : Colors.orange,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              isAccepted ? 'Accepted' : 'Declined',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isAccepted
-                    ? Colors.green.shade800
-                    : Colors.orange.shade800,
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: _buildCard(context),
     );
   }
 
@@ -187,19 +186,36 @@ class _AssignmentActionCardState extends State<AssignmentActionCard>
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _handleDecline,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                      ),
-                      child: const Text('Decline'),
-                    ),
+                    child: _isDeclined
+                        ? FilledButton(
+                            onPressed: null,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              disabledBackgroundColor: Colors.red,
+                              disabledForegroundColor: Colors.white,
+                            ),
+                            child: const Icon(Icons.close, size: 20),
+                          )
+                        : OutlinedButton(
+                            onPressed: _handleDecline,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            child: const Text('Decline'),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
                       onPressed: _handleAccept,
-                      child: const Text('Accept'),
+                      style: _isAccepted
+                          ? FilledButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            )
+                          : null,
+                      child: _isAccepted
+                          ? const Icon(Icons.check, size: 20)
+                          : const Text('Accept'),
                     ),
                   ),
                 ],

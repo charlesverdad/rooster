@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
+import '../services/push_service.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
@@ -45,6 +46,15 @@ class AuthProvider with ChangeNotifier {
         final data = jsonDecode(response.body);
         await ApiClient.saveToken(data['access_token']);
         await fetchCurrentUser();
+        // Re-subscribe push for the new user if permission already granted
+        try {
+          if (PushService.isSupported &&
+              PushService.getPermissionStatus() == 'granted') {
+            await PushService.requestPermissionAndSubscribe();
+          }
+        } catch (e) {
+          debugPrint('Error re-subscribing push on login: $e');
+        }
         _isLoading = false;
         notifyListeners();
         return true;
@@ -107,6 +117,12 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Unsubscribe push before clearing auth token (needs auth to call API)
+    try {
+      await PushService.unsubscribe();
+    } catch (e) {
+      debugPrint('Error unsubscribing push on logout: $e');
+    }
     await ApiClient.clearToken();
     _user = null;
     notifyListeners();
