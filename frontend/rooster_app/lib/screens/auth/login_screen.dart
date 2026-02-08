@@ -54,11 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Icon(
-                        Icons.church,
-                        size: 80,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                      Image.asset('assets/rooster-logo.png', height: 100),
                       const SizedBox(height: 16),
                       Text(
                         'Rooster',
