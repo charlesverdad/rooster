@@ -11,6 +11,7 @@ services:
     image: nginx:alpine
     volumes:
       - ./tunnel/proxy.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./landing:/usr/share/nginx/landing:ro
     ports:
       - "${PROXY_PORT:-8080}:80"
     depends_on:

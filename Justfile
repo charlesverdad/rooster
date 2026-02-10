@@ -129,6 +129,20 @@ docker-db-migrate:
 docker-logs:
     docker compose logs -f
 
+# --- Production (deploy with proxy + landing page) ---
+
+# Build and start production stack (proxy + landing page, no tunnel)
+prod:
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up --build -d
+
+# Stop production stack
+prod-down:
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yaml down
+
+# View production logs
+prod-logs:
+    docker compose -f docker-compose.yaml -f docker-compose.prod.yaml logs -f
+
 # --- Tunnel (share dev build via public URL) ---
 
 # Build and start the full tunnel stack (proxy + cloudflared)
