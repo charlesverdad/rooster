@@ -23,6 +23,7 @@ class OrganisationResponse(BaseModel):
 
     id: uuid.UUID
     name: str
+    is_personal: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -34,7 +35,7 @@ class OrganisationMemberResponse(BaseModel):
     user_id: uuid.UUID
     organisation_id: uuid.UUID
     role: OrganisationRole
-    user_email: str
+    user_email: str | None = None
     user_name: str
 
     model_config = {"from_attributes": True}
@@ -46,6 +47,7 @@ class OrganisationWithRole(BaseModel):
     id: uuid.UUID
     name: str
     role: OrganisationRole
+    is_personal: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -56,3 +58,9 @@ class AddMemberRequest(BaseModel):
 
     user_id: uuid.UUID
     role: OrganisationRole = OrganisationRole.MEMBER
+
+
+class UpdateMemberRoleRequest(BaseModel):
+    """Schema for updating a member's role."""
+
+    role: OrganisationRole

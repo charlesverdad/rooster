@@ -56,8 +56,17 @@ class AuthService:
         if team_lead_memberships:
             roles.append("team_lead")
 
-        # TODO: Add admin role check when we implement org admins
-        # For now, we can check if user created the organization
+        # Check if user is an org admin
+        from app.models.organisation import OrganisationMember, OrganisationRole
+
+        org_result = await self.db.execute(
+            select(OrganisationMember).where(
+                OrganisationMember.user_id == user_id,
+                OrganisationMember.role == OrganisationRole.ADMIN,
+            )
+        )
+        if org_result.scalars().first():
+            roles.append("admin")
 
         return roles
 

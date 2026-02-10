@@ -4,6 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
+from app.schemas.organisation import OrganisationWithRole
+
 
 class UserCreate(BaseModel):
     """Schema for creating a new user."""
@@ -34,6 +36,7 @@ class UserResponse(BaseModel):
     name: str
     is_placeholder: bool = False
     roles: list[str] = []
+    organisations: list[OrganisationWithRole] = []
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -1,10 +1,11 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.organisation import Organisation, OrganisationMember, OrganisationRole
+from app.models.team import Team, TeamMember
 from app.models.user import User
 from app.schemas.organisation import OrganisationCreate, OrganisationUpdate
 
@@ -90,6 +91,16 @@ class OrganisationService:
         membership = await self.get_membership(user_id, org_id)
         return membership is not None and membership.role == OrganisationRole.ADMIN
 
+    async def _count_admins(self, org_id: uuid.UUID) -> int:
+        """Count the number of admins in an organisation."""
+        result = await self.db.execute(
+            select(func.count()).where(
+                OrganisationMember.organisation_id == org_id,
+                OrganisationMember.role == OrganisationRole.ADMIN,
+            )
+        )
+        return result.scalar_one()
+
     async def add_member(
         self, org_id: uuid.UUID, user_id: uuid.UUID, role: OrganisationRole
     ) -> OrganisationMember | None:
@@ -115,12 +126,64 @@ class OrganisationService:
         return membership
 
     async def remove_member(self, org_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-        """Remove a member from an organisation."""
+        """Remove a member from an organisation.
+
+        Raises ValueError if the member is the last admin.
+        Also cascades removal to all team memberships within this org.
+        """
         membership = await self.get_membership(user_id, org_id)
         if not membership:
             return False
+
+        # Guard: cannot remove the last admin
+        if membership.role == OrganisationRole.ADMIN:
+            admin_count = await self._count_admins(org_id)
+            if admin_count <= 1:
+                raise ValueError("Cannot remove the last admin of an organisation")
+
+        # Cascade: remove user from all teams in this org
+        team_result = await self.db.execute(
+            select(Team.id).where(Team.organisation_id == org_id)
+        )
+        team_ids = [row[0] for row in team_result.all()]
+        if team_ids:
+            tm_result = await self.db.execute(
+                select(TeamMember).where(
+                    TeamMember.user_id == user_id,
+                    TeamMember.team_id.in_(team_ids),
+                )
+            )
+            for tm in tm_result.scalars().all():
+                await self.db.delete(tm)
+
         await self.db.delete(membership)
+        await self.db.flush()
         return True
+
+    async def update_member_role(
+        self, org_id: uuid.UUID, user_id: uuid.UUID, role: OrganisationRole
+    ) -> OrganisationMember | None:
+        """Update a member's role in an organisation.
+
+        Raises ValueError if demoting the last admin.
+        """
+        membership = await self.get_membership(user_id, org_id)
+        if not membership:
+            return None
+
+        # Guard: cannot demote the last admin
+        if (
+            membership.role == OrganisationRole.ADMIN
+            and role == OrganisationRole.MEMBER
+        ):
+            admin_count = await self._count_admins(org_id)
+            if admin_count <= 1:
+                raise ValueError("Cannot demote the last admin of an organisation")
+
+        membership.role = role
+        await self.db.flush()
+        await self.db.refresh(membership)
+        return membership
 
     async def get_members(self, org_id: uuid.UUID) -> list[OrganisationMember]:
         """Get all members of an organisation."""
@@ -135,12 +198,15 @@ class OrganisationService:
         """Get the user's default organisation, creating one if needed.
 
         For MVP, each user gets a personal organisation when they first create a team.
-        This simplifies the model by not requiring explicit org creation.
+        Prefers personal orgs, falls back to the first org.
         """
-        # Check if user already has an organisation (take the first one as default)
         user_orgs = await self.get_user_organisations(user_id)
         if user_orgs:
-            return user_orgs[0][0]  # Return the first organisation
+            # Prefer personal org
+            for org, _role in user_orgs:
+                if org.is_personal:
+                    return org
+            return user_orgs[0][0]
 
         # Get user's name for the org name
         user_result = await self.db.execute(select(User).where(User.id == user_id))
@@ -150,7 +216,7 @@ class OrganisationService:
 
         # Create a personal organisation for this user
         org_name = f"{user.name}'s Organisation"
-        org = Organisation(name=org_name)
+        org = Organisation(name=org_name, is_personal=True)
         self.db.add(org)
         await self.db.flush()
 

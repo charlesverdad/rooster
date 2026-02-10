@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/organisation_provider.dart';
 import '../../services/push_service.dart';
 import '../../widgets/back_button.dart';
 
@@ -156,6 +157,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               context.push('/availability');
             },
           ),
+
+          // Organisation (admin only)
+          if (authProvider.user?.isAdmin == true) ...[
+            Builder(
+              builder: (context) {
+                final orgProvider = Provider.of<OrganisationProvider>(context);
+                final org = orgProvider.currentOrganisation;
+                if (org == null) return const SizedBox.shrink();
+                return ListTile(
+                  leading: const Icon(Icons.business_outlined),
+                  title: const Text('Organisation'),
+                  subtitle: Text(org.name),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    context.push('/organisations/${org.id}/settings');
+                  },
+                );
+              },
+            ),
+          ],
 
           const Divider(),
 
