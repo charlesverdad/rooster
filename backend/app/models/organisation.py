@@ -2,7 +2,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, Enum, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -26,6 +26,7 @@ class Organisation(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "organisations"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_personal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     members: Mapped[list["OrganisationMember"]] = relationship(

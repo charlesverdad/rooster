@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/organisation_provider.dart';
 import '../../providers/team_provider.dart';
 import '../../widgets/back_button.dart';
 import '../../models/team.dart';
@@ -122,6 +124,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  _buildOrgHeader(context),
                   if (_pendingInvites.isNotEmpty) ...[
                     _buildPendingInvitesSection(),
                     const SizedBox(height: 16),
@@ -140,6 +143,114 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildOrgHeader(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final orgProvider = Provider.of<OrganisationProvider>(context);
+
+    if (authProvider.user?.isAdmin != true) return const SizedBox.shrink();
+
+    final org = orgProvider.currentOrganisation;
+    if (org == null) return const SizedBox.shrink();
+
+    if (org.isPersonal) {
+      // Show "Set up your organisation" prompt
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Card(
+          color: Colors.blue.shade50,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.business_outlined, color: Colors.blue.shade700),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Set up your organisation',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Give your organisation a name to help members identify it.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton(
+                    onPressed: () {
+                      context.push('/organisations/${org.id}/settings');
+                    },
+                    child: const Text('Set Up'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Named org: show header card
+    final teamProvider = Provider.of<TeamProvider>(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.grey.shade600,
+                child: const Icon(
+                  Icons.business,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      org.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${teamProvider.teams.length} teams',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  context.push('/organisations/${org.id}/settings');
+                },
+                child: const Text('Manage'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -222,6 +333,9 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
       final team = await teamProvider.createTeam(teamName);
 
       if (team != null && mounted) {
+        // Refresh auth to pick up new org admin role & org data
+        Provider.of<AuthProvider>(context, listen: false).fetchCurrentUser();
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${team.name} created!'),

@@ -17,6 +17,7 @@ import '../screens/roster/roster_detail_screen.dart';
 import '../screens/roster/event_detail_screen.dart';
 import '../screens/roster/create_roster_screen.dart';
 import '../screens/assignments/assignment_detail_screen.dart';
+import '../screens/organisations/org_settings_screen.dart';
 
 GoRouter createRouter(AuthProvider authProvider) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
@@ -122,6 +123,11 @@ GoRouter createRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/availability',
         builder: (context, state) => const AvailabilityScreen(),
+      ),
+      GoRoute(
+        path: '/organisations/:orgId/settings',
+        builder: (context, state) =>
+            OrgSettingsScreen(orgId: state.pathParameters['orgId']!),
       ),
       GoRoute(
         path: '/settings',

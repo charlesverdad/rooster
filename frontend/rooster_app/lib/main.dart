@@ -9,6 +9,7 @@ import 'providers/assignment_provider.dart';
 import 'providers/availability_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/team_provider.dart';
+import 'providers/organisation_provider.dart';
 import 'providers/roster_provider.dart';
 import 'router/app_router.dart';
 
@@ -26,12 +27,15 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late final AuthProvider _authProvider;
+  late final OrganisationProvider _orgProvider;
   late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
     _authProvider = AuthProvider();
+    _orgProvider = OrganisationProvider();
+    _authProvider.setOrgProvider(_orgProvider);
     _router = createRouter(_authProvider);
 
     // Set up unauthorized callback -- logout triggers GoRouter redirect to /login
@@ -59,6 +63,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AvailabilityProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => TeamProvider()),
+        ChangeNotifierProvider.value(value: _orgProvider),
         ChangeNotifierProvider(create: (_) => RosterProvider()),
       ],
       child: MaterialApp.router(
