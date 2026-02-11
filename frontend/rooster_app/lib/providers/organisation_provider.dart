@@ -79,7 +79,7 @@ class OrganisationProvider with ChangeNotifier {
           id: updated.id,
           name: updated.name,
           role: _organisations[idx].role,
-          isPersonal: _organisations[idx].isPersonal,
+          isPersonal: false,
           createdAt: _organisations[idx].createdAt,
         );
         notifyListeners();

@@ -62,6 +62,8 @@ class OrganisationService:
             return None
         if data.name is not None:
             org.name = data.name
+            if org.is_personal:
+                org.is_personal = False
         await self.db.flush()
         await self.db.refresh(org)
         return org
