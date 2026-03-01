@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     # Resend API (alternative to SMTP)
     resend_api_key: str = ""
 
+    # Auth methods
+    auth_email_enabled: bool = True
+    auth_google_enabled: bool = False
+    google_client_id: str = ""
+
     # CORS
     cors_origins: str = "*"  # Comma-separated list of origins, or "*" for all
 

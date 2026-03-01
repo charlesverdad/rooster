@@ -30,13 +30,62 @@ class AuthService:
         await self.db.refresh(user)
         return user
 
+    async def get_user_by_google_id(self, google_id: str) -> User | None:
+        """Get a user by Google ID."""
+        result = await self.db.execute(select(User).where(User.google_id == google_id))
+        return result.scalar_one_or_none()
+
     async def authenticate_user(self, email: str, password: str) -> User | None:
         """Authenticate a user by email and password."""
         user = await self.get_user_by_email(email)
         if not user:
             return None
+        if not user.password_hash:
+            return None
         if not verify_password(password, user.password_hash):
             return None
+        return user
+
+    async def authenticate_or_create_google_user(
+        self, google_id: str, email: str, name: str
+    ) -> User:
+        """Authenticate or create a user from Google OAuth.
+
+        Cases:
+        1. Already linked by google_id -> return existing
+        2. Existing registered user by email, no google_id -> link and return
+        3. Placeholder user by email -> convert to full user with Google
+        4. No user exists -> create new (no password_hash)
+        """
+        # Case 1: Already linked
+        user = await self.get_user_by_google_id(google_id)
+        if user:
+            return user
+
+        # Check by email
+        user = await self.get_user_by_email(email)
+        if user:
+            if user.is_placeholder:
+                # Case 3: Convert placeholder
+                user.google_id = google_id
+                user.name = name
+                user.is_placeholder = False
+            else:
+                # Case 2: Link existing user
+                user.google_id = google_id
+            await self.db.flush()
+            await self.db.refresh(user)
+            return user
+
+        # Case 4: Create new user
+        user = User(
+            email=email,
+            name=name,
+            google_id=google_id,
+        )
+        self.db.add(user)
+        await self.db.flush()
+        await self.db.refresh(user)
         return user
 
     async def get_user_roles(self, user_id: uuid.UUID) -> list[str]:

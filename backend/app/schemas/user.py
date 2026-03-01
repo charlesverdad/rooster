@@ -64,3 +64,17 @@ class TokenData(BaseModel):
     """Schema for decoded token data."""
 
     user_id: uuid.UUID | None = None
+
+
+class GoogleLoginRequest(BaseModel):
+    """Schema for Google OAuth login."""
+
+    id_token: str
+
+
+class AuthConfigResponse(BaseModel):
+    """Schema for auth configuration response."""
+
+    email_enabled: bool
+    google_enabled: bool
+    google_client_id: str | None = None

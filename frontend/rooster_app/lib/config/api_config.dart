@@ -17,5 +17,10 @@ class ApiConfig {
         : resolved;
   }
 
+  static const String googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue: '',
+  );
+
   static const Duration timeout = Duration(seconds: 30);
 }
