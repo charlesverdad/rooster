@@ -157,6 +157,95 @@ class _OrgSettingsScreenState extends State<OrgSettingsScreen> {
     }
   }
 
+  Future<void> _showAddMemberDialog() async {
+    final emailController = TextEditingController();
+    String? errorText;
+
+    final email = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add Member'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter the email address of an existing user to add them to this organisation.',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                autofocus: true,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Email address',
+                  hintText: 'name@example.com',
+                  border: const OutlineInputBorder(),
+                  errorText: errorText,
+                ),
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty && value.contains('@')) {
+                    Navigator.of(context).pop(value.trim());
+                  }
+                },
+                onChanged: (_) {
+                  if (errorText != null) {
+                    setDialogState(() => errorText = null);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final email = emailController.text.trim();
+                if (email.isEmpty || !email.contains('@')) {
+                  setDialogState(
+                    () => errorText = 'Please enter a valid email address',
+                  );
+                  return;
+                }
+                Navigator.of(context).pop(email);
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (email == null || !mounted) return;
+
+    final orgProvider = Provider.of<OrganisationProvider>(
+      context,
+      listen: false,
+    );
+    final error = await orgProvider.addMemberByEmail(widget.orgId, email);
+
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.red),
+      );
+    } else {
+      // Refresh auth to update member counts
+      Provider.of<AuthProvider>(context, listen: false).fetchCurrentUser();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Member added'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
   Future<void> _deleteOrganisation() async {
     final org = _findOrg(
       Provider.of<OrganisationProvider>(context, listen: false),
@@ -229,7 +318,7 @@ class _OrgSettingsScreenState extends State<OrgSettingsScreen> {
                 const SizedBox(height: 24),
 
                 // Members
-                _buildMembersSection(orgProvider.members, currentUserId),
+                _buildMembersSection(orgProvider.members, currentUserId, org),
                 const SizedBox(height: 24),
 
                 // Danger zone
@@ -270,7 +359,7 @@ class _OrgSettingsScreenState extends State<OrgSettingsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
+                  OutlinedButton(
                     onPressed: () {
                       setState(() => _isEditingName = false);
                       _nameController.text =
@@ -325,6 +414,7 @@ class _OrgSettingsScreenState extends State<OrgSettingsScreen> {
   Widget _buildMembersSection(
     List<OrganisationMember> members,
     String? currentUserId,
+    Organisation org,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,6 +450,15 @@ class _OrgSettingsScreenState extends State<OrgSettingsScreen> {
                   (member) => _buildMemberTile(member, currentUserId),
                 ),
             ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _showAddMemberDialog(),
+            icon: const Icon(Icons.person_add_outlined),
+            label: const Text('Add Member'),
           ),
         ),
       ],

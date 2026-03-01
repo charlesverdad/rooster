@@ -187,6 +187,42 @@ class OrganisationService:
         await self.db.refresh(membership)
         return membership
 
+    async def get_member_count(self, org_id: uuid.UUID) -> int:
+        """Get the number of members in an organisation."""
+        result = await self.db.execute(
+            select(func.count()).where(
+                OrganisationMember.organisation_id == org_id,
+            )
+        )
+        return result.scalar_one()
+
+    async def get_member_counts(self, org_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
+        """Get member counts for multiple organisations in a single query."""
+        if not org_ids:
+            return {}
+        result = await self.db.execute(
+            select(
+                OrganisationMember.organisation_id,
+                func.count(),
+            )
+            .where(OrganisationMember.organisation_id.in_(org_ids))
+            .group_by(OrganisationMember.organisation_id)
+        )
+        return {row[0]: row[1] for row in result.all()}
+
+    async def add_member_by_email(
+        self, org_id: uuid.UUID, email: str, role: OrganisationRole
+    ) -> OrganisationMember | None:
+        """Add a member to an organisation by email. Returns None if user not found."""
+        user_result = await self.db.execute(
+            select(User).where(User.email == email, User.is_placeholder == False)  # noqa: E712
+        )
+        user = user_result.scalar_one_or_none()
+        if not user:
+            return None
+
+        return await self.add_member(org_id, user.id, role)
+
     async def get_members(self, org_id: uuid.UUID) -> list[OrganisationMember]:
         """Get all members of an organisation."""
         result = await self.db.execute(
