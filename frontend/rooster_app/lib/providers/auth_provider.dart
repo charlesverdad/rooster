@@ -29,7 +29,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> init() async {
-    await _fetchAuthConfig();
+    // Fetch auth config in the background — don't block initialization.
+    // Login screen renders with defaults (email enabled) and updates when
+    // the config arrives.
+    _fetchAuthConfig();
     await ApiClient.loadToken();
     if (ApiClient.hasToken) {
       await fetchCurrentUser();
@@ -42,9 +45,10 @@ class AuthProvider with ChangeNotifier {
     try {
       final response = await http
           .get(Uri.parse('${ApiConfig.baseUrl}/auth/config'))
-          .timeout(ApiConfig.timeout);
+          .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         _authConfig = AuthConfig.fromJson(jsonDecode(response.body));
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('Error fetching auth config: $e');
