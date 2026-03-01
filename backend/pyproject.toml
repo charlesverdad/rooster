@@ -28,6 +28,8 @@ dependencies = [
     # Email (Resend provider)
     "resend>=0.8.0",
     "pywebpush>=2.2.0",
+    # Google OAuth
+    "google-auth>=2.25.0",
 ]
 
 [project.optional-dependencies]

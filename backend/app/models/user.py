@@ -33,6 +33,11 @@ class User(Base, UUIDMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
+    # Google OAuth
+    google_id: Mapped[Optional[str]] = mapped_column(
+        String(255), unique=True, index=True, nullable=True
+    )
+
     # Placeholder user fields
     is_placeholder: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     invited_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(

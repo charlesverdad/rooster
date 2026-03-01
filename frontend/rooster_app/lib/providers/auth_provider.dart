@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import '../models/auth_config.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
 import '../services/push_service.dart';
@@ -13,24 +15,44 @@ class AuthProvider with ChangeNotifier {
   bool _isInitialized = false;
   String? _error;
   OrganisationProvider? _orgProvider;
+  AuthConfig _authConfig = AuthConfig.defaults();
 
   User? get user => _user;
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get error => _error;
   bool get isAuthenticated => _user != null;
+  AuthConfig get authConfig => _authConfig;
 
   void setOrgProvider(OrganisationProvider provider) {
     _orgProvider = provider;
   }
 
   Future<void> init() async {
+    // Fetch auth config in the background — don't block initialization.
+    // Login screen renders with defaults (email enabled) and updates when
+    // the config arrives.
+    _fetchAuthConfig();
     await ApiClient.loadToken();
     if (ApiClient.hasToken) {
       await fetchCurrentUser();
     }
     _isInitialized = true;
     notifyListeners();
+  }
+
+  Future<void> _fetchAuthConfig() async {
+    try {
+      final response = await http
+          .get(Uri.parse('${ApiConfig.baseUrl}/auth/config'))
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        _authConfig = AuthConfig.fromJson(jsonDecode(response.body));
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error fetching auth config: $e');
+    }
   }
 
   Future<bool> login(String email, String password) async {
@@ -103,6 +125,74 @@ class AuthProvider with ChangeNotifier {
       }
     } catch (e) {
       _error = 'Connection error: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> loginWithGoogle() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final clientId = _authConfig.googleClientId ?? ApiConfig.googleClientId;
+      final googleSignIn = GoogleSignIn(
+        clientId: clientId.isNotEmpty ? clientId : null,
+        scopes: ['email', 'profile'],
+      );
+
+      final account = await googleSignIn.signIn();
+      if (account == null) {
+        // User cancelled
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        _error = 'Could not get Google ID token';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/auth/google'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id_token': idToken}),
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await ApiClient.saveToken(data['access_token']);
+        await fetchCurrentUser();
+        // Re-subscribe push for the new user if permission already granted
+        try {
+          if (PushService.isSupported &&
+              PushService.getPermissionStatus() == 'granted') {
+            await PushService.requestPermissionAndSubscribe();
+          }
+        } catch (e) {
+          debugPrint('Error re-subscribing push on Google login: $e');
+        }
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        final data = jsonDecode(response.body);
+        _error = data['detail'] ?? 'Google login failed';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Google login error: $e';
       _isLoading = false;
       notifyListeners();
       return false;

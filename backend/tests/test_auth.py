@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from fastapi import status
 from httpx import AsyncClient
@@ -556,3 +558,276 @@ async def test_register_with_pending_invite_creates_notification(
     assert any(
         n["type"] == "team_invite" and n["reference_id"] == str(team.id) for n in data
     )
+
+
+# =============================================================================
+# Auth Config Tests
+# =============================================================================
+
+
+async def test_auth_config_defaults(test_client: AsyncClient):
+    """Test /auth/config returns default flags."""
+    response = await test_client.get("/api/auth/config")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email_enabled"] is True
+    assert data["google_enabled"] is False
+    assert data["google_client_id"] is None
+
+
+@patch("app.api.auth.get_settings")
+async def test_auth_config_google_enabled(mock_settings, test_client: AsyncClient):
+    """Test /auth/config when Google is enabled."""
+    from app.core.config import Settings
+
+    mock_settings.return_value = Settings(
+        auth_google_enabled=True,
+        google_client_id="test-client-id.apps.googleusercontent.com",
+    )
+    response = await test_client.get("/api/auth/config")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["google_enabled"] is True
+    assert data["google_client_id"] == "test-client-id.apps.googleusercontent.com"
+
+
+# =============================================================================
+# Google Login Disabled Tests
+# =============================================================================
+
+
+async def test_google_login_disabled_by_default(test_client: AsyncClient):
+    """Test POST /auth/google returns 403 when Google auth is disabled."""
+    response = await test_client.post(
+        "/api/auth/google",
+        json={"id_token": "some-token"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "disabled" in response.json()["detail"].lower()
+
+
+# =============================================================================
+# Email Login/Register Disabled Tests
+# =============================================================================
+
+
+@patch("app.api.auth.get_settings")
+async def test_login_disabled_when_email_auth_off(
+    mock_settings, test_client: AsyncClient
+):
+    """Test POST /auth/login returns 403 when email auth is disabled."""
+    from app.core.config import Settings
+
+    mock_settings.return_value = Settings(auth_email_enabled=False)
+    response = await test_client.post(
+        "/api/auth/login",
+        data={"username": "test@example.com", "password": "password"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "disabled" in response.json()["detail"].lower()
+
+
+@patch("app.api.auth.get_settings")
+async def test_register_disabled_when_email_auth_off(
+    mock_settings, test_client: AsyncClient
+):
+    """Test POST /auth/register returns 403 when email auth is disabled."""
+    from app.core.config import Settings
+
+    mock_settings.return_value = Settings(auth_email_enabled=False)
+    response = await test_client.post(
+        "/api/auth/register",
+        json={"email": "test@example.com", "name": "Test", "password": "password"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "disabled" in response.json()["detail"].lower()
+
+
+# =============================================================================
+# Google Login Flow Tests
+# =============================================================================
+
+
+@patch("app.api.auth.get_settings")
+@patch("app.services.google_auth.verify_google_id_token")
+async def test_google_login_creates_new_user(
+    mock_verify, mock_settings, test_client: AsyncClient
+):
+    """Test Google login creates a new user when none exists."""
+    from app.core.config import Settings
+
+    mock_settings.return_value = Settings(
+        auth_google_enabled=True,
+        google_client_id="test-client-id",
+    )
+    mock_verify.return_value = {
+        "sub": "google-123",
+        "email": "googleuser@gmail.com",
+        "email_verified": True,
+        "name": "Google User",
+    }
+
+    response = await test_client.post(
+        "/api/auth/google",
+        json={"id_token": "valid-google-token"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+
+@patch("app.api.auth.get_settings")
+@patch("app.services.google_auth.verify_google_id_token")
+async def test_google_login_links_existing_email_user(
+    mock_verify, mock_settings, test_client: AsyncClient
+):
+    """Test Google login links to existing user with same email."""
+    from app.core.config import Settings
+
+    mock_settings.return_value = Settings(
+        auth_google_enabled=True,
+        google_client_id="test-client-id",
+    )
+
+    # First register with email
+    await test_client.post(
+        "/api/auth/register",
+        json={
+            "email": "existing@example.com",
+            "name": "Existing User",
+            "password": "password",
+        },
+    )
+
+    # Now login with Google using same email
+    mock_verify.return_value = {
+        "sub": "google-456",
+        "email": "existing@example.com",
+        "email_verified": True,
+        "name": "Existing User",
+    }
+    response = await test_client.post(
+        "/api/auth/google",
+        json={"id_token": "valid-google-token"},
+    )
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+
+    # Verify it's the same user
+    me_response = await test_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert me_response.status_code == 200
+    assert me_response.json()["email"] == "existing@example.com"
+
+
+async def test_google_only_user_cannot_email_login(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Test that a Google-only user gets a helpful error when trying email login."""
+    # Create a Google-only user directly in the database
+    user = User(
+        email="googleonly@example.com",
+        name="Google Only",
+        google_id="google-789",
+    )
+    db_session.add(user)
+    await db_session.commit()
+
+    response = await test_client.post(
+        "/api/auth/login",
+        data={"username": "googleonly@example.com", "password": "anything"},
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "google" in response.json()["detail"].lower()
+
+
+# =============================================================================
+# Google Auth Service Tests
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_authenticate_or_create_google_user_new(db_session: AsyncSession):
+    """Test creating a new user via Google OAuth."""
+    service = AuthService(db_session)
+    user = await service.authenticate_or_create_google_user(
+        google_id="new-google-id",
+        email="newgoogle@example.com",
+        name="New Google User",
+    )
+    assert user.email == "newgoogle@example.com"
+    assert user.google_id == "new-google-id"
+    assert user.password_hash is None
+
+
+@pytest.mark.asyncio
+async def test_authenticate_or_create_google_user_existing(db_session: AsyncSession):
+    """Test linking Google to an existing email user."""
+    # Create existing user
+    existing = User(
+        email="link@example.com",
+        name="Link User",
+        password_hash=get_password_hash("password"),
+    )
+    db_session.add(existing)
+    await db_session.commit()
+
+    service = AuthService(db_session)
+    user = await service.authenticate_or_create_google_user(
+        google_id="link-google-id",
+        email="link@example.com",
+        name="Link User",
+    )
+    assert user.id == existing.id
+    assert user.google_id == "link-google-id"
+    assert user.password_hash is not None  # Password should be preserved
+
+
+@pytest.mark.asyncio
+async def test_authenticate_or_create_google_user_placeholder(
+    db_session: AsyncSession,
+):
+    """Test converting a placeholder user via Google OAuth."""
+    placeholder = User(
+        email="placeholder@example.com",
+        name="Placeholder",
+        is_placeholder=True,
+    )
+    db_session.add(placeholder)
+    await db_session.commit()
+
+    service = AuthService(db_session)
+    user = await service.authenticate_or_create_google_user(
+        google_id="placeholder-google-id",
+        email="placeholder@example.com",
+        name="Real Name",
+    )
+    assert user.id == placeholder.id
+    assert user.google_id == "placeholder-google-id"
+    assert user.name == "Real Name"
+    assert user.is_placeholder is False
+
+
+@pytest.mark.asyncio
+async def test_authenticate_or_create_google_user_already_linked(
+    db_session: AsyncSession,
+):
+    """Test that an already-linked Google user is returned directly."""
+    existing = User(
+        email="linked@example.com",
+        name="Linked User",
+        google_id="already-linked-id",
+    )
+    db_session.add(existing)
+    await db_session.commit()
+
+    service = AuthService(db_session)
+    user = await service.authenticate_or_create_google_user(
+        google_id="already-linked-id",
+        email="linked@example.com",
+        name="Linked User",
+    )
+    assert user.id == existing.id

@@ -45,6 +45,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final config = authProvider.authConfig;
+
+    // If email registration is disabled, show a message
+    if (!config.emailEnabled) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Register')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.info_outline, size: 48, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                const Text(
+                  'Email registration is not available.',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Please sign in with Google on the login screen.',
+                  style: TextStyle(color: Colors.grey.shade600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                OutlinedButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Back to Login'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Register')),
       body: Center(

@@ -9,14 +9,15 @@ COPY rooster_app/ ./
 # Get dependencies
 RUN flutter pub get
 
-# Build argument for API URL
+# Build arguments
 ARG API_BASE_URL=http://localhost:8000/api
+ARG GOOGLE_CLIENT_ID=
 
 # Build web release
 # CRITICAL: --pwa-strategy none prevents Flutter from generating its own
 # flutter_service_worker.js which would replace our custom service-worker.js
 # and break push notifications (accept/decline actions, silent API calls).
-RUN flutter build web --release --pwa-strategy none --dart-define=API_BASE_URL=${API_BASE_URL}
+RUN flutter build web --release --pwa-strategy none --dart-define=API_BASE_URL=${API_BASE_URL} --dart-define=GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
 
 # Production stage
 FROM nginx:alpine
