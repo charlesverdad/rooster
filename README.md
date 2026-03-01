@@ -18,7 +18,7 @@ A volunteer rostering application designed for church communities. Rooster helps
 |-------|------------|
 | **Backend** | Python 3.12, FastAPI, SQLAlchemy, PostgreSQL |
 | **Frontend** | Flutter (Web, iOS, Android) |
-| **Authentication** | JWT tokens |
+| **Authentication** | JWT tokens, Google OAuth (optional) |
 | **Notifications** | Web Push (VAPID), Email (SMTP/Resend) |
 
 ## Quick Start
@@ -137,6 +137,49 @@ VAPID_PRIVATE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 VAPID_SUBJECT=mailto:admin@yourdomain.com
 ```
 
+### Authentication
+
+By default, Rooster uses email/password authentication. You can also enable Google OAuth login, or disable email login entirely to force Google-only authentication.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AUTH_EMAIL_ENABLED` | `true` | Enable email/password login and registration |
+| `AUTH_GOOGLE_ENABLED` | `false` | Enable Google OAuth login |
+| `GOOGLE_CLIENT_ID` | `""` | Google OAuth client ID (required when Google auth is enabled) |
+
+**Setting up Google Sign-In:**
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a project (or use an existing one)
+3. Navigate to **APIs & Services > Credentials**
+4. Click **Create Credentials > OAuth 2.0 Client ID**
+5. For web apps, set the **Authorized JavaScript origins** to your frontend URL (e.g., `https://rooster.example.com`)
+6. Copy the **Client ID** (looks like `123456789-abc.apps.googleusercontent.com`)
+7. No client secret is needed — the backend verifies Google ID tokens using Google's public keys
+
+**Common configurations:**
+
+```bash
+# Email only (default)
+AUTH_EMAIL_ENABLED=true
+AUTH_GOOGLE_ENABLED=false
+
+# Both email and Google
+AUTH_EMAIL_ENABLED=true
+AUTH_GOOGLE_ENABLED=true
+GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+
+# Google only (no email/password)
+AUTH_EMAIL_ENABLED=false
+AUTH_GOOGLE_ENABLED=true
+GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+```
+
+When building the frontend for Docker deployment with Google login, also pass the client ID as a build arg:
+```bash
+docker compose build --build-arg GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+```
+
 ### CORS
 
 | Variable | Default | Description |
@@ -209,24 +252,31 @@ rooster/
    - [ ] Configure `CORS_ORIGINS` to your frontend domain only
    - [ ] Use HTTPS for both frontend and backend
 
-2. **Email**
+2. **Authentication**
+   - [ ] Choose auth method: email, Google, or both (see [Authentication](#authentication))
+   - [ ] If using Google: create OAuth client ID and set `GOOGLE_CLIENT_ID`
+   - [ ] If Google-only: set `AUTH_EMAIL_ENABLED=false`
+
+3. **Email**
    - [ ] Configure email provider (SMTP or Resend)
    - [ ] Set `EMAIL_ENABLED=true`
    - [ ] Verify emails are sending correctly
 
-3. **Push Notifications**
+4. **Push Notifications**
    - [ ] Generate VAPID keys
    - [ ] Configure `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
 
-4. **Database**
+5. **Database**
    - [ ] Use a strong database password
    - [ ] Configure database backups
 
 ### Deploying with Docker
 
-1. **Build with production API URL:**
+1. **Build with production settings:**
    ```bash
-   API_BASE_URL=https://api.yourdomain.com/api docker compose build
+   docker compose build \
+     --build-arg API_BASE_URL=https://api.yourdomain.com/api \
+     --build-arg GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com  # optional
    ```
 
 2. **Run database migrations:**
