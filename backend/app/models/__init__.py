@@ -14,6 +14,7 @@ from app.models.availability import Unavailability
 from app.models.notification import Notification, NotificationType
 from app.models.invite import Invite
 from app.models.push_subscription import PushSubscription
+from app.models.system_config import AuthSettings
 
 __all__ = [
     "User",
@@ -35,4 +36,5 @@ __all__ = [
     "NotificationType",
     "Invite",
     "PushSubscription",
+    "AuthSettings",
 ]

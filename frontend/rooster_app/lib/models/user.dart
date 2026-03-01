@@ -6,6 +6,7 @@ class User {
   final String name;
   final List<String> roles;
   final bool isPlaceholder;
+  final bool isSuperadmin;
   final List<Organisation> organisations;
 
   User({
@@ -14,6 +15,7 @@ class User {
     required this.name,
     List<String>? roles,
     this.isPlaceholder = false,
+    this.isSuperadmin = false,
     List<Organisation>? organisations,
   }) : roles = roles ?? ['member'],
        organisations = organisations ?? [];
@@ -29,6 +31,7 @@ class User {
       name: json['name'],
       roles: json['roles'] != null ? List<String>.from(json['roles']) : null,
       isPlaceholder: json['is_placeholder'] ?? false,
+      isSuperadmin: json['is_superadmin'] ?? false,
       organisations: json['organisations'] != null
           ? (json['organisations'] as List)
                 .map((o) => Organisation.fromJson(o))
@@ -44,6 +47,7 @@ class User {
       'name': name,
       'roles': roles,
       'is_placeholder': isPlaceholder,
+      'is_superadmin': isSuperadmin,
     };
   }
 }

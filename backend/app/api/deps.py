@@ -41,8 +41,28 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exception
+    if user.is_deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account has been deactivated",
+        )
     return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def require_superadmin(
+    current_user: CurrentUser,
+) -> User:
+    """Require the current user to be a superadmin."""
+    if not current_user.is_superadmin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superadmin access required",
+        )
+    return current_user
+
+
+SuperAdmin = Annotated[User, Depends(require_superadmin)]
 DbSession = Annotated[AsyncSession, Depends(get_db)]

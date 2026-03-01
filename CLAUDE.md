@@ -31,16 +31,24 @@ rooster/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py           # FastAPI app entry
-│   │   ├── api/              # Route handlers
-│   │   ├── models/           # SQLAlchemy models
+│   │   ├── api/              # Route handlers (auth, admin, teams, rosters, etc.)
+│   │   ├── models/           # SQLAlchemy models (user, system_config, etc.)
 │   │   ├── schemas/          # Pydantic schemas
-│   │   ├── services/         # Business logic
+│   │   ├── services/         # Business logic (admin, auth, team, etc.)
 │   │   └── core/             # Config, security, deps
 │   ├── alembic/              # Database migrations
 │   ├── tests/
 │   └── pyproject.toml        # Python dependencies (uv)
 ├── frontend/
 │   └── rooster_app/          # Flutter project
+│       └── lib/
+│           ├── screens/
+│           │   ├── admin/    # Sys admin panel (dashboard, users, config)
+│           │   ├── auth/     # Login, register, first-run setup
+│           │   └── ...
+│           ├── providers/    # State management (auth, admin, etc.)
+│           └── services/     # API services (admin, team, etc.)
+├── docs/                     # Feature design documents
 ├── shell.nix
 ├── PRD.md
 └── CLAUDE.md
@@ -64,6 +72,10 @@ rooster/
 - JWT tokens for API authentication
 - Password hashing with bcrypt
 - Store tokens in secure HTTP-only cookies or Authorization header
+- Auth config (email/Google toggles) can be changed at runtime via `auth_settings` DB table
+- Config resolution: DB row (if exists) > env var defaults; `AUTH_FORCE_EMAIL_ENABLED` always overrides
+- `is_deactivated` check on every authenticated request in `get_current_user`
+- `SuperAdmin` dependency for admin-only endpoints (follows `CurrentUser` pattern)
 
 ### Code Style
 - Follow PEP 8
@@ -143,6 +155,8 @@ uv add --dev <package> --project backend  # Add dev dependency
 6. Member availability
 7. Dashboard views (member home, calendar)
 8. Basic notifications (in-app)
+9. Google OAuth social login
+10. System admin panel (first-run setup, dashboard, user management, runtime auth config)
 
 ## Push Notifications & Service Worker
 
@@ -168,8 +182,29 @@ one registered wins — and Flutter's async bootstrap script always registers la
 - Note: `event.action` from notification buttons is unreliable on Android Chrome,
   so we deliberately avoid silent API calls from the service worker
 
+## System Admin Panel
+
+See `docs/sys-admin-panel.md` for full design spec.
+
+### Key Architecture
+- **User model**: `is_superadmin` and `is_deactivated` boolean fields
+- **Auth config**: `auth_settings` single-row typed table (not generic key-value)
+- **Config fallback**: DB row present → use it, else env vars. `AUTH_FORCE_EMAIL_ENABLED` always overrides.
+- **First-run setup**: `GET /auth/setup-required` + `POST /auth/setup` (public endpoints)
+- **Admin API**: All under `/api/admin/`, gated by `SuperAdmin` dependency
+- **Frontend**: Admin panel at `/admin` with 3 tabs (Dashboard, Users, Config), desktop-only
+
+### Admin API Endpoints
+- `GET /api/admin/stats` — Dashboard statistics
+- `GET/PUT /api/admin/config` — Auth configuration
+- `GET /api/admin/users` — Paginated user list (search, filter, sort)
+- `GET /api/admin/users/{id}` — User detail with memberships
+- `POST /api/admin/users/{id}/deactivate|reactivate|promote-admin|demote-admin`
+- `GET /api/admin/organisations` — Org list with member/team counts
+
 ## Notes
 
 - See `PRD.md` for full feature specifications
+- See `docs/sys-admin-panel.md` for admin panel design spec
 - MVP focuses on single organisation, manual assignments
 - Phase 2 adds multi-org, auto-scheduling, swap requests

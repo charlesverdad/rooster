@@ -12,6 +12,7 @@ from app.api.notifications import router as notifications_router
 from app.api.dashboard import router as dashboard_router
 from app.api.invites import router as invites_router
 from app.api.push import router as push_router
+from app.api.admin import router as admin_router
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -49,6 +50,7 @@ app.include_router(notifications_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(invites_router, prefix="/api")
 app.include_router(push_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
 
 
 @app.get("/health")
