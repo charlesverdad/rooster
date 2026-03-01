@@ -8,6 +8,7 @@ import '../../widgets/back_button.dart';
 import '../../models/team.dart';
 import '../../services/invite_service.dart';
 import '../../utils/invite_utils.dart';
+import '../../widgets/org_setup_prompt.dart';
 
 class MyTeamsScreen extends StatefulWidget {
   const MyTeamsScreen({super.key});
@@ -149,60 +150,24 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
   Widget _buildOrgHeader(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final orgProvider = Provider.of<OrganisationProvider>(context);
-
-    if (authProvider.user?.isAdmin != true) return const SizedBox.shrink();
+    final isAdmin = authProvider.user?.isAdmin == true;
 
     final org = orgProvider.currentOrganisation;
     if (org == null) return const SizedBox.shrink();
 
+    // Only admins see the setup prompt for personal (unnamed) orgs
     if (org.isPersonal) {
-      // Show "Set up your organisation" prompt
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Card(
-          color: Colors.blue.shade50,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.business_outlined, color: Colors.blue.shade700),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Set up your organisation',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Give your organisation a name to help members identify it.',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton(
-                    onPressed: () {
-                      context.push('/organisations/${org.id}/settings');
-                    },
-                    child: const Text('Set Up'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+      if (!isAdmin) return const SizedBox.shrink();
+      return const OrgSetupPrompt();
     }
 
-    // Named org: show header card
+    // Named org: show header card for all users
     final teamProvider = Provider.of<TeamProvider>(context);
+    final memberCount = org.memberCount;
+    final teamCount = teamProvider.teams.length;
+    final subtitle =
+        '$teamCount ${teamCount == 1 ? 'team' : 'teams'}'
+        ' · $memberCount ${memberCount == 1 ? 'member' : 'members'}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Card(
@@ -232,7 +197,7 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${teamProvider.teams.length} teams',
+                      subtitle,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade600,
@@ -241,12 +206,13 @@ class _MyTeamsScreenState extends State<MyTeamsScreen> {
                   ],
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  context.push('/organisations/${org.id}/settings');
-                },
-                child: const Text('Manage'),
-              ),
+              if (isAdmin)
+                TextButton(
+                  onPressed: () {
+                    context.push('/organisations/${org.id}/settings');
+                  },
+                  child: const Text('Manage'),
+                ),
             ],
           ),
         ),

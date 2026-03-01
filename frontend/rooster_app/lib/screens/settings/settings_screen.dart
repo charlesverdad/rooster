@@ -158,25 +158,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
-          // Organisation (admin only)
-          if (authProvider.user?.isAdmin == true) ...[
-            Builder(
-              builder: (context) {
-                final orgProvider = Provider.of<OrganisationProvider>(context);
-                final org = orgProvider.currentOrganisation;
-                if (org == null) return const SizedBox.shrink();
-                return ListTile(
-                  leading: const Icon(Icons.business_outlined),
-                  title: const Text('Organisation'),
-                  subtitle: Text(org.name),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    context.push('/organisations/${org.id}/settings');
-                  },
-                );
-              },
-            ),
-          ],
+          // Organisation
+          Builder(
+            builder: (context) {
+              final orgProvider = Provider.of<OrganisationProvider>(context);
+              final org = orgProvider.currentOrganisation;
+              if (org == null) return const SizedBox.shrink();
+              final isAdmin = authProvider.user?.isAdmin == true;
+              return ListTile(
+                leading: const Icon(Icons.business_outlined),
+                title: const Text('Organisation'),
+                subtitle: Text(org.isPersonal ? 'Not set up yet' : org.name),
+                trailing: isAdmin ? const Icon(Icons.chevron_right) : null,
+                onTap: isAdmin
+                    ? () {
+                        context.push('/organisations/${org.id}/settings');
+                      }
+                    : null,
+              );
+            },
+          ),
 
           const Divider(),
 

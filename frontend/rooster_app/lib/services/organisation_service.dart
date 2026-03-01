@@ -77,6 +77,28 @@ class OrganisationService {
     }
   }
 
+  static Future<OrganisationMember> addMemberByEmail(
+    String orgId,
+    String email, {
+    String role = 'member',
+  }) async {
+    final response = await ApiClient.post(
+      '/organisations/$orgId/members/by-email',
+      {'email': email, 'role': role},
+    );
+
+    if (response.statusCode == 201) {
+      return OrganisationMember.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 404) {
+      throw ApiException(
+        response.statusCode,
+        'No user found with that email address',
+      );
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
   static Future<OrganisationMember> updateMemberRole(
     String orgId,
     String userId,

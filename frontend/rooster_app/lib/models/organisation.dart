@@ -3,6 +3,7 @@ class Organisation {
   final String name;
   final String role; // "admin" or "member"
   final bool isPersonal;
+  final int memberCount;
   final DateTime createdAt;
 
   Organisation({
@@ -10,6 +11,7 @@ class Organisation {
     required this.name,
     required this.role,
     this.isPersonal = false,
+    this.memberCount = 0,
     required this.createdAt,
   });
 
@@ -21,6 +23,7 @@ class Organisation {
       name: json['name'],
       role: json['role'] ?? 'member',
       isPersonal: json['is_personal'] ?? false,
+      memberCount: json['member_count'] ?? 0,
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -31,6 +34,7 @@ class Organisation {
       'name': name,
       'role': role,
       'is_personal': isPersonal,
+      'member_count': memberCount,
       'created_at': createdAt.toIso8601String(),
     };
   }

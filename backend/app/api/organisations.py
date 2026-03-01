@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.organisation import (
+    AddMemberByEmailRequest,
     AddMemberRequest,
     OrganisationCreate,
     OrganisationMemberResponse,
@@ -39,12 +40,15 @@ async def list_my_organisations(
     """List all organisations the current user belongs to."""
     service = OrganisationService(db)
     orgs = await service.get_user_organisations(current_user.id)
+    org_ids = [org.id for org, _ in orgs]
+    member_counts = await service.get_member_counts(org_ids)
     return [
         OrganisationWithRole(
             id=org.id,
             name=org.name,
             role=role,
             is_personal=org.is_personal,
+            member_count=member_counts.get(org.id, 0),
             created_at=org.created_at,
         )
         for org, role in orgs
@@ -212,6 +216,48 @@ async def add_member(
     members = await service.get_members(org_id)
     for m in members:
         if m.user_id == data.user_id:
+            return OrganisationMemberResponse(
+                user_id=m.user_id,
+                organisation_id=m.organisation_id,
+                role=m.role,
+                user_email=m.user.email,
+                user_name=m.user.name,
+            )
+
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@router.post(
+    "/{org_id}/members/by-email",
+    response_model=OrganisationMemberResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_member_by_email(
+    org_id: uuid.UUID,
+    data: AddMemberByEmailRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> OrganisationMemberResponse:
+    """Add a member by email address. Admin only. Only works for existing users."""
+    service = OrganisationService(db)
+
+    if not await service.is_admin(current_user.id, org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    membership = await service.add_member_by_email(org_id, data.email, data.role)
+    if not membership:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No user found with that email address",
+        )
+
+    # Reload with user info
+    members = await service.get_members(org_id)
+    for m in members:
+        if m.user_id == membership.user_id:
             return OrganisationMemberResponse(
                 user_id=m.user_id,
                 organisation_id=m.organisation_id,

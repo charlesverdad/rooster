@@ -80,6 +80,7 @@ class OrganisationProvider with ChangeNotifier {
           name: updated.name,
           role: _organisations[idx].role,
           isPersonal: false,
+          memberCount: _organisations[idx].memberCount,
           createdAt: _organisations[idx].createdAt,
         );
         notifyListeners();
@@ -89,6 +90,21 @@ class OrganisationProvider with ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Add a member by email address.
+  Future<String?> addMemberByEmail(String orgId, String email) async {
+    try {
+      await OrganisationService.addMemberByEmail(orgId, email);
+      await fetchMembers(orgId);
+      return null; // success
+    } catch (e) {
+      final msg = e.toString();
+      if (msg.contains('No user found')) {
+        return 'No user found with that email address';
+      }
+      return msg;
     }
   }
 

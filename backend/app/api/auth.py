@@ -20,12 +20,15 @@ async def _build_user_response(user, db, auth_service: AuthService) -> UserRespo
 
     org_service = OrganisationService(db)
     orgs = await org_service.get_user_organisations(user.id)
+    org_ids = [org.id for org, _ in orgs]
+    member_counts = await org_service.get_member_counts(org_ids)
     user_response.organisations = [
         OrganisationWithRole(
             id=org.id,
             name=org.name,
             role=role,
             is_personal=org.is_personal,
+            member_count=member_counts.get(org.id, 0),
             created_at=org.created_at,
         )
         for org, role in orgs

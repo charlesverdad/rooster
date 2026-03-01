@@ -14,6 +14,7 @@ import '../../widgets/team_lead_section.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/install_prompt.dart';
 import '../../widgets/notification_permission_prompt.dart';
+import '../../widgets/org_setup_prompt.dart';
 
 class HomeScreen extends StatefulWidget {
   final String? focus;
@@ -209,6 +210,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       key: ValueKey('notif_$_refreshKey'),
                     ),
                   ],
+
+                  // Org setup prompt (admin with unnamed org)
+                  const OrgSetupPrompt(),
 
                   // Upcoming Assignments Section
                   const Text(

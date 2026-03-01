@@ -48,6 +48,7 @@ class OrganisationWithRole(BaseModel):
     name: str
     role: OrganisationRole
     is_personal: bool = False
+    member_count: int = 0
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -57,6 +58,13 @@ class AddMemberRequest(BaseModel):
     """Schema for adding a member to an organisation."""
 
     user_id: uuid.UUID
+    role: OrganisationRole = OrganisationRole.MEMBER
+
+
+class AddMemberByEmailRequest(BaseModel):
+    """Schema for adding a member by email address."""
+
+    email: str
     role: OrganisationRole = OrganisationRole.MEMBER
 
 
