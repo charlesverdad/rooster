@@ -5,18 +5,24 @@ import '../config/api_config.dart';
 import '../models/user.dart';
 import '../services/api_client.dart';
 import '../services/push_service.dart';
+import '../providers/organisation_provider.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _error;
+  OrganisationProvider? _orgProvider;
 
   User? get user => _user;
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get error => _error;
   bool get isAuthenticated => _user != null;
+
+  void setOrgProvider(OrganisationProvider provider) {
+    _orgProvider = provider;
+  }
 
   Future<void> init() async {
     await ApiClient.loadToken();
@@ -109,6 +115,7 @@ class AuthProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _user = User.fromJson(data);
+        _orgProvider?.loadOrganisations(_user!.organisations);
         notifyListeners();
       }
     } catch (e) {

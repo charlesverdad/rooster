@@ -4,10 +4,33 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.deps import CurrentUser, DbSession
+from app.schemas.organisation import OrganisationWithRole
 from app.schemas.user import UserCreate, UserResponse, Token
 from app.services.auth import AuthService
+from app.services.organisation import OrganisationService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+async def _build_user_response(user, db, auth_service: AuthService) -> UserResponse:
+    """Build a UserResponse with roles and organisations."""
+    roles = await auth_service.get_user_roles(user.id)
+    user_response = UserResponse.model_validate(user)
+    user_response.roles = roles
+
+    org_service = OrganisationService(db)
+    orgs = await org_service.get_user_organisations(user.id)
+    user_response.organisations = [
+        OrganisationWithRole(
+            id=org.id,
+            name=org.name,
+            role=role,
+            is_personal=org.is_personal,
+            created_at=org.created_at,
+        )
+        for org, role in orgs
+    ]
+    return user_response
 
 
 @router.post(
@@ -65,10 +88,7 @@ async def register(user_data: UserCreate, db: DbSession) -> UserResponse:
             except Exception:
                 pass
 
-    roles = await auth_service.get_user_roles(user.id)
-    user_response = UserResponse.model_validate(user)
-    user_response.roles = roles
-    return user_response
+    return await _build_user_response(user, db, auth_service)
 
 
 @router.post("/login", response_model=Token)
@@ -95,7 +115,4 @@ async def login(
 async def get_current_user(current_user: CurrentUser, db: DbSession) -> UserResponse:
     """Get current authenticated user."""
     auth_service = AuthService(db)
-    roles = await auth_service.get_user_roles(current_user.id)
-    user_response = UserResponse.model_validate(current_user)
-    user_response.roles = roles
-    return user_response
+    return await _build_user_response(current_user, db, auth_service)

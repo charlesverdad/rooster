@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.schemas.organisation import (
@@ -10,6 +10,7 @@ from app.schemas.organisation import (
     OrganisationResponse,
     OrganisationUpdate,
     OrganisationWithRole,
+    UpdateMemberRoleRequest,
 )
 from app.services.organisation import OrganisationService
 
@@ -43,6 +44,7 @@ async def list_my_organisations(
             id=org.id,
             name=org.name,
             role=role,
+            is_personal=org.is_personal,
             created_at=org.created_at,
         )
         for org, role in orgs
@@ -105,14 +107,42 @@ async def delete_organisation(
     org_id: uuid.UUID,
     current_user: CurrentUser,
     db: DbSession,
+    confirm: bool = Query(False),
 ) -> None:
-    """Delete an organisation. Admin only."""
+    """Delete an organisation. Admin only. Requires ?confirm=true."""
     service = OrganisationService(db)
 
     if not await service.is_admin(current_user.id, org_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
+        )
+
+    org = await service.get_organisation(org_id)
+    if not org:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organisation not found",
+        )
+
+    if not confirm:
+        # Check what would be deleted
+        from app.models.team import Team
+        from sqlalchemy import select, func
+
+        team_count_result = await db.execute(
+            select(func.count()).select_from(Team).where(Team.organisation_id == org_id)
+        )
+        team_count = team_count_result.scalar_one()
+
+        members = await service.get_members(org_id)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"This will delete the organisation '{org.name}', "
+                f"{team_count} team(s), and remove {len(members)} member(s). "
+                f"Add ?confirm=true to proceed."
+            ),
         )
 
     if not await service.delete_organisation(org_id):
@@ -193,6 +223,52 @@ async def add_member(
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@router.patch("/{org_id}/members/{user_id}", response_model=OrganisationMemberResponse)
+async def update_member_role(
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    data: UpdateMemberRoleRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> OrganisationMemberResponse:
+    """Update a member's role. Admin only."""
+    service = OrganisationService(db)
+
+    if not await service.is_admin(current_user.id, org_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    try:
+        membership = await service.update_member_role(org_id, user_id, data.role)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    if not membership:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found",
+        )
+
+    # Reload with user info
+    members = await service.get_members(org_id)
+    for m in members:
+        if m.user_id == user_id:
+            return OrganisationMemberResponse(
+                user_id=m.user_id,
+                organisation_id=m.organisation_id,
+                role=m.role,
+                user_email=m.user.email,
+                user_name=m.user.name,
+            )
+
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @router.delete("/{org_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_member(
     org_id: uuid.UUID,
@@ -209,8 +285,14 @@ async def remove_member(
             detail="Admin access required",
         )
 
-    if not await service.remove_member(org_id, user_id):
+    try:
+        if not await service.remove_member(org_id, user_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Member not found",
+            )
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Member not found",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
         )
