@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -48,11 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildGoogleLogo() {
-    return SizedBox(
-      width: 20,
-      height: 20,
-      child: CustomPaint(painter: _GoogleLogoPainter()),
-    );
+    return SvgPicture.asset('assets/google_g.svg', width: 20, height: 20);
   }
 
   @override
@@ -220,85 +217,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
-
-class _GoogleLogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    // Blue arc (top-right)
-    final bluePaint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.2
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius * 0.7),
-      -0.8,
-      1.8,
-      false,
-      bluePaint,
-    );
-
-    // Green arc (bottom-right)
-    final greenPaint = Paint()
-      ..color = const Color(0xFF34A853)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.2
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius * 0.7),
-      1.0,
-      1.2,
-      false,
-      greenPaint,
-    );
-
-    // Yellow arc (bottom-left)
-    final yellowPaint = Paint()
-      ..color = const Color(0xFFFBBC05)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.2
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius * 0.7),
-      2.2,
-      1.0,
-      false,
-      yellowPaint,
-    );
-
-    // Red arc (top-left)
-    final redPaint = Paint()
-      ..color = const Color(0xFFEA4335)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.2
-      ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius * 0.7),
-      3.2,
-      1.55,
-      false,
-      redPaint,
-    );
-
-    // Blue horizontal bar
-    final barPaint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(
-      Rect.fromLTRB(
-        center.dx,
-        center.dy - size.height * 0.1,
-        size.width,
-        center.dy + size.height * 0.1,
-      ),
-      barPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
