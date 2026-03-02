@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/admin_provider.dart';
 
@@ -173,17 +174,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildOrgRow(Map<String, dynamic> org) {
+    final orgId = org['id']?.toString();
     return ListTile(
       title: Text(org['name'] as String? ?? 'Unnamed'),
       subtitle: Text(
         '${org['member_count'] ?? 0} members, ${org['team_count'] ?? 0} teams',
       ),
-      trailing: Text(
-        org['created_at'] != null
-            ? _formatDate(org['created_at'] as String)
-            : '',
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            org['created_at'] != null
+                ? _formatDate(org['created_at'] as String)
+                : '',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          if (orgId != null) const Icon(Icons.chevron_right, size: 20),
+        ],
       ),
+      onTap: orgId != null
+          ? () => context.push('/organisations/$orgId/settings')
+          : null,
     );
   }
 

@@ -116,6 +116,17 @@ class OrganisationService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> getTeams(String orgId) async {
+    final response = await ApiClient.get('/teams/organisation/$orgId');
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      throw ApiException(response.statusCode, response.body);
+    }
+  }
+
   static Future<void> removeMember(String orgId, String userId) async {
     final response = await ApiClient.delete(
       '/organisations/$orgId/members/$userId',

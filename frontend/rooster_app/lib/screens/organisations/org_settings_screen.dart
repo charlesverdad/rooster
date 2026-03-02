@@ -29,6 +29,7 @@ class _OrgSettingsScreenState extends State<OrgSettingsScreen> {
         listen: false,
       );
       orgProvider.fetchMembers(widget.orgId);
+      orgProvider.fetchTeams(widget.orgId);
 
       // Set initial name
       final org = _findOrg(orgProvider);
@@ -317,6 +318,10 @@ class _OrgSettingsScreenState extends State<OrgSettingsScreen> {
                 _buildNameSection(org),
                 const SizedBox(height: 24),
 
+                // Teams
+                _buildTeamsSection(orgProvider.teams),
+                const SizedBox(height: 24),
+
                 // Members
                 _buildMembersSection(orgProvider.members, currentUserId, org),
                 const SizedBox(height: 24),
@@ -408,6 +413,68 @@ class _OrgSettingsScreenState extends State<OrgSettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTeamsSection(List<Map<String, dynamic>> teams) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Teams',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${teams.length}',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Column(
+            children: [
+              if (teams.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(
+                      'No teams yet',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ),
+                )
+              else
+                ...teams.map((team) {
+                  final teamId = team['id']?.toString() ?? '';
+                  final name = team['name'] as String? ?? 'Unnamed';
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.teal.shade50,
+                      child: Icon(
+                        Icons.groups,
+                        color: Colors.teal.shade700,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(name),
+                    trailing: const Icon(Icons.chevron_right, size: 20),
+                    onTap: () {
+                      context.push('/teams/$teamId');
+                    },
+                  );
+                }),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

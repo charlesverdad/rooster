@@ -114,11 +114,18 @@ class TeamService:
     async def check_permission(
         self, user_id: uuid.UUID, team_id: uuid.UUID, permission: str
     ) -> bool:
-        """Check if a user has a specific permission in a team."""
+        """Check if a user has a specific permission in a team.
+
+        Org admins implicitly have all team permissions.
+        """
         membership = await self.get_team_membership(user_id, team_id)
-        if not membership:
-            return False
-        return membership.has_permission(permission)
+        if membership and membership.has_permission(permission):
+            return True
+        # Org admins have all team permissions
+        team = await self.get_team(team_id)
+        if team and await self.is_org_admin(user_id, team.organisation_id):
+            return True
+        return False
 
     async def require_permission(
         self, user_id: uuid.UUID, team_id: uuid.UUID, permission: str
