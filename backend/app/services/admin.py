@@ -25,6 +25,7 @@ from app.schemas.admin import (
     AdminUserTeamMembership,
     AssignmentStats,
     AuthConfigStats,
+    DashboardOrgSummary,
     DashboardStatsResponse,
     OrgStats,
     PushStats,
@@ -175,6 +176,43 @@ class AdminService:
         )
         push_configured = bool(settings.vapid_public_key and settings.vapid_private_key)
 
+        # Organisation list (non-personal orgs with member/team counts)
+        org_result = await self.db.execute(
+            select(Organisation)
+            .where(Organisation.is_personal == False)  # noqa: E712
+            .order_by(Organisation.created_at.desc())
+        )
+        orgs = org_result.scalars().all()
+        org_ids = [o.id for o in orgs]
+
+        member_counts: dict[uuid.UUID, int] = {}
+        team_counts: dict[uuid.UUID, int] = {}
+        if org_ids:
+            mc_result = await self.db.execute(
+                select(OrganisationMember.organisation_id, func.count())
+                .where(OrganisationMember.organisation_id.in_(org_ids))
+                .group_by(OrganisationMember.organisation_id)
+            )
+            member_counts = {row[0]: row[1] for row in mc_result.all()}
+
+            tc_result = await self.db.execute(
+                select(Team.organisation_id, func.count())
+                .where(Team.organisation_id.in_(org_ids))
+                .group_by(Team.organisation_id)
+            )
+            team_counts = {row[0]: row[1] for row in tc_result.all()}
+
+        org_summaries = [
+            DashboardOrgSummary(
+                id=o.id,
+                name=o.name,
+                member_count=member_counts.get(o.id, 0),
+                team_count=team_counts.get(o.id, 0),
+                created_at=o.created_at,
+            )
+            for o in orgs
+        ]
+
         return DashboardStatsResponse(
             users=UserStats(
                 total=total_users,
@@ -203,6 +241,7 @@ class AdminService:
                 email_configured=email_configured,
                 push_configured=push_configured,
             ),
+            organisation_list=org_summaries,
         )
 
     # --- Users ---

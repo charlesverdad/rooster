@@ -45,6 +45,16 @@ class AuthConfigStats(BaseModel):
     push_configured: bool
 
 
+class DashboardOrgSummary(BaseModel):
+    id: uuid.UUID
+    name: str
+    member_count: int
+    team_count: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class DashboardStatsResponse(BaseModel):
     users: UserStats
     organisations: OrgStats
@@ -52,6 +62,7 @@ class DashboardStatsResponse(BaseModel):
     assignments: AssignmentStats
     push_subscriptions: PushStats
     auth_config: AuthConfigStats
+    organisation_list: list[DashboardOrgSummary] = []
 
 
 # --- Admin User ---

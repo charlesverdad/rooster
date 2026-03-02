@@ -238,17 +238,35 @@ async def test_remove_member_from_team(db_session: AsyncSession, org_with_admin)
 
 @pytest.mark.asyncio
 async def test_check_permission(db_session: AsyncSession, org_with_admin):
-    """Test checking user permissions."""
+    """Test checking user permissions.
+
+    Uses a non-admin org member since org admins implicitly have all team permissions.
+    """
     data = org_with_admin
     org = data["org"]
-    admin = data["admin"]
+
+    # Create a regular org member (not admin)
+    member_user = User(
+        email="member@example.com",
+        name="Member User",
+        password_hash=get_password_hash("password"),
+    )
+    db_session.add(member_user)
+    await db_session.flush()
+
+    org_membership = OrganisationMember(
+        user_id=member_user.id,
+        organisation_id=org.id,
+        role=OrganisationRole.MEMBER,
+    )
+    db_session.add(org_membership)
 
     team = Team(name="Media Team", organisation_id=org.id)
     db_session.add(team)
     await db_session.flush()
 
     membership = TeamMember(
-        user_id=admin.id,
+        user_id=member_user.id,
         team_id=team.id,
         role=TeamRole.MEMBER,
         permissions=[TeamPermission.MANAGE_ROSTERS],
@@ -258,13 +276,26 @@ async def test_check_permission(db_session: AsyncSession, org_with_admin):
 
     service = TeamService(db_session)
 
+    # Member has MANAGE_ROSTERS
     assert (
-        await service.check_permission(admin.id, team.id, TeamPermission.MANAGE_ROSTERS)
+        await service.check_permission(
+            member_user.id, team.id, TeamPermission.MANAGE_ROSTERS
+        )
         is True
     )
+    # Member does NOT have MANAGE_TEAM
+    assert (
+        await service.check_permission(
+            member_user.id, team.id, TeamPermission.MANAGE_TEAM
+        )
+        is False
+    )
+
+    # Org admin implicitly has all team permissions
+    admin = data["admin"]
     assert (
         await service.check_permission(admin.id, team.id, TeamPermission.MANAGE_TEAM)
-        is False
+        is True
     )
 
 
@@ -592,17 +623,35 @@ async def test_list_member_assignments_api(
 async def test_list_member_assignments_requires_permission(
     test_client: AsyncClient, db_session: AsyncSession, org_with_admin
 ):
-    """Test listing assignments for a team member without view_responses permission."""
+    """Test listing assignments for a team member without view_responses permission.
+
+    Uses a non-admin org member since org admins implicitly have all team permissions.
+    """
     data = org_with_admin
     org = data["org"]
-    admin = data["admin"]
+
+    # Create a regular org member (not admin)
+    member_user = User(
+        email="noperm@example.com",
+        name="No Perm User",
+        password_hash=get_password_hash("password"),
+    )
+    db_session.add(member_user)
+    await db_session.flush()
+
+    org_membership = OrganisationMember(
+        user_id=member_user.id,
+        organisation_id=org.id,
+        role=OrganisationRole.MEMBER,
+    )
+    db_session.add(org_membership)
 
     team = Team(name="Media Team", organisation_id=org.id)
     db_session.add(team)
     await db_session.flush()
 
     membership = TeamMember(
-        user_id=admin.id,
+        user_id=member_user.id,
         team_id=team.id,
         role=TeamRole.MEMBER,
         permissions=[],
@@ -610,9 +659,9 @@ async def test_list_member_assignments_requires_permission(
     db_session.add(membership)
     await db_session.commit()
 
-    token = create_access_token(subject=str(admin.id))
+    token = create_access_token(subject=str(member_user.id))
     response = await test_client.get(
-        f"/api/teams/{team.id}/members/{admin.id}/assignments",
+        f"/api/teams/{team.id}/members/{member_user.id}/assignments",
         headers={"Authorization": f"Bearer {token}"},
     )
 

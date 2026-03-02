@@ -5,11 +5,13 @@ import '../services/organisation_service.dart';
 class OrganisationProvider with ChangeNotifier {
   List<Organisation> _organisations = [];
   List<OrganisationMember> _members = [];
+  List<Map<String, dynamic>> _teams = [];
   bool _isLoading = false;
   String? _error;
 
   List<Organisation> get organisations => _organisations;
   List<OrganisationMember> get members => _members;
+  List<Map<String, dynamic>> get teams => _teams;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -62,6 +64,17 @@ class OrganisationProvider with ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Fetch teams of a specific organisation.
+  Future<void> fetchTeams(String orgId) async {
+    try {
+      _teams = await OrganisationService.getTeams(orgId);
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
       notifyListeners();
     }
   }
@@ -156,6 +169,7 @@ class OrganisationProvider with ChangeNotifier {
   void clear() {
     _organisations = [];
     _members = [];
+    _teams = [];
     _error = null;
     notifyListeners();
   }
