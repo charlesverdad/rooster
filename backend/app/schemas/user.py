@@ -35,6 +35,7 @@ class UserResponse(BaseModel):
     email: Optional[str] = None
     name: str
     is_placeholder: bool = False
+    is_superadmin: bool = False
     roles: list[str] = []
     organisations: list[OrganisationWithRole] = []
     created_at: datetime
