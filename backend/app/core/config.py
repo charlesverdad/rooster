@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     auth_email_enabled: bool = True
     auth_google_enabled: bool = False
     google_client_id: str = ""
+    auth_force_email_enabled: bool = False
 
     # CORS
     cors_origins: str = "*"  # Comma-separated list of origins, or "*" for all

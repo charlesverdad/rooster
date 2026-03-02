@@ -31,6 +31,20 @@ db-stop:
 db-migrate:
     cd backend && uv run alembic upgrade head
 
+# Drop and recreate the database, then run migrations (for testing onboarding etc.)
+db-reset:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export PGHOST="$PWD/.pgdata"
+    export PGPORT=5433
+    echo "Dropping database rooster..."
+    dropdb --if-exists rooster
+    echo "Creating fresh database rooster..."
+    createdb rooster
+    echo "Running migrations..."
+    cd backend && uv run alembic upgrade head
+    echo "Database reset complete."
+
 # Create a new migration (usage: just db-migration "description")
 db-migration name:
     cd backend && uv run alembic revision --autogenerate -m "{{name}}"

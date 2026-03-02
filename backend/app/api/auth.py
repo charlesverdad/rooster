@@ -2,13 +2,18 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select, func
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.config import get_settings
+from app.models.system_config import AuthSettings
+from app.models.user import User
 from app.schemas.organisation import OrganisationWithRole
 from app.schemas.user import (
     AuthConfigResponse,
     GoogleLoginRequest,
+    SetupCheckResponse,
+    SetupRequest,
     UserCreate,
     UserResponse,
     Token,
@@ -43,16 +48,92 @@ async def _build_user_response(user, db, auth_service: AuthService) -> UserRespo
     return user_response
 
 
-@router.get("/config", response_model=AuthConfigResponse)
-async def get_auth_config() -> AuthConfigResponse:
-    """Get auth configuration (public, no auth required)."""
+async def _resolve_auth_config(db) -> tuple[bool, bool, str | None]:
+    """Resolve auth config from DB (if row exists) or env vars."""
     settings = get_settings()
+    result = await db.execute(select(AuthSettings).where(AuthSettings.id == 1))
+    auth = result.scalar_one_or_none()
+
+    if auth:
+        email_enabled = auth.email_enabled
+        google_enabled = auth.google_enabled
+        google_client_id = auth.google_client_id if google_enabled else None
+    else:
+        email_enabled = settings.auth_email_enabled
+        google_enabled = settings.auth_google_enabled
+        google_client_id = settings.google_client_id if google_enabled else None
+
+    # Emergency override
+    if settings.auth_force_email_enabled:
+        email_enabled = True
+
+    return email_enabled, google_enabled, google_client_id
+
+
+@router.get("/setup-required", response_model=SetupCheckResponse)
+async def check_setup_required(db: DbSession) -> SetupCheckResponse:
+    """Check if first-run setup is required (no non-placeholder users exist)."""
+    result = await db.execute(
+        select(func.count()).select_from(User).where(User.is_placeholder == False)  # noqa: E712
+    )
+    count = result.scalar_one()
+    return SetupCheckResponse(setup_required=count == 0)
+
+
+@router.post("/setup", response_model=Token)
+async def setup(data: SetupRequest, db: DbSession) -> Token:
+    """Create the first user as superadmin. Returns 409 if users already exist."""
+    # Guard: no non-placeholder users should exist
+    result = await db.execute(
+        select(func.count()).select_from(User).where(User.is_placeholder == False)  # noqa: E712
+    )
+    count = result.scalar_one()
+    if count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Setup is already complete",
+        )
+
+    if len(data.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Password must be at least 8 characters",
+        )
+
+    from app.core.security import get_password_hash
+
+    user = User(
+        email=data.email,
+        name=data.name,
+        password_hash=get_password_hash(data.password),
+        is_superadmin=True,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+
+    # Optionally create organisation
+    if data.organisation_name:
+        from app.schemas.organisation import OrganisationCreate
+
+        org_service = OrganisationService(db)
+        await org_service.create_organisation(
+            OrganisationCreate(name=data.organisation_name), user.id
+        )
+
+    auth_service = AuthService(db)
+    access_token = auth_service.create_token(user)
+    return Token(access_token=access_token)
+
+
+@router.get("/config", response_model=AuthConfigResponse)
+async def get_auth_config(db: DbSession) -> AuthConfigResponse:
+    """Get auth configuration (public, no auth required)."""
+    email_enabled, google_enabled, google_client_id = await _resolve_auth_config(db)
     return AuthConfigResponse(
-        email_enabled=settings.auth_email_enabled,
-        google_enabled=settings.auth_google_enabled,
-        google_client_id=settings.google_client_id
-        if settings.auth_google_enabled
-        else None,
+        email_enabled=email_enabled,
+        google_enabled=google_enabled,
+        google_client_id=google_client_id,
     )
 
 
@@ -61,8 +142,8 @@ async def get_auth_config() -> AuthConfigResponse:
 )
 async def register(user_data: UserCreate, db: DbSession) -> UserResponse:
     """Register a new user."""
-    settings = get_settings()
-    if not settings.auth_email_enabled:
+    email_enabled, _, _ = await _resolve_auth_config(db)
+    if not email_enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email registration is disabled",
@@ -127,8 +208,8 @@ async def login(
     db: DbSession,
 ) -> Token:
     """Login and get access token."""
-    settings = get_settings()
-    if not settings.auth_email_enabled:
+    email_enabled, _, _ = await _resolve_auth_config(db)
+    if not email_enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email login is disabled",
@@ -159,8 +240,8 @@ async def login(
 @router.post("/google", response_model=Token)
 async def google_login(request: GoogleLoginRequest, db: DbSession) -> Token:
     """Login with Google OAuth ID token."""
-    settings = get_settings()
-    if not settings.auth_google_enabled:
+    _, google_enabled, _ = await _resolve_auth_config(db)
+    if not google_enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Google login is disabled",

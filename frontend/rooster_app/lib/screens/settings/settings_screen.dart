@@ -179,6 +179,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
 
+          // System Admin (only visible to superadmins)
+          if (authProvider.user?.isSuperadmin == true)
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings),
+              title: const Text('System Admin'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                context.push('/admin');
+              },
+            ),
+
           const Divider(),
 
           // Logout

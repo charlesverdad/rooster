@@ -10,6 +10,7 @@ import 'providers/availability_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/team_provider.dart';
 import 'providers/organisation_provider.dart';
+import 'providers/admin_provider.dart';
 import 'providers/roster_provider.dart';
 import 'router/app_router.dart';
 
@@ -65,6 +66,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => TeamProvider()),
         ChangeNotifierProvider.value(value: _orgProvider),
         ChangeNotifierProvider(create: (_) => RosterProvider()),
+        ChangeNotifierProvider(create: (_) => AdminProvider()),
       ],
       child: MaterialApp.router(
         title: 'Rooster',

@@ -831,3 +831,217 @@ async def test_authenticate_or_create_google_user_already_linked(
         name="Linked User",
     )
     assert user.id == existing.id
+
+
+# =============================================================================
+# First-Run Setup Flow Tests
+# =============================================================================
+
+
+async def test_setup_required_true_when_no_users(test_client: AsyncClient):
+    """Test setup-required returns true when no non-placeholder users exist."""
+    response = await test_client.get("/api/auth/setup-required")
+    assert response.status_code == 200
+    assert response.json()["setup_required"] is True
+
+
+async def test_setup_required_true_with_only_placeholders(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Test setup-required returns true when only placeholder users exist."""
+    placeholder = User(
+        name="Placeholder",
+        is_placeholder=True,
+    )
+    db_session.add(placeholder)
+    await db_session.commit()
+
+    response = await test_client.get("/api/auth/setup-required")
+    assert response.status_code == 200
+    assert response.json()["setup_required"] is True
+
+
+async def test_setup_required_false_when_users_exist(test_client: AsyncClient):
+    """Test setup-required returns false after a user is registered."""
+    await test_client.post(
+        "/api/auth/register",
+        json={"email": "user@example.com", "name": "User", "password": "password"},
+    )
+    response = await test_client.get("/api/auth/setup-required")
+    assert response.status_code == 200
+    assert response.json()["setup_required"] is False
+
+
+async def test_setup_creates_superadmin(test_client: AsyncClient):
+    """Test POST /auth/setup creates a superadmin user and returns JWT."""
+    response = await test_client.post(
+        "/api/auth/setup",
+        json={
+            "name": "Admin User",
+            "email": "admin@example.com",
+            "password": "securepassword",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+    # Verify the user is a superadmin
+    token = data["access_token"]
+    me_response = await test_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert me_response.status_code == 200
+    me_data = me_response.json()
+    assert me_data["name"] == "Admin User"
+    assert me_data["email"] == "admin@example.com"
+    assert "superadmin" in me_data["roles"]
+
+
+async def test_setup_with_org_name_creates_org(test_client: AsyncClient):
+    """Test POST /auth/setup with org name creates the organisation."""
+    response = await test_client.post(
+        "/api/auth/setup",
+        json={
+            "name": "Admin",
+            "email": "admin@church.org",
+            "password": "securepassword",
+            "organisation_name": "St. Mary's",
+        },
+    )
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+
+    # Check user has the org
+    me_response = await test_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert me_response.status_code == 200
+    orgs = me_response.json()["organisations"]
+    assert any(o["name"] == "St. Mary's" for o in orgs)
+
+
+async def test_setup_returns_409_when_users_exist(test_client: AsyncClient):
+    """Test POST /auth/setup returns 409 when users already exist."""
+    # First setup
+    await test_client.post(
+        "/api/auth/setup",
+        json={
+            "name": "First Admin",
+            "email": "first@example.com",
+            "password": "securepassword",
+        },
+    )
+
+    # Second setup attempt
+    response = await test_client.post(
+        "/api/auth/setup",
+        json={
+            "name": "Second Admin",
+            "email": "second@example.com",
+            "password": "securepassword",
+        },
+    )
+    assert response.status_code == status.HTTP_409_CONFLICT
+
+
+async def test_setup_short_password_rejected(test_client: AsyncClient):
+    """Test POST /auth/setup rejects password shorter than 8 chars."""
+    response = await test_client.post(
+        "/api/auth/setup",
+        json={
+            "name": "Admin",
+            "email": "admin@example.com",
+            "password": "short",
+        },
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+# =============================================================================
+# Deactivated User Tests
+# =============================================================================
+
+
+async def test_deactivated_user_gets_403(
+    test_client: AsyncClient, db_session: AsyncSession
+):
+    """Test that a deactivated user gets 403 on authenticated endpoints."""
+    user = User(
+        email="deactivated@example.com",
+        name="Deactivated",
+        password_hash=get_password_hash("password"),
+        is_deactivated=True,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+
+    # Login succeeds (login doesn't check deactivation, just credentials)
+    login_response = await test_client.post(
+        "/api/auth/login",
+        data={"username": "deactivated@example.com", "password": "password"},
+    )
+    assert login_response.status_code == 200
+    token = login_response.json()["access_token"]
+
+    # But accessing /me returns 403
+    me_response = await test_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert me_response.status_code == status.HTTP_403_FORBIDDEN
+    assert "deactivated" in me_response.json()["detail"].lower()
+
+
+# =============================================================================
+# Superadmin Role in User Response Tests
+# =============================================================================
+
+
+async def test_superadmin_has_superadmin_role(
+    test_client: AsyncClient,
+):
+    """Test that superadmin users have 'superadmin' in their roles."""
+    # Use setup to create superadmin
+    setup_resp = await test_client.post(
+        "/api/auth/setup",
+        json={
+            "name": "Super Admin",
+            "email": "super@example.com",
+            "password": "securepassword",
+        },
+    )
+    token = setup_resp.json()["access_token"]
+
+    me_response = await test_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert "superadmin" in me_response.json()["roles"]
+
+
+async def test_regular_user_no_superadmin_role(test_client: AsyncClient):
+    """Test that regular users don't have 'superadmin' in their roles."""
+    await test_client.post(
+        "/api/auth/register",
+        json={
+            "email": "regular@example.com",
+            "name": "Regular",
+            "password": "password",
+        },
+    )
+    login_resp = await test_client.post(
+        "/api/auth/login",
+        data={"username": "regular@example.com", "password": "password"},
+    )
+    token = login_resp.json()["access_token"]
+
+    me_response = await test_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert "superadmin" not in me_response.json()["roles"]

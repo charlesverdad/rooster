@@ -16,6 +16,8 @@ class AuthProvider with ChangeNotifier {
   String? _error;
   OrganisationProvider? _orgProvider;
   AuthConfig _authConfig = AuthConfig.defaults();
+  bool _setupRequired = false;
+  bool _setupChecked = false;
 
   User? get user => _user;
   bool get isLoading => _isLoading;
@@ -23,22 +25,100 @@ class AuthProvider with ChangeNotifier {
   String? get error => _error;
   bool get isAuthenticated => _user != null;
   AuthConfig get authConfig => _authConfig;
+  bool get setupRequired => _setupRequired;
+  bool get setupChecked => _setupChecked;
 
   void setOrgProvider(OrganisationProvider provider) {
     _orgProvider = provider;
   }
 
   Future<void> init() async {
-    // Fetch auth config in the background — don't block initialization.
+    // Fetch auth config and setup status in the background — don't block initialization.
     // Login screen renders with defaults (email enabled) and updates when
     // the config arrives.
     _fetchAuthConfig();
+    _fetchSetupRequired();
     await ApiClient.loadToken();
     if (ApiClient.hasToken) {
       await fetchCurrentUser();
     }
     _isInitialized = true;
     notifyListeners();
+  }
+
+  Future<void> _fetchSetupRequired() async {
+    try {
+      final response = await http
+          .get(Uri.parse('${ApiConfig.baseUrl}/auth/setup-required'))
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _setupRequired = data['setup_required'] == true;
+      }
+    } catch (e) {
+      debugPrint('Error fetching setup status: $e');
+      // Fail-safe: treat as not required
+      _setupRequired = false;
+    }
+    _setupChecked = true;
+    notifyListeners();
+  }
+
+  Future<bool> setup(
+    String name,
+    String email,
+    String password,
+    String? organisationName,
+  ) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final body = <String, dynamic>{
+        'name': name,
+        'email': email,
+        'password': password,
+      };
+      if (organisationName != null && organisationName.isNotEmpty) {
+        body['organisation_name'] = organisationName;
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/auth/setup'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await ApiClient.saveToken(data['access_token']);
+        _setupRequired = false;
+        await fetchCurrentUser();
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else if (response.statusCode == 409) {
+        _setupRequired = false;
+        _error = 'Setup is already complete.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      } else {
+        final data = jsonDecode(response.body);
+        _error = data['detail'] ?? 'Setup failed';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Connection error: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<void> _fetchAuthConfig() async {

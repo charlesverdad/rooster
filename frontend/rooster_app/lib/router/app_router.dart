@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/auth/accept_invite_screen.dart';
+import '../screens/auth/setup_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
@@ -18,6 +19,7 @@ import '../screens/roster/event_detail_screen.dart';
 import '../screens/roster/create_roster_screen.dart';
 import '../screens/assignments/assignment_detail_screen.dart';
 import '../screens/organisations/org_settings_screen.dart';
+import '../screens/admin/admin_shell.dart';
 
 GoRouter createRouter(AuthProvider authProvider) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
@@ -32,10 +34,24 @@ GoRouter createRouter(AuthProvider authProvider) {
       // Wait for auth initialization
       if (!isInitialized) return null;
 
+      // If setup is required, redirect everything to /setup
+      if (authProvider.setupRequired) {
+        if (state.matchedLocation != '/setup') {
+          return '/setup';
+        }
+        return null;
+      }
+
       final isAuthRoute =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
+          state.matchedLocation == '/setup' ||
           state.matchedLocation.startsWith('/invite/');
+
+      // Authenticated user on /setup -> redirect to home
+      if (isLoggedIn && state.matchedLocation == '/setup') {
+        return '/';
+      }
 
       // Not logged in and not on an auth route -> redirect to login
       if (!isLoggedIn && !isAuthRoute) {
@@ -49,6 +65,13 @@ GoRouter createRouter(AuthProvider authProvider) {
         return '/';
       }
 
+      // Admin route guard: must be superadmin
+      if (isLoggedIn &&
+          state.matchedLocation.startsWith('/admin') &&
+          authProvider.user?.isSuperadmin != true) {
+        return '/';
+      }
+
       return null;
     },
     routes: [
@@ -58,6 +81,7 @@ GoRouter createRouter(AuthProvider authProvider) {
             HomeScreen(focus: state.uri.queryParameters['focus']),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/setup', builder: (context, state) => const SetupScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
@@ -133,6 +157,7 @@ GoRouter createRouter(AuthProvider authProvider) {
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
       ),
+      GoRoute(path: '/admin', builder: (context, state) => const AdminShell()),
     ],
   );
 }

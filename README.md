@@ -11,6 +11,8 @@ A volunteer rostering application designed for church communities. Rooster helps
 - **Email Notifications** - Assignment notifications and team invites via email
 - **PWA Support** - Install as a standalone app on mobile and desktop
 - **Availability Tracking** - Mark dates as unavailable so team leads can plan around you
+- **System Admin Panel** - Dashboard with system stats, user management, and runtime auth configuration
+- **First-Run Onboarding** - Self-bootstrapping setup flow creates the first admin account
 
 ## Tech Stack
 
@@ -18,7 +20,7 @@ A volunteer rostering application designed for church communities. Rooster helps
 |-------|------------|
 | **Backend** | Python 3.12, FastAPI, SQLAlchemy, PostgreSQL |
 | **Frontend** | Flutter (Web, iOS, Android) |
-| **Authentication** | JWT tokens, Google OAuth (optional) |
+| **Authentication** | JWT tokens, Google OAuth (optional), runtime-configurable |
 | **Notifications** | Web Push (VAPID), Email (SMTP/Resend) |
 
 ## Quick Start
@@ -141,11 +143,16 @@ VAPID_SUBJECT=mailto:admin@yourdomain.com
 
 By default, Rooster uses email/password authentication. You can also enable Google OAuth login, or disable email login entirely to force Google-only authentication.
 
+Auth methods can be configured in two ways:
+1. **Environment variables** (default) - Used as initial defaults
+2. **Runtime admin panel** - Sys admins can toggle auth methods at `/admin/settings` without restarting the server. Runtime settings override env var defaults.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `AUTH_EMAIL_ENABLED` | `true` | Enable email/password login and registration |
 | `AUTH_GOOGLE_ENABLED` | `false` | Enable Google OAuth login |
 | `GOOGLE_CLIENT_ID` | `""` | Google OAuth client ID (required when Google auth is enabled) |
+| `AUTH_FORCE_EMAIL_ENABLED` | `false` | Emergency override: forces email login on regardless of runtime config (prevents lockout) |
 
 **Setting up Google Sign-In:**
 
@@ -179,6 +186,35 @@ When building the frontend for Docker deployment with Google login, also pass th
 ```bash
 docker compose build --build-arg GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
 ```
+
+### First-Run Setup
+
+When Rooster starts with an empty database, it shows a **setup screen** instead of the login page. This creates the first system administrator account without any env var configuration:
+
+1. Navigate to your Rooster instance
+2. Fill in admin name, email, password, and optionally your church/organisation name
+3. Click "Create my admin account"
+4. You're signed in as a system administrator and land on the home screen
+
+The setup screen only appears once. After the first user is created, it redirects to the normal login page. To access admin features after setup, go to **Settings > System Admin**.
+
+### System Administration
+
+System admins have access to the admin panel at `/admin` (accessible from Settings). The panel provides:
+
+- **Dashboard** - System-wide stats (users, orgs, teams, assignments, push subscriptions)
+- **User Management** - List, search, filter, deactivate/reactivate users, promote/demote admins
+- **Config** - Toggle auth methods (email/Google) at runtime, manage Google Client ID
+
+**How someone becomes a sys admin:**
+- The first user created via the setup flow is automatically a sys admin
+- Existing sys admins can promote other users from the admin panel
+- At least one sys admin must always exist (last-admin guard)
+
+**Account deactivation:**
+- Sys admins can deactivate user accounts (soft-disable, preserves data)
+- Deactivated users are immediately blocked from authenticated endpoints
+- Accounts can be reactivated at any time
 
 ### CORS
 
@@ -221,9 +257,9 @@ just docker-logs      # View logs
 rooster/
 ├── backend/
 │   ├── app/
-│   │   ├── api/              # API route handlers
+│   │   ├── api/              # API route handlers (auth, admin, teams, etc.)
 │   │   ├── core/             # Config, security, database
-│   │   ├── models/           # SQLAlchemy models
+│   │   ├── models/           # SQLAlchemy models (user, system_config, etc.)
 │   │   ├── schemas/          # Pydantic schemas
 │   │   └── services/         # Business logic
 │   ├── alembic/              # Database migrations
@@ -232,11 +268,15 @@ rooster/
 │   └── rooster_app/          # Flutter project
 │       ├── lib/
 │       │   ├── models/       # Data models
-│       │   ├── providers/    # State management
+│       │   ├── providers/    # State management (auth, admin, etc.)
 │       │   ├── screens/      # UI screens
+│       │   │   ├── admin/    # System admin panel (dashboard, users, config)
+│       │   │   ├── auth/     # Login, register, first-run setup
+│       │   │   └── ...
 │       │   ├── services/     # API services
 │       │   └── widgets/      # Reusable widgets
 │       └── web/              # Web-specific files
+├── docs/                     # Feature design documents
 ├── docker-compose.yaml
 ├── .env.example
 └── justfile
@@ -251,11 +291,18 @@ rooster/
    - [ ] Set `DEBUG=false`
    - [ ] Configure `CORS_ORIGINS` to your frontend domain only
    - [ ] Use HTTPS for both frontend and backend
+   - [ ] Consider setting `AUTH_FORCE_EMAIL_ENABLED=true` as a lockout safety net
 
-2. **Authentication**
+2. **First Run**
+   - [ ] Navigate to the app after deployment — setup screen will appear
+   - [ ] Create the first admin account (this becomes the system administrator)
+   - [ ] Configure auth methods from the admin panel (`/admin/settings`) if needed
+
+3. **Authentication**
    - [ ] Choose auth method: email, Google, or both (see [Authentication](#authentication))
-   - [ ] If using Google: create OAuth client ID and set `GOOGLE_CLIENT_ID`
-   - [ ] If Google-only: set `AUTH_EMAIL_ENABLED=false`
+   - [ ] Auth methods can be configured via env vars OR the admin panel at runtime
+   - [ ] If using Google: set `GOOGLE_CLIENT_ID` via env var or admin panel
+   - [ ] If Google-only: disable email login from admin panel (not recommended without `AUTH_FORCE_EMAIL_ENABLED`)
 
 3. **Email**
    - [ ] Configure email provider (SMTP or Resend)

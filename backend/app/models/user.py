@@ -40,6 +40,15 @@ class User(Base, UUIDMixin, TimestampMixin):
 
     # Placeholder user fields
     is_placeholder: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Sys admin fields
+    is_superadmin: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+    is_deactivated: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+
     invited_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

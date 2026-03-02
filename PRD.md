@@ -27,24 +27,28 @@ Church volunteer coordination is often managed through spreadsheets, WhatsApp gr
 
 1. **Volunteers** - Church members who serve on one or more teams
 2. **Team Leads** - Responsible for managing their team's roster and members
+3. **System Admins** - Manage platform-wide settings, users, and auth configuration
 
-Note: There is no separate admin role. Team leads manage their own teams. Organization-level administration (if needed later) is out of scope for MVP.
+Note: Team leads manage their own teams. A **system administrator** role (`is_superadmin`) exists for platform-level operations: user management, auth configuration, and system monitoring. See `docs/sys-admin-panel.md` for details.
 
 ---
 
 ## User Roles & Permissions
 
-| Capability | Team Lead | Member |
-|------------|-----------|--------|
-| View own assignments | Yes | Yes |
-| Accept/decline assignments | Yes | Yes |
-| Mark personal unavailability | Yes | Yes |
-| Create teams | Yes | No |
-| Create rosters | Own teams | No |
-| Add placeholder members (by name) | Own teams | No |
-| Invite members (by email) | Own teams | No |
-| Assign volunteers to slots | Own teams | No |
-| View team member list | Own teams | Own teams |
+| Capability | Sys Admin | Team Lead | Member |
+|------------|-----------|-----------|--------|
+| View own assignments | Yes | Yes | Yes |
+| Accept/decline assignments | Yes | Yes | Yes |
+| Mark personal unavailability | Yes | Yes | Yes |
+| Create teams | Yes | Yes | No |
+| Create rosters | Yes | Own teams | No |
+| Add placeholder members (by name) | Yes | Own teams | No |
+| Invite members (by email) | Yes | Own teams | No |
+| Assign volunteers to slots | Yes | Own teams | No |
+| View team member list | All teams | Own teams | Own teams |
+| Manage all users (deactivate, promote) | Yes | No | No |
+| Configure auth methods at runtime | Yes | No | No |
+| View system dashboard & stats | Yes | No | No |
 
 ---
 
@@ -158,8 +162,8 @@ Dates a member cannot serve. Team leads see this when assigning.
 - [x] Team lead "Needs Attention" section
 
 ### Deferred (Maybe Later)
-- [ ] Admin role / organization management
-- [ ] Google OAuth
+- [x] Admin role / organization management (implemented: sys admin panel with dashboard, user mgmt, runtime auth config)
+- [x] Google OAuth (implemented: optional Google sign-in with runtime toggle)
 - [ ] Auto-rotate assignment suggestions
 - [ ] Swap requests between members
 - [ ] Calendar view
@@ -286,7 +290,7 @@ We intentionally do not track:
 
 To keep the app focused, we explicitly exclude:
 
-- **Admin role**: Team leads manage everything. No org-level admin.
+- ~~**Admin role**~~: *(Now implemented — sys admin panel for platform-level management)*
 - **Analytics dashboards**: No charts, graphs, or metrics views
 - **Gamification**: No streaks, badges, or service history displays
 - **Social features**: No team chat, appreciation features, or profiles

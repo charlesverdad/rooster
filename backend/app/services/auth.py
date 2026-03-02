@@ -94,6 +94,12 @@ class AuthService:
 
         roles = ["member"]  # Everyone is at least a member
 
+        # Check if user is a superadmin
+        user_result = await self.db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if user and user.is_superadmin:
+            roles.append("superadmin")
+
         # Check if user is a team lead
         result = await self.db.execute(
             select(TeamMember).where(

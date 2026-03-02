@@ -35,6 +35,7 @@ class UserResponse(BaseModel):
     email: Optional[str] = None
     name: str
     is_placeholder: bool = False
+    is_superadmin: bool = False
     roles: list[str] = []
     organisations: list[OrganisationWithRole] = []
     created_at: datetime
@@ -78,3 +79,18 @@ class AuthConfigResponse(BaseModel):
     email_enabled: bool
     google_enabled: bool
     google_client_id: str | None = None
+
+
+class SetupRequest(BaseModel):
+    """Schema for first-run setup."""
+
+    name: str
+    email: EmailStr
+    password: str
+    organisation_name: str | None = None
+
+
+class SetupCheckResponse(BaseModel):
+    """Schema for setup-required check."""
+
+    setup_required: bool
