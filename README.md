@@ -194,9 +194,9 @@ When Rooster starts with an empty database, it shows a **setup screen** instead 
 1. Navigate to your Rooster instance
 2. Fill in admin name, email, password, and optionally your church/organisation name
 3. Click "Create my admin account"
-4. You're signed in as a system administrator
+4. You're signed in as a system administrator and land on the home screen
 
-The setup screen only appears once. After the first user is created, it redirects to the normal login page.
+The setup screen only appears once. After the first user is created, it redirects to the normal login page. To access admin features after setup, go to **Settings > System Admin**.
 
 ### System Administration
 

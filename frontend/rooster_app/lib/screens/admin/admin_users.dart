@@ -262,7 +262,10 @@ class _AdminUsersState extends State<AdminUsers> {
     final orgs = user['organisations'] as List<dynamic>?;
     if (orgs == null || orgs.isEmpty) return '-';
     return orgs
-        .map((o) => (o as Map<String, dynamic>)['name'] as String? ?? '')
+        .map((o) {
+          final m = o as Map<String, dynamic>;
+          return (m['org_name'] ?? m['name']) as String? ?? '';
+        })
         .where((n) => n.isNotEmpty)
         .join(', ');
   }
@@ -549,7 +552,9 @@ class _UserDetailDialog extends StatelessWidget {
         return ListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,
-          title: Text(m['name'] as String? ?? ''),
+          title: Text(
+            (m['org_name'] ?? m['team_name'] ?? m['name']) as String? ?? '',
+          ),
           trailing: m['role'] != null
               ? Text(
                   m['role'] as String,
